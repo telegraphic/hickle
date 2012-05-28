@@ -11,6 +11,7 @@ Why use Hickle?
 ---------------
 
 Hickle has two main advantages over Pickle:
+
 1) LARGE PICKLE HANDLING. Unpickling a large pickle is slow, as the Unpickler reads the entire pickle 
 thing and loads it into memory. In comparison, HDF5 files are designed for large datasets. Things are 
 only loaded when accessed. 
