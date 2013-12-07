@@ -3,8 +3,7 @@
 hickle.py
 =============
 
-Created by Danny Price and Jack Hickish on 2012-05-28.
-Copyright (c) 2012 The University of Oxford. All rights reserved.
+Created by Danny Price 2012-05-28.
 
 Hickle is a HDF5 based clone of Pickle. Instead of serializing to a pickle file,
 Hickle dumps to a HDF5 file. It is designed to be as similar to pickle in usage as possible.
@@ -29,8 +28,8 @@ import exceptions
 import numpy as np
 import h5py as h5
 
-__version__ = "0.1"
-__author__  = "Danny Price and Jack Hickish"
+__version__ = "0.2"
+__author__  = "Danny Price"
 
 ####################
 ## Error handling ##
@@ -74,7 +73,6 @@ def fileOpener(file, mode='r'):
     h5f = h5.File(filename, mode)
   else:
     raise FileError
-  
   return h5f
 
 
@@ -85,14 +83,52 @@ def fileOpener(file, mode='r'):
 def dumpNdarray(obj, h5f):
   """ dumps an ndarray object to h5py file"""
   h5f.create_dataset('data', data=obj)
+  h5f.create_dataset('type', data=['ndarray'])
 
 def dumpList(obj, h5f):
   """ dumps a list object to h5py file"""
   h5f.create_dataset('data', data=obj)
+  h5f.create_dataset('type', data=['list'])
+
+def dumpSet(obj, h5f):
+  """ dumps a set object to h5py file"""
+  obj = list(obj)
+  h5f.create_dataset('data', data=obj)
+  h5f.create_dataset('type', data=['set'])
 
 def dumpDict(obj, h5f=''):
   """ dumps a dictionary to h5py file """
-  raise ToDoError
+  h5f.create_dataset('type', data=['dict'])
+  hgroup = h5f.create_group('data')
+  for key in obj:
+    if type(obj[key]) in (str, int, float, unicode, bool):
+        # Figure out type to be stored
+        types = {str : 'str', int : 'int', float : 'float', 
+                 unicode : 'unicode', bool : 'bool'}
+        _key = types.get(type(obj[key]))
+        
+        # Store along with dtype info
+        if _key == 'unicode':
+            obj[key] = str(obj[key])
+        
+        hgroup.create_dataset(key, data=[obj[key]])
+        hgroup.create_dataset("_%s"%key, data=[_key])
+        
+    elif type(obj[key]) is type(np.array([1])):
+        hgroup.create_dataset(key, data=obj[key])
+        hgroup.create_dataset("_%s"%key, data=["ndarray"])
+    
+    elif type(obj[key]) is list:
+        hgroup.create_dataset(key, data=obj[key])
+        hgroup.create_dataset("_%s"%key, data=["list"])
+    
+    elif type(obj[key]) is set:
+        hgroup.create_dataset(key, data=list(obj[key]))
+        hgroup.create_dataset("_%s"%key, data=["set"])
+    
+    else:
+        print type(obj[key])
+        raise NoMatchError
 
 def noMatch(obj, h5f=''):
   """ If no match is made, raise an exception """
@@ -108,6 +144,7 @@ def dumperLookup(obj):
   
   types = {
      list       : dumpList,
+     set        : dumpSet,
      np.ndarray : dumpNdarray,
      dict       : dumpDict
   }
@@ -115,7 +152,7 @@ def dumperLookup(obj):
   match = types.get(t, noMatch)
   return match
 
-def dump(obj, file, mode='r'):
+def dump(obj, file, mode='w'):
   """ Write a pickled representation of obj to the open file object file. 
   
   Parameters
@@ -137,12 +174,6 @@ def dump(obj, file, mode='r'):
   dumper(obj, h5f)
   h5f.close()
 
-  
-def dumps(obj, file, mode='r'):
-  """ Not sure how and whether to support this or not. """
-  raise ToDoError
-
-
 #############
 ## loaders ##
 #############
@@ -155,11 +186,54 @@ def load(file):
   file: file object, h5py.File, or filename string
   """
   
-  h5f = fileOpener(file)
-  data = h5f["data"][:]
+  h5f   = fileOpener(file)
+  dtype = h5f["type"][0]
+  
+  if dtype == 'dict':
+      group = h5f["data"]
+      data = loadDict(group)
+  else:
+      data  = h5f["data"][:]
+  
+      types = {
+         'list'       : list,
+         'set'        : set,
+         'ndarray'    : loadNdarray
+      }
+      
+      mod = types.get(dtype, noMatch)
+      data = mod(data) 
   h5f.close()
-
   return data
+
+def loadNdarray(arr):
+    """ Load a numpy array """
+    # Nothing to be done!
+    return arr
+
+def loadDict(group):
+    """ Load dictionary """
+    
+    dd = {}
+    for key in group.keys():
+        if not key.startswith("_"):
+            _key = "_%s"%key
+            #print _key, group[_key]
+            if group[_key][0] in ('str', 'int', 'float', 'unicode', 'bool'):
+                dd[key] = group[key][0]
+            else:
+                dd[key] = group[key][:]
+            
+            # Convert numpy constructs back to string
+            dtype = group[_key][0]
+            types = {'str' : str , 'int' : int, 'float' : float, 
+                     'unicode' : unicode, 'bool' : bool, 'list' : list}
+            try:
+                mod = types.get(dtype)
+                dd[key] = mod(dd[key])
+            except:
+                pass
+    return dd
 
 def loadLarge(file):
   """ Load a large hickle file (returns the h5py object not the data) 
@@ -172,33 +246,5 @@ def loadLarge(file):
   h5f = fileOpener(file)
   return h5f
 
-def loads(file):
-  """ Not sure whether to support this or not. """
-  raise ToDoError
-
-
-##########
-## Main ##
-##########
-  
-if __name__ == '__main__':
-  """ Some tests and examples"""
-  
-  # Dumping and loading a list
-  filename, mode = 'test.h5', 'w'
-  list_obj = [1, 2, 3, 4, 5]
-  dump(list_obj, filename, mode)
-  list_hkl = load(filename)
-  print "Initial list: %s"%list_obj
-  print "Unhickled data: %s"%list_hkl
-
-  
-  # Dumping and loading a numpy array
-  filename, mode = 'test.h5', 'w'
-  array_obj = np.array([1, 2, 3, 4, 5])
-  dump(array_obj, filename, mode)
-  array_hkl = load(filename)
-  print "Initial array: %s"%array_obj
-  print "Unhickled data: %s"%array_hkl
   
   
