@@ -38,3 +38,26 @@ For storing python dictionaries of lists, hickle beats the python json encoder, 
   ```
 
 It should be noted that these comparisons are of course not fair: storing in HDF5 will not help you convert something into JSON, nor will it help you serialize a string. But for quick storage of the contents of a python variable, it's a pretty good option.
+
+Usage example
+-------------
+
+Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before:
+
+  ``` python
+  import numpy as np
+  import hickle as hkl
+  
+  data = {'name' : 'test', 'data_arr' : [1, 2, 3, 4]}
+  
+  # Dump data to file
+  hkl.dump(data, 'new_data_file.hkl')
+  
+  # Load data from file
+  data2 = hkl.load('new_data_file.hkl')
+  
+  print data
+  print data2
+  ```
+  
+  
