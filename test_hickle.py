@@ -99,11 +99,35 @@ def test_dict():
             raise
     os.remove(filename)
 
+def test_compression():
+    """ Test compression on datasets"""
+    
+    filename, mode = 'test.h5', 'w'
+    dtypes = ['int32', 'float32', 'float64', 'complex64', 'complex128']
+    
+    comps = [None, 'gzip', 'lzf']
+    
+    for dt in dtypes:
+        for cc in comps:
+            array_obj = np.ones(32768, dtype=dt)
+            dump(array_obj, filename, mode, compression=cc)
+            print cc, os.path.getsize(filename)
+            array_hkl = load(filename)
+    try:
+        assert array_hkl.dtype == array_obj.dtype
+        assert np.all((array_hkl, array_obj))
+        os.remove(filename)
+    except AssertionError:
+        os.remove(filename)
+        print array_hkl
+        print array_obj
+        raise
+
 if __name__ == '__main__':
   """ Some tests and examples"""
   test_list()
   test_set()
   test_numpy()
   test_dict()
-  
+  test_compression()
   

@@ -80,23 +80,23 @@ def fileOpener(file, mode='r'):
 ## dumpers ##
 #############
 
-def dumpNdarray(obj, h5f):
+def dumpNdarray(obj, h5f, compression=None):
   """ dumps an ndarray object to h5py file"""
-  h5f.create_dataset('data', data=obj)
+  h5f.create_dataset('data', data=obj, compression=compression)
   h5f.create_dataset('type', data=['ndarray'])
 
-def dumpList(obj, h5f):
+def dumpList(obj, h5f, compression=None):
   """ dumps a list object to h5py file"""
-  h5f.create_dataset('data', data=obj)
+  h5f.create_dataset('data', data=obj, compression=compression)
   h5f.create_dataset('type', data=['list'])
 
-def dumpSet(obj, h5f):
+def dumpSet(obj, h5f, compression=None):
   """ dumps a set object to h5py file"""
   obj = list(obj)
-  h5f.create_dataset('data', data=obj)
+  h5f.create_dataset('data', data=obj, compression=compression)
   h5f.create_dataset('type', data=['set'])
 
-def dumpDict(obj, h5f=''):
+def dumpDict(obj, h5f='', compression=None):
   """ dumps a dictionary to h5py file """
   h5f.create_dataset('type', data=['dict'])
   hgroup = h5f.create_group('data')
@@ -111,19 +111,19 @@ def dumpDict(obj, h5f=''):
         if _key == 'unicode':
             obj[key] = str(obj[key])
         
-        hgroup.create_dataset(key, data=[obj[key]])
+        hgroup.create_dataset(key, data=[obj[key]], compression=compression)
         hgroup.create_dataset("_%s"%key, data=[_key])
         
     elif type(obj[key]) is type(np.array([1])):
-        hgroup.create_dataset(key, data=obj[key])
+        hgroup.create_dataset(key, data=obj[key], compression=compression)
         hgroup.create_dataset("_%s"%key, data=["ndarray"])
     
     elif type(obj[key]) is list:
-        hgroup.create_dataset(key, data=obj[key])
+        hgroup.create_dataset(key, data=obj[key], compression=compression)
         hgroup.create_dataset("_%s"%key, data=["list"])
     
     elif type(obj[key]) is set:
-        hgroup.create_dataset(key, data=list(obj[key]))
+        hgroup.create_dataset(key, data=list(obj[key]), compression=compression)
         hgroup.create_dataset("_%s"%key, data=["set"])
     
     else:
@@ -152,7 +152,7 @@ def dumperLookup(obj):
   match = types.get(t, noMatch)
   return match
 
-def dump(obj, file, mode='w'):
+def dump(obj, file, mode='w', compression=None):
   """ Write a pickled representation of obj to the open file object file. 
   
   Parameters
@@ -163,6 +163,8 @@ def dump(obj, file, mode='w'):
     file in which to store the object. A h5py.File or a filename is also acceptable.
   mode: string
     optional argument, 'r' (read only), 'w' (write) or 'a' (append). Ignored if file is a file object.
+  compression: str
+    optional argument. Applies compression to dataset. Options: None, gzip, lzf (+ szip, if installed)
   """
   
   # Open the file
@@ -171,7 +173,7 @@ def dump(obj, file, mode='w'):
   # Now dump to file
   dumper = dumperLookup(obj)
   print "dumping %s to file %s"%(type(obj), repr(h5f))
-  dumper(obj, h5f)
+  dumper(obj, h5f, compression)
   h5f.close()
 
 #############
