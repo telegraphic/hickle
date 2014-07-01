@@ -40,7 +40,7 @@ For storing python dictionaries of lists, hickle beats the python json encoder, 
 
 It should be noted that these comparisons are of course not fair: storing in HDF5 will not help you convert something into JSON, nor will it help you serialize a string. But for quick storage of the contents of a python variable, it's a pretty good option.
 
-Installation guidelines (valid for Linux and Mac OS).
+Installation guidelines (for Linux and Mac OS).
 ----------------------------------------------------------------------------------------------------
 
 1. You should have Python 2.7 and above installed
