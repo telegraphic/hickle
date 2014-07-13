@@ -62,6 +62,26 @@ def test_numpy():
         print array_obj
         raise
 
+
+def test_masked():
+    """ Test masked numpy array """
+    filename, mode = 'test.h5', 'w'    
+    a = np.ma.array([1,2,3,4], dtype='float32', mask=[0,1,0,0])
+    
+    dump(a, filename, mode)
+    a_hkl = load(filename)
+    
+    try:
+        assert a_hkl.dtype == a.dtype
+        assert np.all((a_hkl, a))
+        os.remove(filename)
+    except AssertionError:
+        os.remove(filename)
+        print a_hkl
+        print a
+        raise
+        
+
 def test_dict():
     """ Test dictionary dumping and loading """
     filename, mode = 'test.h5', 'w'
@@ -123,6 +143,8 @@ def test_compression():
         print array_obj
         raise
 
+
+
 if __name__ == '__main__':
   """ Some tests and examples"""
   test_list()
@@ -130,4 +152,5 @@ if __name__ == '__main__':
   test_numpy()
   test_dict()
   test_compression()
+  test_masked()
   

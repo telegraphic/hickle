@@ -84,6 +84,12 @@ def dumpNdarray(obj, h5f, compression=None):
   """ dumps an ndarray object to h5py file"""
   h5f.create_dataset('data', data=obj, compression=compression)
   h5f.create_dataset('type', data=['ndarray'])
+ 
+def dumpMasked(obj, h5f, compression=None):
+  """ dumps an ndarray object to h5py file"""
+  h5f.create_dataset('data', data=obj, compression=compression)
+  h5f.create_dataset('mask', data=obj.mask, compression=compression)
+  h5f.create_dataset('type', data=['masked'])
 
 def dumpList(obj, h5f, compression=None):
   """ dumps a list object to h5py file"""
@@ -146,7 +152,8 @@ def dumperLookup(obj):
      list       : dumpList,
      set        : dumpSet,
      np.ndarray : dumpNdarray,
-     dict       : dumpDict
+     dict       : dumpDict,
+     np.ma.core.MaskedArray : dumpMasked
   }
   
   match = types.get(t, noMatch)
@@ -194,13 +201,15 @@ def load(file):
   if dtype == 'dict':
       group = h5f["data"]
       data = loadDict(group)
+  elif dtype == 'masked':
+      data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
   else:
       data  = h5f["data"][:]
   
       types = {
          'list'       : list,
          'set'        : set,
-         'ndarray'    : loadNdarray
+         'ndarray'    : loadNdarray,
       }
       
       mod = types.get(dtype, noMatch)
