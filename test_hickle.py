@@ -143,6 +143,17 @@ def test_compression():
         print array_obj
         raise
 
+def test_dict_int_key():
+    """ Test for dictionaries with integer keys """
+    filename, mode = 'test.h5', 'w'
+
+    dd = {
+        0: "test",
+        1: "test2"
+    }
+
+    dump(dd, filename, mode)
+    os.remove(filename)
 
 
 if __name__ == '__main__':
@@ -153,4 +164,5 @@ if __name__ == '__main__':
   test_dict()
   test_compression()
   test_masked()
+  test_dict_int_key()
   

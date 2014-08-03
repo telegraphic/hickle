@@ -107,6 +107,8 @@ def dumpDict(obj, h5f='', compression=None):
   h5f.create_dataset('type', data=['dict'])
   hgroup = h5f.create_group('data')
   for key in obj:
+
+
     if type(obj[key]) in (str, int, float, unicode, bool):
         # Figure out type to be stored
         types = {str : 'str', int : 'int', float : 'float', 
@@ -116,20 +118,20 @@ def dumpDict(obj, h5f='', compression=None):
         # Store along with dtype info
         if _key == 'unicode':
             obj[key] = str(obj[key])
-        
-        hgroup.create_dataset(key, data=[obj[key]], compression=compression)
+
+        hgroup.create_dataset("%s"%key, data=[obj[key]], compression=compression)
         hgroup.create_dataset("_%s"%key, data=[_key])
         
     elif type(obj[key]) is type(np.array([1])):
-        hgroup.create_dataset(key, data=obj[key], compression=compression)
+        hgroup.create_dataset("%s"%key, data=obj[key], compression=compression)
         hgroup.create_dataset("_%s"%key, data=["ndarray"])
     
     elif type(obj[key]) is list:
-        hgroup.create_dataset(key, data=obj[key], compression=compression)
+        hgroup.create_dataset("%s"%key, data=obj[key], compression=compression)
         hgroup.create_dataset("_%s"%key, data=["list"])
     
     elif type(obj[key]) is set:
-        hgroup.create_dataset(key, data=list(obj[key]), compression=compression)
+        hgroup.create_dataset("%s"%key, data=list(obj[key]), compression=compression)
         hgroup.create_dataset("_%s"%key, data=["set"])
     
     else:
