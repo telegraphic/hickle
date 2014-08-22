@@ -2,7 +2,7 @@ Hickle
 ======
 
 Hickle is a HDF5 based clone of Pickle, with a twist. Instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file. It is designed to be a "drop-in" replacement for pickle. That is: 
+Hickle dumps to a HDF5 file. It is designed to be a "drop-in" replacement for pickle (for common data objects). That is: 
 it is a neat little way of dumping python variables to file.
 
 Why use Hickle?
@@ -17,7 +17,14 @@ The main reasons to use hickle are:
   2. it stores data in HDF5
   3. You can easily compress your data.
 
-So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try. Hickle is particularly good at storing large numpy arrays, thanks to h5py running under the hood.
+The main reasons not to use hickle are:
+
+  1. You want to serialize arbitrary python objects. For this, use pickle; 
+     currently, hickle only supports data-like objects (dicts, lists, numpy arrays etc). 
+  2. You want to convert your data in JSON. For this, use a json or uJson.
+
+So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try. Hickle is particularly good at storing large numpy arrays, thanks to h5py running under the hood. 
+
 
 Performance comparison
 ----------------------
