@@ -20,7 +20,6 @@ only loaded when accessed.
 is likely to fail with errors like "Insecure string pickle". HDF5 files will load fine, as long as
 both machines have h5py installed.
 
-TODO: Add support for chunking and compression
 
 """
 
@@ -28,7 +27,7 @@ import exceptions
 import numpy as np
 import h5py as h5
 
-__version__ = "1.0"
+__version__ = "1.0.2"
 __author__  = "Danny Price"
 
 ####################
