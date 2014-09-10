@@ -111,7 +111,7 @@ def dumpDict(obj, h5f='', compression=None):
 
     if type(obj[key]) in (str, int, float, unicode, bool):
         # Figure out type to be stored
-        types = {str : 'str', int : 'int', float : 'float', 
+        types = { str : 'str', int : 'int', float : 'float', 
                  unicode : 'unicode', bool : 'bool'}
         _key = types.get(type(obj[key]))
         
@@ -122,9 +122,15 @@ def dumpDict(obj, h5f='', compression=None):
         hgroup.create_dataset("%s"%key, data=[obj[key]], compression=compression)
         hgroup.create_dataset("_%s"%key, data=[_key])
         
-    elif type(obj[key]) is type(np.array([1])):
-        hgroup.create_dataset("%s"%key, data=obj[key], compression=compression)
-        hgroup.create_dataset("_%s"%key, data=["ndarray"])
+    elif type(obj[key]) in (type(np.array([1])), type(np.ma.array([1]))):
+ 
+        if hasattr(obj[key], 'mask'):
+            hgroup.create_dataset("_%s"%key, data=["masked"])
+            hgroup.create_dataset("%s"%key, data=obj[key].data, compression=compression)
+            hgroup.create_dataset("_%s_mask"%key, data=obj[key].mask, compression=compression)
+        else:
+            hgroup.create_dataset("_%s"%key, data=["ndarray"])
+            hgroup.create_dataset("%s"%key, data=obj[key], compression=compression)
     
     elif type(obj[key]) is list:
         hgroup.create_dataset("%s"%key, data=obj[key], compression=compression)
@@ -230,10 +236,13 @@ def loadDict(group):
     dd = {}
     for key in group.keys():
         if not key.startswith("_"):
-            _key = "_%s"%key
+            _key = "_%s" % key
             #print _key, group[_key]
             if group[_key][0] in ('str', 'int', 'float', 'unicode', 'bool'):
                 dd[key] = group[key][0]
+            elif group[_key][0] == 'masked':
+                key_ma     = "_%s_mask" % key
+                dd[key] = np.ma.array(group[key][:], mask=group[key_ma])
             else:
                 dd[key] = group[key][:]
             

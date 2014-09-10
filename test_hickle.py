@@ -155,9 +155,45 @@ def test_dict_int_key():
     dump(dd, filename, mode)
     os.remove(filename)
 
+def test_masked_dict():
+    """ Test dictionaries with masked arrays """
+
+    filename, mode = 'test.h5', 'w'
+
+    dd = {
+        "data"  : np.ma.array([1,2,3], mask=[True, False, False]),
+        "data2" : np.array([1,2,3,4,5])
+    }
+
+    dump(dd, filename, mode)
+    dd_hkl = load(filename)
+    
+    for k in dd.keys():
+        try:
+            assert k in dd_hkl.keys()
+            if type(dd[k]) is type(np.array([1])):
+                assert np.all((dd[k], dd_hkl[k]))
+            elif type(dd[k]) is type(np.ma.array([1])):
+                print dd[k].data
+                print dd_hkl[k].data
+                assert np.allclose(dd[k].data, dd_hkl[k].data)
+                assert np.allclose(dd[k].mask, dd_hkl[k].mask)
+                
+            assert type(dd_hkl[k]) == type(dd[k])
+
+        except AssertionError:
+            print k
+            print dd_hkl[k]
+            print dd[k]
+            print type(dd_hkl[k]), type(dd[k])
+            os.remove(filename)
+            raise
+    os.remove(filename)
+    
 
 if __name__ == '__main__':
   """ Some tests and examples"""
+  test_masked_dict()
   test_list()
   test_set()
   test_numpy()
