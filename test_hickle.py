@@ -153,6 +153,39 @@ def test_dict_int_key():
     }
 
     dump(dd, filename, mode)
+    dd_hkl = load(filename)
+
+    
+    os.remove(filename)
+
+def test_dict_nested():
+    """ Test for dictionaries with integer keys """
+    filename, mode = 'test.h5', 'w'
+
+    dd = {
+        "level1_1" : {
+            "level2_1" : [1, 2, 3],
+            "level2_2" : [4, 5, 6]
+        },
+        "level1_2" : {
+            "level2_1" : [1, 2, 3],
+            "level2_2" : [4, 5, 6]            
+        },
+        "level1_3" : {
+            "level2_1" : {
+                "level3_1" : [1, 2, 3],
+                "level3_2" : [4, 5, 6]                     
+            },
+            "level2_2" : [4, 5, 6]            
+        }
+    }
+
+    dump(dd, filename, mode)
+    dd_hkl = load(filename)
+    
+    ll_hkl = dd_hkl["level1_3"]["level2_1"]["level3_1"]
+    ll     = dd["level1_3"]["level2_1"]["level3_1"]
+    assert ll == ll_hkl
     os.remove(filename)
 
 def test_masked_dict():
@@ -201,4 +234,5 @@ if __name__ == '__main__':
   test_compression()
   test_masked()
   test_dict_int_key()
+  test_dict_nested()
   
