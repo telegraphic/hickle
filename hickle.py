@@ -23,11 +23,12 @@ both machines have h5py installed.
 
 """
 
+import os
 import exceptions
 import numpy as np
 import h5py as h5
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 __author__  = "Danny Price"
 
 ####################
@@ -148,7 +149,7 @@ def dumpDict(obj, h5f='', compression=None):
   hgroup = h5f.create_group('data')
   _dumpDict(obj, hgroup, compression=None)
 
-def noMatch(obj, h5f=''):
+def noMatch(obj, *args, **kwargs):
   """ If no match is made, raise an exception """
   raise NoMatchError
 
@@ -186,14 +187,23 @@ def dump(obj, file, mode='w', compression=None):
     optional argument. Applies compression to dataset. Options: None, gzip, lzf (+ szip, if installed)
   """
   
-  # Open the file
-  h5f = fileOpener(file, mode)
-  
-  # Now dump to file
-  dumper = dumperLookup(obj)
-  print "dumping %s to file %s"%(type(obj), repr(h5f))
-  dumper(obj, h5f, compression)
-  h5f.close()
+  try:
+      # See what kind of object to dump
+      dumper = dumperLookup(obj)
+      # Open the file
+      h5f = fileOpener(file, mode)
+      print "dumping %s to file %s"%(type(obj), repr(h5f))
+      dumper(obj, h5f, compression)
+      h5f.close()
+  except NoMatchError:
+      fname = h5f.filename
+      h5f.close()
+      try:
+          os.remove(fname)
+      except:
+          print "Warning: dump failed. Could not remove %s" % fname
+      finally:
+          raise NoMatchError
 
 #############
 ## loaders ##
@@ -207,26 +217,28 @@ def load(file):
   file: file object, h5py.File, or filename string
   """
   
-  h5f   = fileOpener(file)
-  dtype = h5f["type"][0]
+  try:
+      h5f   = fileOpener(file)
+      dtype = h5f["type"][0]
   
-  if dtype == 'dict':
-      group = h5f["data"]
-      data = loadDict(group)
-  elif dtype == 'masked':
-      data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
-  else:
-      data  = h5f["data"][:]
+      if dtype == 'dict':
+          group = h5f["data"]
+          data = loadDict(group)
+      elif dtype == 'masked':
+          data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
+      else:
+          data  = h5f["data"][:]
   
-      types = {
-         'list'       : list,
-         'set'        : set,
-         'ndarray'    : loadNdarray,
-      }
+          types = {
+             'list'       : list,
+             'set'        : set,
+             'ndarray'    : loadNdarray,
+          }
       
-      mod = types.get(dtype, noMatch)
-      data = mod(data) 
-  h5f.close()
+          mod = types.get(dtype, noMatch)
+          data = mod(data) 
+  finally:
+      h5f.close()
   return data
 
 def loadNdarray(arr):

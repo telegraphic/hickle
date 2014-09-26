@@ -222,7 +222,21 @@ def test_masked_dict():
             os.remove(filename)
             raise
     os.remove(filename)
+
+def test_nomatch():
+    """ Test for dictionaries with integer keys """
+    filename, mode = 'donotmakethisfile.h5', 'w'
+
+    dd = Exception('Nothing to see here')
+    no_match = False
     
+    try:
+        dump(dd, filename, mode)
+    except NoMatchError:
+        no_match = True
+        print "PASS: No match exception raised!"
+    assert no_match is True
+    assert not os.path.isfile(filename)
 
 if __name__ == '__main__':
   """ Some tests and examples"""
@@ -235,4 +249,5 @@ if __name__ == '__main__':
   test_masked()
   test_dict_int_key()
   test_dict_nested()
+  test_nomatch()
   
