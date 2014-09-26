@@ -10,6 +10,42 @@ Unit tests for hickle module.
 
 import os
 from hickle import *
+import unicodedata
+
+def test_string():
+    """ Dumping and loading a string """
+    filename, mode = 'test.h5', 'w'
+    string_obj = "The quick brown fox jumps over the lazy dog"
+    dump(string_obj, filename, mode)
+    string_hkl = load(filename)
+    #print "Initial list:   %s"%list_obj
+    #print "Unhickled data: %s"%list_hkl
+    try:
+        assert type(string_obj) == type(string_hkl) == str
+        assert string_obj == string_hkl
+        os.remove(filename)
+    except AssertionError:
+        os.remove(filename)
+        raise
+
+def test_unicode():
+    """ Dumping and loading a string """
+    filename, mode = 'test.h5', 'w'
+    u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
+    dump(u, filename, mode)
+    u_hkl = load(filename)
+
+    try:
+        assert type(u) == type(u_hkl) == unicode
+        assert u == u_hkl
+        # For those interested, uncomment below to see what those codes are:
+        # for i, c in enumerate(u_hkl):
+        #     print i, '%04x' % ord(c), unicodedata.category(c),
+        #     print unicodedata.name(c)
+    except AssertionError:
+        os.remove(filename)
+        raise
+
 
 def test_list():
     """ Dumping and loading a list """
@@ -234,12 +270,14 @@ def test_nomatch():
         dump(dd, filename, mode)
     except NoMatchError:
         no_match = True
-        print "PASS: No match exception raised!"
+        print "PASS: No match exception raised and caught"
     assert no_match is True
     assert not os.path.isfile(filename)
 
 if __name__ == '__main__':
   """ Some tests and examples"""
+  test_unicode()
+  test_string()
   test_masked_dict()
   test_list()
   test_set()
@@ -250,4 +288,6 @@ if __name__ == '__main__':
   test_dict_int_key()
   test_dict_nested()
   test_nomatch()
+  
+  print "ALL TESTS PASSED!"
   

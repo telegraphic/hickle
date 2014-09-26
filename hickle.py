@@ -101,6 +101,19 @@ def dumpSet(obj, h5f, compression=None):
   obj = list(obj)
   h5f.create_dataset('data', data=obj, compression=compression)
   h5f.create_dataset('type', data=['set'])
+ 
+def dumpString(obj, h5f, compression=None):
+  """ dumps a list object to h5py file"""
+  h5f.create_dataset('data', data=[obj], compression=compression)
+  h5f.create_dataset('type', data=['string'])
+
+def dumpUnicode(obj, h5f, compression=None):
+  """ dumps a list object to h5py file"""
+  dt = h5.special_dtype(vlen=unicode)
+  ll = len(obj)
+  dset = h5f.create_dataset('data', shape=(ll, ), compression=compression, dtype=dt)
+  dset[:ll] = obj
+  h5f.create_dataset('type', data=['unicode'])
 
 def _dumpDict(dd, hgroup, compression=None):
   for key in dd:
@@ -149,8 +162,13 @@ def dumpDict(obj, h5f='', compression=None):
   hgroup = h5f.create_group('data')
   _dumpDict(obj, hgroup, compression=None)
 
-def noMatch(obj, *args, **kwargs):
+def noMatch(obj, h5f, *args, **kwargs):
   """ If no match is made, raise an exception """
+  #import cPickle
+  #pickled_obj = cPickle.dumps(obj)
+  #h5f.create_dataset('type', data=['pickle'])
+  #hgroup = h5f.create_group('data')
+  
   raise NoMatchError
 
 def dumperLookup(obj):
@@ -164,9 +182,11 @@ def dumperLookup(obj):
   types = {
      list       : dumpList,
      set        : dumpSet,
-     np.ndarray : dumpNdarray,
      dict       : dumpDict,
-     np.ma.core.MaskedArray : dumpMasked
+     str        : dumpString,
+     unicode    : dumpUnicode,
+     np.ndarray : dumpNdarray,
+     np.ma.core.MaskedArray : dumpMasked,
   }
   
   match = types.get(t, noMatch)
@@ -220,18 +240,23 @@ def load(file):
   try:
       h5f   = fileOpener(file)
       dtype = h5f["type"][0]
-  
+      
       if dtype == 'dict':
           group = h5f["data"]
           data = loadDict(group)
       elif dtype == 'masked':
           data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
       else:
-          data  = h5f["data"][:]
+          if dtype in ('string', 'unicode'):
+              data  = h5f["data"][0]
+          else:
+              data  = h5f["data"][:]
   
           types = {
              'list'       : list,
              'set'        : set,
+             'unicode'    : unicode,
+             'string'     : str,
              'ndarray'    : loadNdarray,
           }
       
