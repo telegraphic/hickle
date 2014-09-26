@@ -101,47 +101,52 @@ def dumpSet(obj, h5f, compression=None):
   h5f.create_dataset('data', data=obj, compression=compression)
   h5f.create_dataset('type', data=['set'])
 
+def _dumpDict(dd, hgroup, compression=None):
+  for key in dd:
+    if type(dd[key]) in (str, int, float, unicode, bool):
+        # Figure out type to be stored
+        types = { str : 'str', int : 'int', float : 'float', 
+                 unicode : 'unicode', bool : 'bool'}
+        _key = types.get(type(dd[key]))
+        
+        # Store along with dtype info
+        if _key == 'unicode':
+            dd[key] = str(dd[key])
+
+        hgroup.create_dataset("%s"%key, data=[dd[key]], compression=compression)
+        hgroup.create_dataset("_%s"%key, data=[_key])
+        
+    elif type(dd[key]) in (type(np.array([1])), type(np.ma.array([1]))):
+ 
+        if hasattr(dd[key], 'mask'):
+            hgroup.create_dataset("_%s"%key, data=["masked"])
+            hgroup.create_dataset("%s"%key, data=dd[key].data, compression=compression)
+            hgroup.create_dataset("_%s_mask"%key, data=dd[key].mask, compression=compression)
+        else:
+            hgroup.create_dataset("_%s"%key, data=["ndarray"])
+            hgroup.create_dataset("%s"%key, data=dd[key], compression=compression)
+    
+    elif type(dd[key]) is list:
+        hgroup.create_dataset("%s"%key, data=dd[key], compression=compression)
+        hgroup.create_dataset("_%s"%key, data=["list"])
+    
+    elif type(dd[key]) is set:
+        hgroup.create_dataset("%s"%key, data=list(dd[key]), compression=compression)
+        hgroup.create_dataset("_%s"%key, data=["set"])
+    
+    elif isinstance(dd[key], dict):
+        new_group = hgroup.create_group("%s"%key)
+        _dumpDict(dd[key], new_group, compression=compression)       
+    
+    else:
+        print type(dd[key])
+        raise NoMatchError
+
 def dumpDict(obj, h5f='', compression=None):
   """ dumps a dictionary to h5py file """
   h5f.create_dataset('type', data=['dict'])
   hgroup = h5f.create_group('data')
-  for key in obj:
-
-
-    if type(obj[key]) in (str, int, float, unicode, bool):
-        # Figure out type to be stored
-        types = { str : 'str', int : 'int', float : 'float', 
-                 unicode : 'unicode', bool : 'bool'}
-        _key = types.get(type(obj[key]))
-        
-        # Store along with dtype info
-        if _key == 'unicode':
-            obj[key] = str(obj[key])
-
-        hgroup.create_dataset("%s"%key, data=[obj[key]], compression=compression)
-        hgroup.create_dataset("_%s"%key, data=[_key])
-        
-    elif type(obj[key]) in (type(np.array([1])), type(np.ma.array([1]))):
- 
-        if hasattr(obj[key], 'mask'):
-            hgroup.create_dataset("_%s"%key, data=["masked"])
-            hgroup.create_dataset("%s"%key, data=obj[key].data, compression=compression)
-            hgroup.create_dataset("_%s_mask"%key, data=obj[key].mask, compression=compression)
-        else:
-            hgroup.create_dataset("_%s"%key, data=["ndarray"])
-            hgroup.create_dataset("%s"%key, data=obj[key], compression=compression)
-    
-    elif type(obj[key]) is list:
-        hgroup.create_dataset("%s"%key, data=obj[key], compression=compression)
-        hgroup.create_dataset("_%s"%key, data=["list"])
-    
-    elif type(obj[key]) is set:
-        hgroup.create_dataset("%s"%key, data=list(obj[key]), compression=compression)
-        hgroup.create_dataset("_%s"%key, data=["set"])
-    
-    else:
-        print type(obj[key])
-        raise NoMatchError
+  _dumpDict(obj, hgroup, compression=None)
 
 def noMatch(obj, h5f=''):
   """ If no match is made, raise an exception """
@@ -234,7 +239,10 @@ def loadDict(group):
     
     dd = {}
     for key in group.keys():
-        if not key.startswith("_"):
+        if isinstance(group[key], h5._hl.group.Group):
+            new_group = group[key]
+            dd[key] = loadDict(new_group)
+        elif not key.startswith("_"):
             _key = "_%s" % key
             #print _key, group[_key]
             if group[_key][0] in ('str', 'int', 'float', 'unicode', 'bool'):
