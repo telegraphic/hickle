@@ -28,7 +28,7 @@ import exceptions
 import numpy as np
 import h5py as h5
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __author__  = "Danny Price"
 
 ####################
@@ -164,12 +164,13 @@ def dumpDict(obj, h5f='', compression=None):
 
 def noMatch(obj, h5f, *args, **kwargs):
   """ If no match is made, raise an exception """
-  #import cPickle
-  #pickled_obj = cPickle.dumps(obj)
-  #h5f.create_dataset('type', data=['pickle'])
-  #hgroup = h5f.create_group('data')
+  import cPickle
+  pickled_obj = cPickle.dumps(obj)
+  h5f.create_dataset('type', data=['pickle'])
+  h5f.create_dataset('data', data=[pickled_obj])
   
-  raise NoMatchError
+  print "Warning: %s type not understood, data have been serialized" % type(obj)
+  #raise NoMatchError
 
 def dumperLookup(obj):
   """ What type of object are we trying to pickle?
@@ -229,12 +230,16 @@ def dump(obj, file, mode='w', compression=None):
 ## loaders ##
 #############
 
-def load(file):
+def load(file, safe=True):
   """ Load a hickle file and reconstruct a python object
   
   Parameters
   ----------
   file: file object, h5py.File, or filename string
+  
+  safe (bool): Disable automatic depickling of arbitrary python objects. 
+  DO NOT set this to False unless the file is from a trusted source.
+  (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
   """
   
   try:
@@ -244,6 +249,8 @@ def load(file):
       if dtype == 'dict':
           group = h5f["data"]
           data = loadDict(group)
+      elif dtype == 'pickle':
+          data = loadPickle(h5f, safe)
       elif dtype == 'masked':
           data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
       else:
@@ -265,6 +272,31 @@ def load(file):
   finally:
       h5f.close()
   return data
+
+def loadPickle(h5f, safe=True):
+  """ Deserialize and load a pickled object within a hickle file
+  
+  WARNING: Pickle has 
+  
+  Parameters
+  ----------
+  h5f: h5py.File object
+  
+  safe (bool): Disable automatic depickling of arbitrary python objects. 
+  DO NOT set this to False unless the file is from a trusted source.
+  (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+  """
+  
+  if not safe:
+      import cPickle
+      data = h5f["data"][:]
+      data = cPickle.loads(data[0])
+      return data
+  else:
+      print "\nWarning: Object is of an unknown type, and has not been loaded"
+      print "         for security reasons (it could be malicious code). If"
+      print "         you wish to continue, manually set safe=False\n"
+      
 
 def loadNdarray(arr):
     """ Load a numpy array """

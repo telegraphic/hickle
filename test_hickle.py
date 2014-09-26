@@ -29,7 +29,7 @@ def test_string():
         raise
 
 def test_unicode():
-    """ Dumping and loading a string """
+    """ Dumping and loading a unicode string """
     filename, mode = 'test.h5', 'w'
     u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
     dump(u, filename, mode)
@@ -260,19 +260,18 @@ def test_masked_dict():
     os.remove(filename)
 
 def test_nomatch():
-    """ Test for dictionaries with integer keys """
-    filename, mode = 'donotmakethisfile.h5', 'w'
+    """ Test for non-supported data types """
+    filename, mode = 'nomatch.h5', 'w'
 
     dd = Exception('Nothing to see here')
     no_match = False
+    dump(dd, filename, mode)
     
-    try:
-        dump(dd, filename, mode)
-    except NoMatchError:
-        no_match = True
-        print "PASS: No match exception raised and caught"
-    assert no_match is True
-    assert not os.path.isfile(filename)
+    #dd_hkl = load(filename)
+    dd_hkl = load(filename, safe=False)
+    
+    assert type(dd_hkl) == type(dd) == Exception
+    os.remove(filename)
 
 if __name__ == '__main__':
   """ Some tests and examples"""

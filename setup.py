@@ -1,6 +1,6 @@
 from distutils.core import setup
 setup(name = 'hickle',
-      version = '1.0.2',
+      version = '1.0.4',
       description = 'Hickle - a HDF5 based version of pickle',
       author = 'Danny Price',
       author_email = 'danny.price@astro.ox.ac.uk',
