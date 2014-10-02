@@ -63,9 +63,9 @@ def fileOpener(f, mode='r'):
   """
   # Were we handed a file object or just a file name string?
   if type(f) is file:
-    filename, mode = f.name(), f.mode()
+    filename, mode = f.name, f.mode
     f.close()
-    h5f = h5.file(filename, mode)
+    h5f = h5.File(filename, mode)
   elif type(f) is h5._hl.files.File:
     h5f = f
   elif type(f) is str:
@@ -270,7 +270,7 @@ def load(file, safe=True):
           mod = types.get(dtype, noMatch)
           data = mod(data) 
   finally:
-      if h5f:
+      if 'h5f' in locals():
         h5f.close()
   return data
 
