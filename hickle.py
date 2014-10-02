@@ -56,20 +56,20 @@ class ToDoError(exceptions.Exception):
   def __str__(self):
     print "Error: this functionality hasn't been implemented yet."
 
-def fileOpener(file, mode='r'):
+def fileOpener(f, mode='r'):
   """ A file opener helper function with some error handling. 
   
   This can open files through a file object, a h5py file, or just the filename.
   """
   # Were we handed a file object or just a file name string?
-  if type(file) is file:
-    filename, mode = file.name(), file.mode()
-    file.close()
+  if type(f) is file:
+    filename, mode = f.name(), f.mode()
+    f.close()
     h5f = h5.file(filename, mode)
-  elif type(file) is h5._hl.files.File:
-    h5f = file
-  elif type(file) is str:
-    filename = file
+  elif type(f) is h5._hl.files.File:
+    h5f = f
+  elif type(f) is str:
+    filename = f
     h5f = h5.File(filename, mode)
   else:
     raise FileError
@@ -270,7 +270,8 @@ def load(file, safe=True):
           mod = types.get(dtype, noMatch)
           data = mod(data) 
   finally:
-      h5f.close()
+      if h5f:
+        h5f.close()
   return data
 
 def loadPickle(h5f, safe=True):
