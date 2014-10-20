@@ -273,20 +273,45 @@ def test_nomatch():
     assert type(dd_hkl) == type(dd) == Exception
     os.remove(filename)
 
+def test_np_float():
+    """ Test for singular np dtypes """
+    filename, mode = 'np_float.h5', 'w'    
+    
+    dtype_list = (np.float16, np.float32, np.float64, 
+                  np.complex64, np.complex128,
+                  np.int8, np.int16, np.int32, np.int64,
+                  np.uint8, np.uint16, np.uint32, np.uint64)
+                  
+    for dt in dtype_list:
+    
+        dd = dt(1)
+        dump(dd, filename, mode)
+        dd_hkl = load(filename)  
+        assert dd == dd_hkl
+        assert dd.dtype == dd_hkl.dtype
+        os.remove(filename)
+
+    #dd = {'d': np.float64(1)}    
+    #dump(dd, filename, mode)
+    #dd_hkl = load(filename)
+    #assert dd["d"] == dd_hkl["d"]
+    #os.remove(filename)
+
 if __name__ == '__main__':
   """ Some tests and examples"""
-  test_unicode()
-  test_string()
-  test_masked_dict()
-  test_list()
-  test_set()
-  test_numpy()
-  test_dict()
-  test_compression()
-  test_masked()
-  test_dict_int_key()
-  test_dict_nested()
-  test_nomatch()
+  #test_unicode()
+  #test_string()
+  #test_masked_dict()
+  #test_list()
+  #test_set()
+  #test_numpy()
+  #test_dict()
+  #test_compression()
+  #test_masked()
+  #test_dict_int_key()
+  #test_dict_nested()
+  #test_nomatch()
+  test_np_float()
   
   print "ALL TESTS PASSED!"
   

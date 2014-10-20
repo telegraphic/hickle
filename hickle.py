@@ -84,6 +84,11 @@ def dumpNdarray(obj, h5f, compression=None):
   """ dumps an ndarray object to h5py file"""
   h5f.create_dataset('data', data=obj, compression=compression)
   h5f.create_dataset('type', data=['ndarray'])
+
+def dumpNpDtype(obj, h5f, compression=None):
+  """ dumps an np dtype object to h5py file"""
+  h5f.create_dataset('data', data=obj)
+  h5f.create_dataset('type', data=['np_dtype'])
  
 def dumpMasked(obj, h5f, compression=None):
   """ dumps an ndarray object to h5py file"""
@@ -153,8 +158,11 @@ def _dumpDict(dd, hgroup, compression=None):
         _dumpDict(dd[key], new_group, compression=compression)       
     
     else:
-        print type(dd[key])
-        raise NoMatchError
+        if type(dd[key]).__module__ == np.__name__:
+            print type(dd[key])
+            raise NoMatchError
+        else:
+            raise NoMatchError
 
 def dumpDict(obj, h5f='', compression=None):
   """ dumps a dictionary to h5py file """
@@ -188,6 +196,19 @@ def dumperLookup(obj):
      unicode    : dumpUnicode,
      np.ndarray : dumpNdarray,
      np.ma.core.MaskedArray : dumpMasked,
+     np.float16 : dumpNpDtype,
+     np.float32 : dumpNpDtype,
+     np.float64 : dumpNpDtype,
+     np.int8    : dumpNpDtype,
+     np.int16   : dumpNpDtype,
+     np.int32   : dumpNpDtype,
+     np.int64   : dumpNpDtype,
+     np.uint8   : dumpNpDtype,
+     np.uint16  : dumpNpDtype,
+     np.uint32  : dumpNpDtype,
+     np.uint64  : dumpNpDtype,
+     np.complex64  : dumpNpDtype,     
+     np.complex128 : dumpNpDtype,     
   }
   
   match = types.get(t, noMatch)
@@ -257,16 +278,19 @@ def load(file, safe=True):
           if dtype in ('string', 'unicode'):
               data  = h5f["data"][0]
           else:
-              data  = h5f["data"][:]
-  
+              try:
+                  data  = h5f["data"][:]
+              except ValueError:
+                  data =  h5f["data"]
           types = {
              'list'       : list,
              'set'        : set,
              'unicode'    : unicode,
              'string'     : str,
              'ndarray'    : loadNdarray,
+             'np_dtype'   : loadNpDtype
           }
-      
+          
           mod = types.get(dtype, noMatch)
           data = mod(data) 
   finally:
@@ -303,6 +327,11 @@ def loadNdarray(arr):
     """ Load a numpy array """
     # Nothing to be done!
     return arr
+
+def loadNpDtype(arr):
+    """ Load a numpy array """
+    # Just return first value
+    return arr.value
 
 def loadDict(group):
     """ Load dictionary """
