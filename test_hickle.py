@@ -291,26 +291,32 @@ def test_np_float():
         assert dd.dtype == dd_hkl.dtype
         os.remove(filename)
 
-    #dd = {'d': np.float64(1)}    
-    #dump(dd, filename, mode)
-    #dd_hkl = load(filename)
-    #assert dd["d"] == dd_hkl["d"]
-    #os.remove(filename)
+    dd = {}
+    for dt in dtype_list:
+        dd[str(dt)] = dt(1.0)
+    dump(dd, filename, mode)
+    dd_hkl = load(filename)
+
+    #print dd
+    for dt in dtype_list:
+        assert dd[str(dt)] == dd_hkl[str(dt)]
+
+    os.remove(filename)
 
 if __name__ == '__main__':
   """ Some tests and examples"""
-  #test_unicode()
-  #test_string()
-  #test_masked_dict()
-  #test_list()
-  #test_set()
-  #test_numpy()
-  #test_dict()
-  #test_compression()
-  #test_masked()
-  #test_dict_int_key()
-  #test_dict_nested()
-  #test_nomatch()
+  test_unicode()
+  test_string()
+  test_masked_dict()
+  test_list()
+  test_set()
+  test_numpy()
+  test_dict()
+  test_compression()
+  test_masked()
+  test_dict_int_key()
+  test_dict_nested()
+  test_nomatch()
   test_np_float()
   
   print "ALL TESTS PASSED!"
