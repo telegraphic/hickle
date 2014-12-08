@@ -192,7 +192,7 @@ def dump_dict(obj, h5f='', compression=None):
     """ dumps a dictionary to h5py file """
     h5f.create_dataset('type', data=['dict'])
     hgroup = h5f.create_group('data')
-    _dump_dict(obj, hgroup, compression=None)
+    _dump_dict(obj, hgroup, compression=compression)
 
 
 def no_match(obj, h5f, *args, **kwargs):
