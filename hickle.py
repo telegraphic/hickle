@@ -168,6 +168,10 @@ def _dump_dict(dd, hgroup, compression=None):
         elif type(dd[key]) is list:
             hgroup.create_dataset("%s" % key, data=dd[key], compression=compression)
             hgroup.create_dataset("_%s" % key, data=["list"])
+            
+        elif type(dd[key]) is tuple:
+            hgroup.create_dataset("%s" % key, data=dd[key], compression=compression)
+            hgroup.create_dataset("_%s" % key, data=["tuple"])
 
         elif type(dd[key]) is set:
             hgroup.create_dataset("%s" % key, data=list(dd[key]), compression=compression)
