@@ -68,6 +68,12 @@ class H5GroupWrapper(h5.Group):
     def create_dataset(self, *args, **kwargs):
         kwargs['track_times'] = getattr(self, 'track_times', True)
         return super(H5GroupWrapper, self).create_dataset(*args, **kwargs)
+    
+    def create_group(self, *args, **kwargs):
+        group = super(H5GroupWrapper, self).create_group(*args, **kwargs)
+        group.__class__ = H5GroupWrapper
+        group.track_times = getattr(self, 'track_times', True)
+        return group
 
 class H5FileWrapper(h5.File):
     def create_dataset(self, *args, **kwargs):
