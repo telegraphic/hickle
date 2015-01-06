@@ -11,6 +11,9 @@ Unit tests for hickle module.
 import os
 from hickle import *
 import unicodedata
+import hashlib
+import time
+
 
 def test_string():
     """ Dumping and loading a string """
@@ -303,6 +306,44 @@ def test_np_float():
 
     os.remove(filename)
 
+def md5sum(filename, blocksize=65536):
+    hash = hashlib.md5()
+    with open(filename, "r+b") as f:
+        for block in iter(lambda: f.read(blocksize), ""):
+            hash.update(block)
+    return hash.hexdigest()
+
+def caching_dump(obj, filename, mode, **kwargs):
+    """ Save arguments of all dump calls"""
+    dump_cache.append((obj, filename, mode, kwargs))
+    return hickle_dump(obj, filename, mode, **kwargs)
+
+def test_track_times():
+    """ Verify that track_times = False produces identical files"""
+    hashes = []
+    for obj, filename, mode, kwargs in dump_cache:
+        kwargs['track_times'] = False
+        hickle_dump(obj, filename, mode, **kwargs)
+        hashes.append(md5sum(filename))
+        os.remove(filename)
+
+    time.sleep(1)
+
+    for hash1, (obj, filename, mode, kwargs) in zip(hashes, dump_cache):
+        hickle_dump(obj, filename, mode, **kwargs)
+        hash2 = md5sum(filename)
+        print hash1, hash2
+        try:
+            assert hash1 == hash2
+            os.remove(filename)
+        except AssertionError:
+            os.remove(filename)
+            raise
+
+dump_cache = []
+hickle_dump = dump
+dump = caching_dump
+
 if __name__ == '__main__':
   """ Some tests and examples"""
   test_unicode()
@@ -318,6 +359,8 @@ if __name__ == '__main__':
   test_dict_nested()
   test_nomatch()
   test_np_float()
+
+  test_track_times()
   
   print "ALL TESTS PASSED!"
   
