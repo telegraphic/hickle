@@ -63,9 +63,30 @@ class ToDoError(exceptions.Exception):
 
     def __str__(self):
         print "Error: this functionality hasn't been implemented yet."
+        
+class H5GroupWrapper(h5.Group):
+    def create_dataset(self, *args, **kwargs):
+        kwargs['track_times'] = getattr(self, 'track_times', True)
+        return super(H5GroupWrapper, self).create_dataset(*args, **kwargs)
+    
+    def create_group(self, *args, **kwargs):
+        group = super(H5GroupWrapper, self).create_group(*args, **kwargs)
+        group.__class__ = H5GroupWrapper
+        group.track_times = getattr(self, 'track_times', True)
+        return group
 
+class H5FileWrapper(h5.File):
+    def create_dataset(self, *args, **kwargs):
+        kwargs['track_times'] = getattr(self, 'track_times', True)
+        return super(H5FileWrapper, self).create_dataset(*args, **kwargs)
 
-def file_opener(f, mode='r'):
+    def create_group(self, *args, **kwargs):
+        group = super(H5FileWrapper, self).create_group(*args, **kwargs)
+        group.__class__ = H5GroupWrapper
+        group.track_times = getattr(self, 'track_times', True)
+        return group
+
+def file_opener(f, mode='r', track_times=True):
     """ A file opener helper function with some error handling.
   
   This can open files through a file object, a h5py file, or just the filename.
@@ -75,6 +96,7 @@ def file_opener(f, mode='r'):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
+
     elif type(f) is h5._hl.files.File:
         h5f = f
     elif type(f) is str:
@@ -82,6 +104,9 @@ def file_opener(f, mode='r'):
         h5f = h5.File(filename, mode)
     else:
         raise FileError
+   
+    h5f.__class__ = H5FileWrapper
+    h5f.track_times = track_times
     return h5f
 
 
@@ -246,7 +271,7 @@ def dumper_lookup(obj):
     return match
 
 
-def dump(obj, file, mode='w', compression=None):
+def dump(obj, file, mode='w', compression=None, track_times=True):
     """ Write a pickled representation of obj to the open file object file.
   
   Parameters
@@ -259,13 +284,15 @@ def dump(obj, file, mode='w', compression=None):
     optional argument, 'r' (read only), 'w' (write) or 'a' (append). Ignored if file is a file object.
   compression: str
     optional argument. Applies compression to dataset. Options: None, gzip, lzf (+ szip, if installed)
+  track_times: bool
+    optional argument. If set to False, repeated hickling will produce identical files.
   """
 
     try:
         # See what kind of object to dump
         dumper = dumper_lookup(obj)
         # Open the file
-        h5f = file_opener(file, mode)
+        h5f = file_opener(file, mode, track_times)
         print "dumping %s to file %s" % (type(obj), repr(h5f))
         dumper(obj, h5f, compression)
         h5f.close()
