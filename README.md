@@ -73,6 +73,11 @@ It should be noted that these comparisons are of course not fair: storing in HDF
 Installation guidelines (for Linux and Mac OS).
 ----------------------------------------------------------------------------------------------------
 
+### Easy method
+Install with `pip` by running `pip install hickle` from the command line.
+
+### Manual install
+
 1. You should have Python 2.7 and above installed
 
 2. Install h5py 
