@@ -2,7 +2,7 @@ Hickle
 ======
 
 Hickle is a HDF5 based clone of Pickle, with a twist. Instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file. It is designed to be a "drop-in" replacement for pickle (for common data objects). That is: it is a neat little way of dumping python variables to file.
+Hickle dumps to a HDF5 file. It is designed to be a "drop-in" replacement for pickle (for common data objects). That is: it is a neat little way of dumping python variables to file. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).
 
 Why use Hickle?
 ---------------
@@ -27,13 +27,38 @@ So, if you want your data in HDF5, or if your pickling is taking too long, give 
 Performance comparison
 ----------------------
 
-For storing large numpy arrays, hickle wins hands down again both pickle and the faster cPickle. For example, on my macbook, dumping and loading a (1, 32768) numpy array:
+Hickle runs a lot faster than pickle with its default settings, and a little faster than pickle with `protocol=2` set:
 
-    
-    pickle took 2160.628 ms
-    cPickle took 800.014 ms
-    hickle took 18.020 ms
-    
+```Python
+In [1]: import numpy as np
+
+In [2]: x = np.random.random((2000, 2000))
+
+In [3]: import pickle
+
+In [4]: f = open('foo.pkl', 'w')
+
+In [5]: %time pickle.dump(x, f)  # slow by default
+CPU times: user 2 s, sys: 274 ms, total: 2.27 s
+Wall time: 2.74 s
+
+In [6]: f = open('foo.pkl', 'w')
+
+In [7]: %time pickle.dump(x, f, protocol=2)  # actually very fast
+CPU times: user 18.8 ms, sys: 36 ms, total: 54.8 ms
+Wall time: 55.6 ms
+
+In [8]: import hickle
+
+In [9]: f = open('foo.hkl', 'w')
+
+In [10]: %time hickle.dump(x, f)  # a bit faster
+dumping <type 'numpy.ndarray'> to file <HDF5 file "foo.hkl" (mode r+)>
+CPU times: user 764 µs, sys: 35.6 ms, total: 36.4 ms
+Wall time: 36.2 ms
+```
+
+So if you do continue to use pickle, add the `protocol=2` keyword (thanks @mrocklin for pointing this out).  
   
 For storing python dictionaries of lists, hickle beats the python json encoder, but is slower than uJson. For a dictionary with 64 entries, each containing a 4096 length list of random numbers, the times are:
 
