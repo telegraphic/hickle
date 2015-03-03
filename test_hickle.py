@@ -14,6 +14,23 @@ import unicodedata
 import hashlib
 import time
 
+NESTED_DICT = {
+        "level1_1" : {
+            "level2_1" : [1, 2, 3],
+            "level2_2" : [4, 5, 6]
+        },
+        "level1_2" : {
+            "level2_1" : [1, 2, 3],
+            "level2_2" : [4, 5, 6]
+        },
+        "level1_3" : {
+            "level2_1" : {
+                "level3_1" : [1, 2, 3],
+                "level3_2" : [4, 5, 6]
+            },
+            "level2_2" : [4, 5, 6]
+        }
+    }
 
 def test_string():
     """ Dumping and loading a string """
@@ -201,23 +218,7 @@ def test_dict_nested():
     """ Test for dictionaries with integer keys """
     filename, mode = 'test.h5', 'w'
 
-    dd = {
-        "level1_1" : {
-            "level2_1" : [1, 2, 3],
-            "level2_2" : [4, 5, 6]
-        },
-        "level1_2" : {
-            "level2_1" : [1, 2, 3],
-            "level2_2" : [4, 5, 6]            
-        },
-        "level1_3" : {
-            "level2_1" : {
-                "level3_1" : [1, 2, 3],
-                "level3_2" : [4, 5, 6]                     
-            },
-            "level2_2" : [4, 5, 6]            
-        }
-    }
+    dd = NESTED_DICT
 
     dump(dd, filename, mode)
     dd_hkl = load(filename)
@@ -307,6 +308,7 @@ def test_np_float():
     os.remove(filename)
 
 def md5sum(filename, blocksize=65536):
+    """ Compute MD5 sum for a given file """
     hash = hashlib.md5()
     with open(filename, "r+b") as f:
         for block in iter(lambda: f.read(blocksize), ""):
@@ -340,6 +342,43 @@ def test_track_times():
             os.remove(filename)
             raise
 
+
+def test_comp_kwargs():
+    """ Test compression with some kwargs for shuffle and chunking """
+
+    filename, mode = 'test.h5', 'w'
+    dtypes = ['int32', 'float32', 'float64', 'complex64', 'complex128']
+
+    comps = [None, 'gzip', 'lzf']
+    chunks = [(100, 100), (250, 250)]
+    shuffles = [True, False]
+    scaleoffsets = [0, 1, 2]
+
+    for dt in dtypes:
+        for cc in comps:
+            for ch in chunks:
+                for sh in shuffles:
+                    for so in scaleoffsets:
+                        kwargs = {
+                            'compression' : cc,
+                            'dtype': dt,
+                            'chunks': ch,
+                            'shuffle': sh,
+                            'scaleoffset': so
+                        }
+                        #array_obj = np.random.random_integers(low=-8192, high=8192, size=(1000, 1000)).astype(dt)
+                        array_obj = NESTED_DICT
+                        dump(array_obj, filename, mode, compression=cc)
+                        print kwargs, os.path.getsize(filename)
+                        array_hkl = load(filename)
+    try:
+        os.remove(filename)
+    except AssertionError:
+        os.remove(filename)
+        print array_hkl
+        print array_obj
+        raise
+
 dump_cache = []
 hickle_dump = dump
 dump = caching_dump
@@ -359,8 +398,9 @@ if __name__ == '__main__':
   test_dict_nested()
   test_nomatch()
   test_np_float()
-
   test_track_times()
+  time.sleep(2)
+  test_comp_kwargs()
   
   print "ALL TESTS PASSED!"
   
