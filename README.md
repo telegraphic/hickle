@@ -122,7 +122,13 @@ assert array_hkl.dtype == array_obj.dtype
 assert np.all((array_hkl, array_obj))
 ```
 
+Compression options
+-------------------
 
-
-
-
+hickle passes keyword arguments on to h5py, so you can do things like:
+  ```python
+  hkl.dump(array_obj, 'test_lzf.hkl', mode='w', compression='lzf', scaleoffset=0, 
+           chunks=(100, 100), shuffle=True, fletcher32=True)
+  ```
+Have a look at http://docs.h5py.org/en/latest/high/dataset.html for an explanation
+of these keywords.
