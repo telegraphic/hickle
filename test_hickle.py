@@ -379,6 +379,47 @@ def test_comp_kwargs():
         print array_obj
         raise
 
+def test_list_numpy():
+    """ Test converting a list of numpy arrays """
+
+    filename, mode = 'test.h5', 'w'
+
+    a = np.ones(1024)
+    b = np.zeros(1000)
+    c = [a, b]
+
+    dump(c, filename, mode)
+    dd_hkl = load(filename)
+
+    print dd_hkl
+
+    assert isinstance(dd_hkl, list)
+    assert isinstance(dd_hkl[0], np.ndarray)
+
+
+    os.remove(filename)
+
+def test_tuple_numpy():
+    """ Test converting a list of numpy arrays """
+
+    filename, mode = 'test.h5', 'w'
+
+    a = np.ones(1024)
+    b = np.zeros(1000)
+    c = (a, b, a)
+
+    dump(c, filename, mode)
+    dd_hkl = load(filename)
+
+    print dd_hkl
+
+    assert isinstance(dd_hkl, tuple)
+    assert isinstance(dd_hkl[0], np.ndarray)
+
+
+    os.remove(filename)
+
+
 dump_cache = []
 hickle_dump = dump
 dump = caching_dump
@@ -401,6 +442,8 @@ if __name__ == '__main__':
   test_track_times()
   time.sleep(2)
   test_comp_kwargs()
+  test_list_numpy()
+  test_tuple_numpy()
   
   print "ALL TESTS PASSED!"
   

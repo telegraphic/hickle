@@ -139,9 +139,49 @@ def dump_masked(obj, h5f, **kwargs):
 
 def dump_list(obj, h5f, **kwargs):
     """ dumps a list object to h5py file"""
-    h5f.create_dataset('data', data=obj, **kwargs)
-    h5f.create_dataset('type', data=['list'])
 
+    # Check if there are any numpy arrays in the list
+    contains_numpy = any(isinstance(el, np.ndarray) for el in obj)
+
+    if contains_numpy:
+        _dump_list_np(obj, h5f, **kwargs)
+    else:
+        h5f.create_dataset('data', data=obj, **kwargs)
+        h5f.create_dataset('type', data=['list'])
+
+def _dump_list_np(obj, h5f, **kwargs):
+    """ Dump a list of numpy objects to file """
+
+    np_group = h5f.create_group('data')
+    h5f.create_dataset('type', data=['np_list'])
+
+    ii = 0
+    for np_item in obj:
+        np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
+        ii += 1
+
+def dump_tuple(obj, h5f, **kwargs):
+    """ dumps a list object to h5py file"""
+
+    # Check if there are any numpy arrays in the list
+    contains_numpy = any(isinstance(el, np.ndarray) for el in obj)
+
+    if contains_numpy:
+        _dump_tuple_np(obj, h5f, **kwargs)
+    else:
+        h5f.create_dataset('data', data=obj, **kwargs)
+        h5f.create_dataset('type', data=['tuple'])
+
+def _dump_tuple_np(obj, h5f, **kwargs):
+    """ Dump a tuple of numpy objects to file """
+
+    np_group = h5f.create_group('data')
+    h5f.create_dataset('type', data=['np_tuple'])
+
+    ii = 0
+    for np_item in obj:
+        np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
+        ii += 1
 
 def dump_set(obj, h5f, **kwargs):
     """ dumps a set object to h5py file"""
@@ -246,6 +286,7 @@ def dumper_lookup(obj):
 
     types = {
         list: dump_list,
+        tuple: dump_tuple,
         set: dump_set,
         dict: dump_dict,
         str: dump_string,
@@ -332,6 +373,12 @@ def load(file, safe=True):
             data = load_dict(group)
         elif dtype == 'pickle':
             data = load_pickle(h5f, safe)
+        elif dtype == 'np_list':
+            group = h5f["data"]
+            data = load_np_list(group)
+        elif dtype == 'np_tuple':
+            group = h5f["data"]
+            data = load_np_tuple(group)
         elif dtype == 'masked':
             data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
         else:
@@ -384,6 +431,18 @@ def load_pickle(h5f, safe=True):
         print "         for security reasons (it could be malicious code). If"
         print "         you wish to continue, manually set safe=False\n"
 
+
+def load_np_list(group):
+    """ load a numpy list """
+    np_list = []
+    for key in sorted(group.keys()):
+        data = group[key][:]
+        np_list.append(data)
+    return np_list
+
+def load_np_tuple(group):
+    """ load a tuple containing numpy arrays """
+    return tuple(load_np_list(group))
 
 def load_ndarray(arr):
     """ Load a numpy array """
