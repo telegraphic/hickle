@@ -215,7 +215,7 @@ def _dump_dict(dd, hgroup, **kwargs):
         if type(dd[key]) in (str, int, float, unicode, bool):
             # Figure out type to be stored
             types = {str: 'str', int: 'int', float: 'float',
-                     unicode: 'unicode', bool: 'bool'}
+                     unicode: 'unicode', bool: 'bool', NoneType: 'none'}
             _key = types.get(type(dd[key]))
 
             # Store along with dtype info
@@ -250,7 +250,11 @@ def _dump_dict(dd, hgroup, **kwargs):
         elif isinstance(dd[key], dict):
             new_group = hgroup.create_group("%s" % key)
             _dump_dict(dd[key], new_group, **kwargs)
-
+            
+        elif type(dd[key]) is NoneType:
+            hgroup.create_dataset("%s" % key, data=[0], **kwargs)
+            hgroup.create_dataset("_%s" % key, data=["none"])
+            
         else:
             if type(dd[key]).__module__ == np.__name__:
                 #print type(dd[key])
@@ -488,10 +492,13 @@ def load_dict(group):
             # Convert numpy constructs back to string
             dtype = group[_key][0]
             types = {'str': str, 'int': int, 'float': float,
-                     'unicode': unicode, 'bool': bool, 'list': list}
+                     'unicode': unicode, 'bool': bool, 'list': list, 'none' : NoneType}
             try:
                 mod = types.get(dtype)
-                dd[key] = mod(dd[key])
+                if dtype == 'none':
+                    dd[key] = None
+                else:
+                    dd[key] = mod(dd[key])
             except:
                 pass
     return dd

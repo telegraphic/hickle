@@ -434,7 +434,22 @@ def test_none():
     assert isinstance(dd_hkl, NoneType)
 
     os.remove(filename)
+ 
+def test_dict_none():
+     """ Test None type hickling """
     
+     filename, mode = 'test.h5', 'w'
+
+     a = {'a': 1, 'b' : None}
+
+     dump(a, filename, mode)
+     dd_hkl = load(filename)
+     print a
+     print dd_hkl
+
+     assert isinstance(a['b'], NoneType)
+
+     os.remove(filename)   
     
 dump_cache = []
 hickle_dump = dump
@@ -442,7 +457,7 @@ dump = caching_dump
 
 if __name__ == '__main__':
   """ Some tests and examples"""
-  
+  test_dict_none()
   test_none()
   test_unicode()
   test_string()
