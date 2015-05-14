@@ -27,6 +27,7 @@ import os
 import exceptions
 import numpy as np
 import h5py as h5
+from types import NoneType
 
 __version__ = "1.1.1"
 __author__ = "Danny Price"
@@ -195,6 +196,10 @@ def dump_string(obj, h5f, **kwargs):
     h5f.create_dataset('data', data=[obj], **kwargs)
     h5f.create_dataset('type', data=['string'])
 
+def dump_none(obj, h5f, **kwargs):
+    """ Dump None type to file """
+    h5f.create_dataset('data', data=[0], **kwargs)
+    h5f.create_dataset('type', data=['none'])
 
 def dump_unicode(obj, h5f, **kwargs):
     """ dumps a list object to h5py file"""
@@ -291,6 +296,7 @@ def dumper_lookup(obj):
         dict: dump_dict,
         str: dump_string,
         unicode: dump_unicode,
+        NoneType: dump_none,
         np.ndarray: dump_ndarray,
         np.ma.core.MaskedArray: dump_masked,
         np.float16: dump_np_dtype,
@@ -381,6 +387,8 @@ def load(file, safe=True):
             data = load_np_tuple(group)
         elif dtype == 'masked':
             data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
+        elif dtype == 'none':
+            data = None
         else:
             if dtype in ('string', 'unicode'):
                 data = h5f["data"][0]

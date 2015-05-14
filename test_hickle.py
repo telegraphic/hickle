@@ -419,13 +419,31 @@ def test_tuple_numpy():
 
     os.remove(filename)
 
+def test_none():
+    """ Test None type hickling """
+    
+    filename, mode = 'test.h5', 'w'
 
+    a = None
+
+    dump(a, filename, mode)
+    dd_hkl = load(filename)
+    print a
+    print dd_hkl
+
+    assert isinstance(dd_hkl, NoneType)
+
+    os.remove(filename)
+    
+    
 dump_cache = []
 hickle_dump = dump
 dump = caching_dump
 
 if __name__ == '__main__':
   """ Some tests and examples"""
+  
+  test_none()
   test_unicode()
   test_string()
   test_masked_dict()
