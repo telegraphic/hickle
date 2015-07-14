@@ -296,7 +296,10 @@ def dump_dict(obj, h5f='', **kwargs):
 
 def no_match(obj, h5f, *args, **kwargs):
     """ If no match is made, raise an exception """
-    import cPickle
+    try:
+        import dill as cPickle
+    except:
+        import cPickle
 
     pickled_obj = cPickle.dumps(obj)
     h5f.create_dataset('type', data=['pickle'])
@@ -457,7 +460,10 @@ def load_pickle(h5f, safe=True):
   """
 
     if not safe:
-        import cPickle
+        try:
+            import dill as cPickle
+        except:
+            import cPickle
 
         data = h5f["data"][:]
         data = cPickle.loads(data[0])
