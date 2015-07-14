@@ -45,6 +45,14 @@ class FileError(exceptions.Exception):
     def __str__(self):
         print "Error: cannot open file. Please pass either a filename string, a file object, or a h5py.File"
 
+class FileClosedError(exceptions.Exception):
+    """ An exception raised if the file is fishy"""
+
+    def __init__(self):
+        return
+
+    def __str__(self):
+        print "Error: h5py File has been closed. Please pass either a filename string, open file object, or open h5py.File"
 
 class NoMatchError(exceptions.Exception):
     """ An exception raised if the object type is not understood (or supported)"""
@@ -92,21 +100,34 @@ def file_opener(f, mode='r', track_times=True):
   
   This can open files through a file object, a h5py file, or just the filename.
   """
-    # Were we handed a file object or just a file name string?
-    if type(f) is file:
+    
+    if isinstance(f, file):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
 
-    elif type(f) is h5._hl.files.File:
+    elif isinstance(f, H5FileWrapper):
         h5f = f
-    elif type(f) is str:
+        filename = h5f.file_name
+        if h5f.is_open:
+            h5f.close()
+        h5f = h5.File(filename, mode)
+            
+    elif isinstance(f, h5._hl.files.File):
+        h5f = f
+        if str (h5f) == '<Closed HDF5 file>':
+            raise FileClosedError
+        filename = h5f.filename
+    
+    elif type(f) in (str, unicode):
         filename = f
         h5f = h5.File(filename, mode)
     else:
         raise FileError
    
     h5f.__class__ = H5FileWrapper
+    h5f.is_open = True
+    h5f.file_name = filename
     h5f.track_times = track_times
     return h5f
 
@@ -346,7 +367,10 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
         h5f = file_opener(file, mode, track_times)
         print "dumping %s to file %s" % (type(obj), repr(h5f))
         dumper(obj, h5f, **kwargs)
+        
+        h5f.is_open = False
         h5f.close()
+            
     except NoMatchError:
         fname = h5f.filename
         h5f.close()

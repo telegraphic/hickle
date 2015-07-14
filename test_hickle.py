@@ -10,6 +10,7 @@ Unit tests for hickle module.
 
 import os
 from hickle import *
+import hickle
 import unicodedata
 import hashlib
 import time
@@ -310,12 +311,13 @@ def test_np_float():
 def md5sum(filename, blocksize=65536):
     """ Compute MD5 sum for a given file """
     hash = hashlib.md5()
+                
     with open(filename, "r+b") as f:
         for block in iter(lambda: f.read(blocksize), ""):
             hash.update(block)
     return hash.hexdigest()
 
-def caching_dump(obj, filename, mode, **kwargs):
+def caching_dump(obj, filename, mode='w', **kwargs):
     """ Save arguments of all dump calls"""
     dump_cache.append((obj, filename, mode, kwargs))
     return hickle_dump(obj, filename, mode, **kwargs)
@@ -324,6 +326,8 @@ def test_track_times():
     """ Verify that track_times = False produces identical files"""
     hashes = []
     for obj, filename, mode, kwargs in dump_cache:
+        if isinstance(filename, hickle.H5FileWrapper):
+            filename = str(filename.file_name)
         kwargs['track_times'] = False
         hickle_dump(obj, filename, mode, **kwargs)
         hashes.append(md5sum(filename))
@@ -332,6 +336,8 @@ def test_track_times():
     time.sleep(1)
 
     for hash1, (obj, filename, mode, kwargs) in zip(hashes, dump_cache):
+        if isinstance(filename, hickle.H5FileWrapper):
+            filename = str(filename.file_name)
         hickle_dump(obj, filename, mode, **kwargs)
         hash2 = md5sum(filename)
         print hash1, hash2
@@ -451,12 +457,27 @@ def test_dict_none():
 
      os.remove(filename)   
     
+def test_file_open_close():
+    """ https://github.com/telegraphic/hickle/issues/20 """
+    import h5py
+    f = h5py.File('test.hdf', 'w')
+    a = np.arange(5)
+    
+    dump(a, 'test.hkl')
+    dump(a, 'test.hkl')
+    
+    dump(a, f, mode='w')
+    dump(a, f, 'w')
+
+    
 dump_cache = []
 hickle_dump = dump
 dump = caching_dump
 
 if __name__ == '__main__':
   """ Some tests and examples"""
+
+  test_file_open_close()
   test_dict_none()
   test_none()
   test_unicode()
@@ -477,6 +498,7 @@ if __name__ == '__main__':
   test_comp_kwargs()
   test_list_numpy()
   test_tuple_numpy()
+
   
   print "ALL TESTS PASSED!"
   
