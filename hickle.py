@@ -5,20 +5,22 @@ hickle.py
 
 Created by Danny Price 2012-05-28.
 
-Hickle is a HDF5 based clone of Pickle. Instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file. It is designed to be as similar to pickle in usage as possible.
+Hickle is a HDF5 based clone of Pickle. Instead of serializing to a pickle
+file, Hickle dumps to a HDF5 file. It is designed to be as similar to pickle in
+usage as possible.
 
 Notes
 -----
 
 Hickle has two main advantages over Pickle:
-1) LARGE PICKLE HANDLING. Unpickling a large pickle is slow, as the Unpickler reads the entire pickle 
-thing and loads it into memory. In comparison, HDF5 files are designed for large datasets. Things are 
-only loaded when accessed. 
+1) LARGE PICKLE HANDLING. Unpickling a large pickle is slow, as the Unpickler
+reads the entire pickle thing and loads it into memory. In comparison, HDF5
+files are designed for large datasets. Things are only loaded when accessed.
 
-2) CROSS PLATFORM SUPPORT. Attempting to unpickle a pickle pickled on Windows on Linux and vice versa
-is likely to fail with errors like "Insecure string pickle". HDF5 files will load fine, as long as
-both machines have h5py installed.
+2) CROSS PLATFORM SUPPORT. Attempting to unpickle a pickle pickled on Windows
+on Linux and vice versa is likely to fail with errors like "Insecure string
+pickle". HDF5 files will load fine, as long as both machines have h5py
+installed.
 
 
 """
@@ -28,13 +30,14 @@ import exceptions
 import numpy as np
 import h5py as h5
 from types import NoneType
-
+import warnings
 __version__ = "1.1.1"
 __author__ = "Danny Price"
 
-####################
-## Error handling ##
-####################
+##################
+# Error handling #
+##################
+
 
 class FileError(exceptions.Exception):
     """ An exception raised if the file is fishy"""
@@ -43,25 +46,20 @@ class FileError(exceptions.Exception):
         return
 
     def __str__(self):
-        print "Error: cannot open file. Please pass either a filename string, a file object, or a h5py.File"
+        return ("Error: cannot open file. Please pass either a filename "
+                "string, a file object, or a h5py.File")
 
-class FileClosedError(exceptions.Exception):
-    """ An exception raised if the file is fishy"""
-
-    def __init__(self):
-        return
-
-    def __str__(self):
-        print "Error: h5py File has been closed. Please pass either a filename string, open file object, or open h5py.File"
 
 class NoMatchError(exceptions.Exception):
-    """ An exception raised if the object type is not understood (or supported)"""
+    """ An exception raised if the object type is not understood (or
+    supported)"""
 
     def __init__(self):
         return
 
     def __str__(self):
-        print "Error: this type of python object cannot be converted into a hickle."
+        return ("Error: this type of python object cannot be converted into a "
+                "hickle.")
 
 
 class ToDoError(exceptions.Exception):
@@ -71,18 +69,20 @@ class ToDoError(exceptions.Exception):
         return
 
     def __str__(self):
-        print "Error: this functionality hasn't been implemented yet."
-        
+        return "Error: this functionality hasn't been implemented yet."
+
+
 class H5GroupWrapper(h5.Group):
     def create_dataset(self, *args, **kwargs):
         kwargs['track_times'] = getattr(self, 'track_times', True)
         return super(H5GroupWrapper, self).create_dataset(*args, **kwargs)
-    
+
     def create_group(self, *args, **kwargs):
         group = super(H5GroupWrapper, self).create_group(*args, **kwargs)
         group.__class__ = H5GroupWrapper
         group.track_times = getattr(self, 'track_times', True)
         return group
+
 
 class H5FileWrapper(h5.File):
     def create_dataset(self, *args, **kwargs):
@@ -95,46 +95,32 @@ class H5FileWrapper(h5.File):
         group.track_times = getattr(self, 'track_times', True)
         return group
 
+
 def file_opener(f, mode='r', track_times=True):
-    """ A file opener helper function with some error handling.
-  
-  This can open files through a file object, a h5py file, or just the filename.
-  """
-    
-    if isinstance(f, file):
+    """ A file opener helper function with some error handling.  This can open
+    files through a file object, a h5py file, or just the filename.  """
+    # Were we handed a file object or just a file name string?
+    if type(f) is file:
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
 
-    elif isinstance(f, H5FileWrapper):
+    elif type(f) is h5._hl.files.File:
         h5f = f
-        filename = h5f.file_name
-        if h5f.is_open:
-            h5f.close()
-        h5f = h5.File(filename, mode)
-            
-    elif isinstance(f, h5._hl.files.File):
-        h5f = f
-        if str (h5f) == '<Closed HDF5 file>':
-            raise FileClosedError
-        filename = h5f.filename
-    
-    elif type(f) in (str, unicode):
+    elif type(f) is str:
         filename = f
         h5f = h5.File(filename, mode)
     else:
         raise FileError
-   
+
     h5f.__class__ = H5FileWrapper
-    h5f.is_open = True
-    h5f.file_name = filename
     h5f.track_times = track_times
     return h5f
 
 
-#############
-## dumpers ##
-#############
+###########
+# dumpers #
+###########
 
 def dump_ndarray(obj, h5f, **kwargs):
     """ dumps an ndarray object to h5py file"""
@@ -147,10 +133,12 @@ def dump_np_dtype(obj, h5f, **kwargs):
     h5f.create_dataset('data', data=obj)
     h5f.create_dataset('type', data=['np_dtype'])
 
+
 def dump_np_dtype_dict(obj, h5f, **kwargs):
     """ dumps an np dtype object within a group"""
     h5f.create_dataset('data', data=obj)
     h5f.create_dataset('_data', data=['np_dtype'])
+
 
 def dump_masked(obj, h5f, **kwargs):
     """ dumps an ndarray object to h5py file"""
@@ -171,6 +159,7 @@ def dump_list(obj, h5f, **kwargs):
         h5f.create_dataset('data', data=obj, **kwargs)
         h5f.create_dataset('type', data=['list'])
 
+
 def _dump_list_np(obj, h5f, **kwargs):
     """ Dump a list of numpy objects to file """
 
@@ -181,6 +170,7 @@ def _dump_list_np(obj, h5f, **kwargs):
     for np_item in obj:
         np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
         ii += 1
+
 
 def dump_tuple(obj, h5f, **kwargs):
     """ dumps a list object to h5py file"""
@@ -194,6 +184,7 @@ def dump_tuple(obj, h5f, **kwargs):
         h5f.create_dataset('data', data=obj, **kwargs)
         h5f.create_dataset('type', data=['tuple'])
 
+
 def _dump_tuple_np(obj, h5f, **kwargs):
     """ Dump a tuple of numpy objects to file """
 
@@ -204,6 +195,7 @@ def _dump_tuple_np(obj, h5f, **kwargs):
     for np_item in obj:
         np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
         ii += 1
+
 
 def dump_set(obj, h5f, **kwargs):
     """ dumps a set object to h5py file"""
@@ -217,10 +209,12 @@ def dump_string(obj, h5f, **kwargs):
     h5f.create_dataset('data', data=[obj], **kwargs)
     h5f.create_dataset('type', data=['string'])
 
+
 def dump_none(obj, h5f, **kwargs):
     """ Dump None type to file """
     h5f.create_dataset('data', data=[0], **kwargs)
     h5f.create_dataset('type', data=['none'])
+
 
 def dump_unicode(obj, h5f, **kwargs):
     """ dumps a list object to h5py file"""
@@ -251,7 +245,8 @@ def _dump_dict(dd, hgroup, **kwargs):
             if hasattr(dd[key], 'mask'):
                 hgroup.create_dataset("_%s" % key, data=["masked"])
                 hgroup.create_dataset("%s" % key, data=dd[key].data, **kwargs)
-                hgroup.create_dataset("_%s_mask" % key, data=dd[key].mask, **kwargs)
+                hgroup.create_dataset(
+                    "_%s_mask" % key, data=dd[key].mask, **kwargs)
             else:
                 hgroup.create_dataset("_%s" % key, data=["ndarray"])
                 hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
@@ -259,7 +254,7 @@ def _dump_dict(dd, hgroup, **kwargs):
         elif type(dd[key]) is list:
             hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
             hgroup.create_dataset("_%s" % key, data=["list"])
-            
+
         elif type(dd[key]) is tuple:
             hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
             hgroup.create_dataset("_%s" % key, data=["tuple"])
@@ -271,18 +266,15 @@ def _dump_dict(dd, hgroup, **kwargs):
         elif isinstance(dd[key], dict):
             new_group = hgroup.create_group("%s" % key)
             _dump_dict(dd[key], new_group, **kwargs)
-            
+
         elif type(dd[key]) is NoneType:
             hgroup.create_dataset("%s" % key, data=[0], **kwargs)
             hgroup.create_dataset("_%s" % key, data=["none"])
-            
+
         else:
             if type(dd[key]).__module__ == np.__name__:
-                #print type(dd[key])
                 hgroup.create_dataset("%s" % key, data=dd[key])
                 hgroup.create_dataset("_%s" % key, data=["np_dtype"])
-                #new_group = hgroup.create_group("%s" % key)
-                #dump_np_dtype_dict(dd[key], new_group)
             else:
                 raise NoMatchError
 
@@ -296,25 +288,20 @@ def dump_dict(obj, h5f='', **kwargs):
 
 def no_match(obj, h5f, *args, **kwargs):
     """ If no match is made, raise an exception """
-    try:
-        import dill as cPickle
-    except:
-        import cPickle
+    import cPickle
 
     pickled_obj = cPickle.dumps(obj)
     h5f.create_dataset('type', data=['pickle'])
     h5f.create_dataset('data', data=[pickled_obj])
 
-    print "Warning: %s type not understood, data have been serialized" % type(obj)
-    #raise NoMatchError
+    warnings.warn("%s type not understood, data have been "
+                  "serialized" % type(obj))
 
 
 def dumper_lookup(obj):
-    """ What type of object are we trying to pickle?
-   
-  This is a python dictionary based equivalent of a case statement.
-  It returns the correct helper function for a given data type.
-  """
+    """ What type of object are we trying to pickle?  This is a python
+    dictionary based equivalent of a case statement.  It returns the correct
+    helper function for a given data type.  """
     t = type(obj)
 
     types = {
@@ -348,58 +335,58 @@ def dumper_lookup(obj):
 
 def dump(obj, file, mode='w', track_times=True, **kwargs):
     """ Write a pickled representation of obj to the open file object file.
-  
-  Parameters
-  ----------
-  obj: object
-    python object o store in a Hickle
-  file: file object, filename string, or h5py.File object
-    file in which to store the object. A h5py.File or a filename is also acceptable.
-  mode: string
-    optional argument, 'r' (read only), 'w' (write) or 'a' (append). Ignored if file is a file object.
-  compression: str
-    optional argument. Applies compression to dataset. Options: None, gzip, lzf (+ szip, if installed)
-  track_times: bool
-    optional argument. If set to False, repeated hickling will produce identical files.
-  """
+
+    Parameters
+    ----------
+    obj: object
+        python object o store in a Hickle
+    file: file object, filename string, or h5py.File object
+        file in which to store the object. A h5py.File or a filename is also
+        acceptable.
+    mode: string
+        optional argument, 'r' (read only), 'w' (write) or 'a' (append).
+        Ignored if file is a file object.
+    compression: str
+        optional argument. Applies compression to dataset. Options: None, gzip,
+        lzf (+ szip, if installed)
+    track_times: bool
+        optional argument. If set to False, repeated hickling will produce
+        identical files.
+    """
 
     try:
         # See what kind of object to dump
         dumper = dumper_lookup(obj)
         # Open the file
         h5f = file_opener(file, mode, track_times)
-        print "dumping %s to file %s" % (type(obj), repr(h5f))
         dumper(obj, h5f, **kwargs)
-        
-        h5f.is_open = False
         h5f.close()
-            
     except NoMatchError:
         fname = h5f.filename
         h5f.close()
         try:
             os.remove(fname)
         except:
-            print "Warning: dump failed. Could not remove %s" % fname
+            warnings.warn("Dump failed. Could not remove %s" % fname)
         finally:
             raise NoMatchError
 
 
-#############
-## loaders ##
-#############
+###########
+# loaders #
+###########
 
 def load(file, safe=True):
     """ Load a hickle file and reconstruct a python object
-  
-  Parameters
-  ----------
-  file: file object, h5py.File, or filename string
-  
-  safe (bool): Disable automatic depickling of arbitrary python objects. 
-  DO NOT set this to False unless the file is from a trusted source.
-  (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
-  """
+
+    Parameters
+    ----------
+    file: file object, h5py.File, or filename string
+
+    safe (bool): Disable automatic depickling of arbitrary python objects.
+    DO NOT set this to False unless the file is from a trusted source.
+    (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+    """
 
     try:
         h5f = file_opener(file)
@@ -447,31 +434,28 @@ def load(file, safe=True):
 
 def load_pickle(h5f, safe=True):
     """ Deserialize and load a pickled object within a hickle file
-  
-  WARNING: Pickle has 
-  
-  Parameters
-  ----------
-  h5f: h5py.File object
-  
-  safe (bool): Disable automatic depickling of arbitrary python objects. 
-  DO NOT set this to False unless the file is from a trusted source.
-  (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
-  """
+
+    WARNING: Pickle has
+
+    Parameters
+    ----------
+    h5f: h5py.File object
+
+    safe (bool): Disable automatic depickling of arbitrary python objects.
+    DO NOT set this to False unless the file is from a trusted source.
+    (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+    """
 
     if not safe:
-        try:
-            import dill as cPickle
-        except:
-            import cPickle
+        import cPickle
 
         data = h5f["data"][:]
         data = cPickle.loads(data[0])
         return data
     else:
-        print "\nWarning: Object is of an unknown type, and has not been loaded"
-        print "         for security reasons (it could be malicious code). If"
-        print "         you wish to continue, manually set safe=False\n"
+        warnings.warn("Object is of an unknown type, and has not been loaded "
+                      "for security reasons (it could be malicious code). If "
+                      "you wish to continue, manually set safe=False")
 
 
 def load_np_list(group):
@@ -482,9 +466,11 @@ def load_np_list(group):
         np_list.append(data)
     return np_list
 
+
 def load_np_tuple(group):
     """ load a tuple containing numpy arrays """
     return tuple(load_np_list(group))
+
 
 def load_ndarray(arr):
     """ Load a numpy array """
@@ -521,8 +507,8 @@ def load_dict(group):
 
             # Convert numpy constructs back to string
             dtype = group[_key][0]
-            types = {'str': str, 'int': int, 'float': float,
-                     'unicode': unicode, 'bool': bool, 'list': list, 'none' : NoneType}
+            types = {'str': str, 'int': int, 'float': float, 'unicode':
+                     unicode, 'bool': bool, 'list': list, 'none': NoneType}
             try:
                 mod = types.get(dtype)
                 if dtype == 'none':
@@ -537,10 +523,10 @@ def load_dict(group):
 def load_large(file):
     """ Load a large hickle file (returns the h5py object not the data)
 
-  Parameters
-  ----------
-  file: file object, h5py.File, or filename string  
-  """
+    Parameters
+    ----------
+    file: file object, h5py.File, or filename string
+    """
 
     h5f = file_opener(file)
     return h5f
