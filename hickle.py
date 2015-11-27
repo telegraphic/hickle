@@ -359,7 +359,6 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
         dumper = dumper_lookup(obj)
         # Open the file
         h5f = file_opener(file, mode, track_times)
-        print "dumping %s to file %s" % (type(obj), repr(h5f))
         dumper(obj, h5f, **kwargs)
         h5f.close()
     except NoMatchError:
