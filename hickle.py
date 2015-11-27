@@ -46,8 +46,8 @@ class FileError(exceptions.Exception):
         return
 
     def __str__(self):
-        print ("Error: cannot open file. Please pass either a filename string,"
-               " a file object, or a h5py.File")
+        return ("Error: cannot open file. Please pass either a filename "
+                "string, a file object, or a h5py.File")
 
 
 class NoMatchError(exceptions.Exception):
@@ -58,8 +58,8 @@ class NoMatchError(exceptions.Exception):
         return
 
     def __str__(self):
-        print ("Error: this type of python object cannot be converted into a "
-               "hickle.")
+        return ("Error: this type of python object cannot be converted into a "
+                "hickle.")
 
 
 class ToDoError(exceptions.Exception):
@@ -69,7 +69,7 @@ class ToDoError(exceptions.Exception):
         return
 
     def __str__(self):
-        print "Error: this functionality hasn't been implemented yet."
+        return "Error: this functionality hasn't been implemented yet."
 
 
 class H5GroupWrapper(h5.Group):
