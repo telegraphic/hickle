@@ -30,7 +30,7 @@ import exceptions
 import numpy as np
 import h5py as h5
 from types import NoneType
-
+import warnings
 __version__ = "1.1.1"
 __author__ = "Danny Price"
 
@@ -294,8 +294,8 @@ def no_match(obj, h5f, *args, **kwargs):
     h5f.create_dataset('type', data=['pickle'])
     h5f.create_dataset('data', data=[pickled_obj])
 
-    print ("Warning: %s type not understood, data have been"
-           " serialized" % type(obj))
+    warnings.warn("%s type not understood, data have been "
+                  "serialized" % type(obj))
 
 
 def dumper_lookup(obj):
@@ -368,7 +368,7 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
         try:
             os.remove(fname)
         except:
-            print "Warning: dump failed. Could not remove %s" % fname
+            warnings.warn("Dump failed. Could not remove %s" % fname)
         finally:
             raise NoMatchError
 
@@ -454,10 +454,9 @@ def load_pickle(h5f, safe=True):
         data = cPickle.loads(data[0])
         return data
     else:
-        print
-        print "Warning: Object is of an unknown type, and has not been loaded"
-        print "         for security reasons (it could be malicious code). If"
-        print "         you wish to continue, manually set safe=False\n"
+        warnings.warn("Object is of an unknown type, and has not been loaded "
+                      "for security reasons (it could be malicious code). If "
+                      "you wish to continue, manually set safe=False")
 
 
 def load_np_list(group):
