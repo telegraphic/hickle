@@ -33,6 +33,8 @@ NESTED_DICT = {
         }
     }
 
+DUMP_CACHE = []             # Used in test_track_times()
+
 def test_string():
     """ Dumping and loading a string """
     filename, mode = 'test.h5', 'w'
@@ -317,28 +319,28 @@ def md5sum(filename, blocksize=65536):
             hash.update(block)
     return hash.hexdigest()
 
-def caching_dump(obj, filename, mode='w', **kwargs):
-    """ Save arguments of all dump calls"""
-    dump_cache.append((obj, filename, mode, kwargs))
-    return hickle_dump(obj, filename, mode, **kwargs)
+def caching_dump(obj, filename, *args, **kwargs):
+    """ Save arguments of all dump calls """
+    DUMP_CACHE.append((obj, filename, args, kwargs))
+    return hickle_dump(obj, filename, *args, **kwargs)
 
 def test_track_times():
-    """ Verify that track_times = False produces identical files"""
+    """ Verify that track_times = False produces identical files """
     hashes = []
-    for obj, filename, mode, kwargs in dump_cache:
+    for obj, filename, mode, kwargs in DUMP_CACHE:
         if isinstance(filename, hickle.H5FileWrapper):
             filename = str(filename.file_name)
         kwargs['track_times'] = False
-        hickle_dump(obj, filename, mode, **kwargs)
+        caching_dump(obj, filename, mode, **kwargs)
         hashes.append(md5sum(filename))
         os.remove(filename)
 
     time.sleep(1)
 
-    for hash1, (obj, filename, mode, kwargs) in zip(hashes, dump_cache):
+    for hash1, (obj, filename, mode, kwargs) in zip(hashes, DUMP_CACHE):
         if isinstance(filename, hickle.H5FileWrapper):
             filename = str(filename.file_name)
-        hickle_dump(obj, filename, mode, **kwargs)
+        caching_dump(obj, filename, mode, **kwargs)
         hash2 = md5sum(filename)
         print hash1, hash2
         try:
@@ -459,46 +461,42 @@ def test_dict_none():
     
 def test_file_open_close():
     """ https://github.com/telegraphic/hickle/issues/20 """
-    import h5py
-    f = h5py.File('test.hdf', 'w')
-    a = np.arange(5)
+    try:
+        import h5py
+        f = h5py.File('test.hdf', 'w')
+        a = np.arange(5)
     
-    dump(a, 'test.hkl')
-    dump(a, 'test.hkl')
+        dump(a, 'test.hkl')
+        dump(a, 'test.hkl')
     
-    dump(a, f, mode='w')
-    dump(a, f, 'w')
-
-    
-dump_cache = []
-hickle_dump = dump
-dump = caching_dump
+        dump(a, f, mode='w')
+        dump(a, f, mode='w')
+        
+    finally:
+        os.remove('test.hdf')
+        os.remove('test.hkl')
 
 if __name__ == '__main__':
-  """ Some tests and examples"""
-
-  test_file_open_close()
-  test_dict_none()
-  test_none()
-  test_unicode()
-  test_string()
-  test_masked_dict()
-  test_list()
-  test_set()
-  test_numpy()
-  test_dict()
-  test_compression()
-  test_masked()
-  test_dict_int_key()
-  test_dict_nested()
-  test_nomatch()
-  test_np_float()
-  test_track_times()
-  time.sleep(2)
-  test_comp_kwargs()
-  test_list_numpy()
-  test_tuple_numpy()
-
-  
-  print "ALL TESTS PASSED!"
+    """ Some tests and examples """
+    test_file_open_close()
+    test_dict_none()
+    test_none()
+    test_unicode()
+    test_string()
+    test_masked_dict()
+    test_list()
+    test_set()
+    test_numpy()
+    test_dict()
+    test_compression()
+    test_masked()
+    test_dict_int_key()
+    test_dict_nested()
+    test_nomatch()
+    test_np_float()
+    test_comp_kwargs()
+    test_list_numpy()
+    test_tuple_numpy()
+    test_track_times()
+    print "ALL TESTS PASSED!"
   
