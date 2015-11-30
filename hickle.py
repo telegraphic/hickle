@@ -31,7 +31,7 @@ import numpy as np
 import h5py as h5
 from types import NoneType
 import warnings
-__version__ = "1.1.1"
+__version__ = "1.4.0"
 __author__ = "Danny Price"
 
 ##################
