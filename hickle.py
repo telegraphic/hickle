@@ -46,8 +46,18 @@ class FileError(exceptions.Exception):
         return
 
     def __str__(self):
-        return ("Error: cannot open file. Please pass either a filename "
+        return ("Cannot open file. Please pass either a filename "
                 "string, a file object, or a h5py.File")
+
+class ClosedFileError(exceptions.Exception):
+    """ An exception raised if the file is fishy """
+
+    def __init__(self):
+        return
+
+    def __str__(self):
+        return ("HDF5 file has been closed. Please pass either "
+                "a filename string, a file object, or an open h5py.File")
 
 
 class NoMatchError(exceptions.Exception):
@@ -100,17 +110,21 @@ def file_opener(f, mode='r', track_times=True):
     """ A file opener helper function with some error handling.  This can open
     files through a file object, a h5py file, or just the filename.  """
     # Were we handed a file object or just a file name string?
-    if type(f) is file:
+    if isinstance(f, file):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
-
-    elif type(f) is h5._hl.files.File:
-        h5f = f
-    elif type(f) is str:
+    elif isinstance(f, str) or isinstance(f, unicode):
         filename = f
         h5f = h5.File(filename, mode)
+    elif isinstance(f, H5FileWrapper) or isinstance(f, h5._hl.files.File):
+        try:
+            filename = f.filename
+        except ValueError:
+            raise ClosedFileError()
+        h5f = f
     else:
+        print type(f)
         raise FileError
 
     h5f.__class__ = H5FileWrapper

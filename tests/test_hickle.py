@@ -470,7 +470,10 @@ def test_file_open_close():
         dump(a, 'test.hkl')
     
         dump(a, f, mode='w')
-        dump(a, f, mode='w')
+        try:
+            dump(a, f, mode='w')
+        except ClosedFileError:
+            print "Tests: Closed file exception caught"
         
     finally:
         os.remove('test.hdf')
