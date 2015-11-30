@@ -5,8 +5,10 @@ python:
 
 # command to install dependencies
 install:
-  - pip install .
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq libhdf5-serial-dev
   - pip install -r requirements.txt
+  - pip install .
 
 # command to install dependencies
 script: python tests/test_hickle.py
