@@ -137,3 +137,5 @@ hickle passes keyword arguments on to h5py, so you can do things like:
   ```
 Have a look at http://docs.h5py.org/en/latest/high/dataset.html for an explanation
 of these keywords.
+
+![travis-ci](https://travis-ci.org/telegraphic/hickle.svg?branch=master)
