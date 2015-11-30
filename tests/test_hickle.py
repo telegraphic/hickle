@@ -479,6 +479,14 @@ def test_file_open_close():
         os.remove('test.hdf')
         os.remove('test.hkl')
 
+def run_file_cleanup():
+    """ Clean up temp files """
+    for filename in ('test.hdf', 'test.hkl', 'test.h5'):
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
+    
 if __name__ == '__main__':
     """ Some tests and examples """
     test_file_open_close()
@@ -501,5 +509,6 @@ if __name__ == '__main__':
     test_list_numpy()
     test_tuple_numpy()
     test_track_times()
+    run_file_cleanup()
     print "ALL TESTS PASSED!"
   
