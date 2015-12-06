@@ -147,10 +147,15 @@ def dump_np_dtype(obj, h5f, **kwargs):
     h5f.create_dataset('data', data=obj)
     h5f.create_dataset('type', data=['np_dtype'])
 
+def dump_python_dtype(obj, h5f, **kwargs):
+    """ dumps a python dtype object to h5py file"""
+    h5f.create_dataset('data', data=obj, dtype=type(obj))
+    h5f.create_dataset('type', data=['python_dtype'])
+    h5f['data'].attrs['python_dtype'] = str(type(obj))
 
 def dump_np_dtype_dict(obj, h5f, **kwargs):
     """ dumps an np dtype object within a group"""
-    h5f.create_dataset('data', data=obj)
+    h5f.create_dataset('data')
     h5f.create_dataset('_data', data=['np_dtype'])
 
 
@@ -167,7 +172,7 @@ def dump_list(obj, h5f, **kwargs):
     # Check if there are any numpy arrays in the list
     contains_numpy = any(isinstance(el, np.ndarray) for el in obj)
 
-    if contains_numpy:
+    if True or contains_numpy:
         _dump_list_np(obj, h5f, **kwargs)
     else:
         h5f.create_dataset('data', data=obj, **kwargs)
@@ -182,7 +187,11 @@ def _dump_list_np(obj, h5f, **kwargs):
 
     ii = 0
     for np_item in obj:
-        np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
+        item_dumper=dumper_lookup(np_item)
+
+        sub_group = np_group.create_group("%s" % (ii))
+        item_dumper(np_item,sub_group,**kwargs)
+        #np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
         ii += 1
 
 
@@ -192,7 +201,7 @@ def dump_tuple(obj, h5f, **kwargs):
     # Check if there are any numpy arrays in the list
     contains_numpy = any(isinstance(el, np.ndarray) for el in obj)
 
-    if contains_numpy:
+    if True or contains_numpy:
         _dump_tuple_np(obj, h5f, **kwargs)
     else:
         h5f.create_dataset('data', data=obj, **kwargs)
@@ -207,9 +216,12 @@ def _dump_tuple_np(obj, h5f, **kwargs):
 
     ii = 0
     for np_item in obj:
-        np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
+        item_dumper=dumper_lookup(np_item)
+        
+        sub_group = np_group.create_group("%s" % (ii))
+        item_dumper(np_item,sub_group,**kwargs)
+        #np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
         ii += 1
-
 
 def dump_set(obj, h5f, **kwargs):
     """ dumps a set object to h5py file"""
@@ -325,6 +337,9 @@ def dumper_lookup(obj):
         dict: dump_dict,
         str: dump_string,
         unicode: dump_unicode,
+        int: dump_python_dtype,
+        float: dump_python_dtype,
+        long: dump_python_dtype,
         NoneType: dump_none,
         np.ndarray: dump_ndarray,
         np.ma.core.MaskedArray: dump_masked,
@@ -340,7 +355,7 @@ def dumper_lookup(obj):
         np.uint32: dump_np_dtype,
         np.uint64: dump_np_dtype,
         np.complex64: dump_np_dtype,
-        np.complex128: dump_np_dtype,
+        np.complex128: dump_np_dtype
     }
 
     match = types.get(t, no_match)
@@ -390,6 +405,49 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
 # loaders #
 ###########
 
+def load_stuff(h5f,safe):
+        dtype = h5f["type"][0]
+
+        if dtype == 'dict':
+            group = h5f["data"]
+            data = load_dict(group,safe)
+        elif dtype == 'pickle':
+            data = load_pickle(h5f, safe)
+        elif dtype == 'np_list':
+            group = h5f["data"]
+            data = load_np_list(group,safe)
+        elif dtype == 'np_tuple':
+            group = h5f["data"]
+            data = load_np_tuple(group,safe)
+        elif dtype == 'masked':
+            data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
+        elif dtype == 'none':
+            data = None
+        elif dtype == 'python_dtype':
+            data = load_python_dtype()
+        else:
+            if dtype in ('string', 'unicode'):
+                data = h5f["data"][0]
+            else:
+                try:
+                    data = h5f["data"][:]
+                except ValueError:
+                    data = h5f["data"]
+                except TypeError:
+                    data = h5f["data"]
+            types = {
+                'list': list,
+                'set': set,
+                'unicode': unicode,
+                'string': str,
+                'ndarray': load_ndarray,
+                'np_dtype': load_np_dtype
+            }
+
+            mod = types.get(dtype, no_match)
+            data = mod(data)
+        return data
+
 def load(file, safe=True):
     """ Load a hickle file and reconstruct a python object
 
@@ -404,42 +462,7 @@ def load(file, safe=True):
 
     try:
         h5f = file_opener(file)
-        dtype = h5f["type"][0]
-
-        if dtype == 'dict':
-            group = h5f["data"]
-            data = load_dict(group)
-        elif dtype == 'pickle':
-            data = load_pickle(h5f, safe)
-        elif dtype == 'np_list':
-            group = h5f["data"]
-            data = load_np_list(group)
-        elif dtype == 'np_tuple':
-            group = h5f["data"]
-            data = load_np_tuple(group)
-        elif dtype == 'masked':
-            data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
-        elif dtype == 'none':
-            data = None
-        else:
-            if dtype in ('string', 'unicode'):
-                data = h5f["data"][0]
-            else:
-                try:
-                    data = h5f["data"][:]
-                except ValueError:
-                    data = h5f["data"]
-            types = {
-                'list': list,
-                'set': set,
-                'unicode': unicode,
-                'string': str,
-                'ndarray': load_ndarray,
-                'np_dtype': load_np_dtype
-            }
-
-            mod = types.get(dtype, no_match)
-            data = mod(data)
+        data=load_stuff(h5f,safe)
     finally:
         if 'h5f' in locals():
             h5f.close()
@@ -471,19 +494,26 @@ def load_pickle(h5f, safe=True):
                       "for security reasons (it could be malicious code). If "
                       "you wish to continue, manually set safe=False")
 
+def load_python_dtype(arr):
+    """ Load a numpy array """
+    # Just return first value                                                   
+    return arr.value
 
-def load_np_list(group):
+
+def load_np_list(group,safe):
     """ load a numpy list """
     np_list = []
     for key in sorted(group.keys()):
-        data = group[key][:]
-        np_list.append(data)
+        subgroup=group[key]
+        np_list.append(load_stuff(subgroup,safe))
+    #    data = group[key][:]
+    #    np_list.append(data)
     return np_list
 
 
-def load_np_tuple(group):
+def load_np_tuple(group,safe):
     """ load a tuple containing numpy arrays """
-    return tuple(load_np_list(group))
+    return tuple(load_np_list(group,safe))
 
 
 def load_ndarray(arr):
@@ -498,14 +528,14 @@ def load_np_dtype(arr):
     return arr.value
 
 
-def load_dict(group):
+def load_dict(group, safe):
     """ Load dictionary """
 
     dd = {}
     for key in group.keys():
         if isinstance(group[key], h5._hl.group.Group):
             new_group = group[key]
-            dd[key] = load_dict(new_group)
+            dd[key] = load_dict(new_group, safe)
         elif not key.startswith("_"):
             _key = "_%s" % key
 
