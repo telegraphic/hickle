@@ -138,32 +138,32 @@ def file_opener(f, mode='r', track_times=True):
 
 def dump_ndarray(obj, h5f, **kwargs):
     """ dumps an ndarray object to h5py file"""
-    h5f.create_dataset('data', data=obj, **kwargs)
-    h5f.create_dataset('type', data=['ndarray'])
-
+    d = h5f.create_dataset('data', data=obj, **kwargs)
+    d.attrs["type"] = ['ndarray']
 
 def dump_np_dtype(obj, h5f, **kwargs):
     """ dumps an np dtype object to h5py file"""
-    h5f.create_dataset('data', data=obj)
-    h5f.create_dataset('type', data=['np_dtype'])
+    d = h5f.create_dataset('data', data=obj)
+    d.attrs["type"] = ['np_dtype']
+
 
 def dump_python_dtype(obj, h5f, **kwargs):
     """ dumps a python dtype object to h5py file"""
-    h5f.create_dataset('data', data=obj, dtype=type(obj))
-    h5f.create_dataset('type', data=['python_dtype'])
-    h5f['data'].attrs['python_dtype'] = str(type(obj))
+    d = h5f.create_dataset('data', data=obj, dtype=type(obj))
+    d.attrs["type"] = ['python_dtype']    
+    d.attrs['python_subdtype'] = str(type(obj))
 
 def dump_np_dtype_dict(obj, h5f, **kwargs):
     """ dumps an np dtype object within a group"""
-    h5f.create_dataset('data')
-    h5f.create_dataset('_data', data=['np_dtype'])
+    d = h5f.create_dataset('data')
+    d.attrs['_data'] =['np_dtype']
 
 
 def dump_masked(obj, h5f, **kwargs):
     """ dumps an ndarray object to h5py file"""
-    h5f.create_dataset('data', data=obj, **kwargs)
-    h5f.create_dataset('mask', data=obj.mask, **kwargs)
-    h5f.create_dataset('type', data=['masked'])
+    d = h5f.create_dataset('data', data=obj, **kwargs)
+    m = h5f.create_dataset('mask', data=obj.mask, **kwargs)
+    d.attrs["type"] = ['masked']
 
 
 def dump_list(obj, h5f, **kwargs):
@@ -175,15 +175,15 @@ def dump_list(obj, h5f, **kwargs):
     if True or contains_numpy:
         _dump_list_np(obj, h5f, **kwargs)
     else:
-        h5f.create_dataset('data', data=obj, **kwargs)
-        h5f.create_dataset('type', data=['list'])
+        d = h5f.create_dataset('data', data=obj, **kwargs)
+        d.attrs["type"] = ['list']
 
 
 def _dump_list_np(obj, h5f, **kwargs):
     """ Dump a list of numpy objects to file """
 
     np_group = h5f.create_group('data')
-    h5f.create_dataset('type', data=['np_list'])
+    np_group.attrs["type"] = ['np_list']
 
     ii = 0
     for np_item in obj:
@@ -204,15 +204,15 @@ def dump_tuple(obj, h5f, **kwargs):
     if True or contains_numpy:
         _dump_tuple_np(obj, h5f, **kwargs)
     else:
-        h5f.create_dataset('data', data=obj, **kwargs)
-        h5f.create_dataset('type', data=['tuple'])
+        d = h5f.create_dataset('data', data=obj, **kwargs)
+        d.attrs["type"] = ['tuple']
 
 
 def _dump_tuple_np(obj, h5f, **kwargs):
     """ Dump a tuple of numpy objects to file """
 
     np_group = h5f.create_group('data')
-    h5f.create_dataset('type', data=['np_tuple'])
+    np_group.attrs['type'] = ['np_tuple']
 
     ii = 0
     for np_item in obj:
@@ -226,20 +226,20 @@ def _dump_tuple_np(obj, h5f, **kwargs):
 def dump_set(obj, h5f, **kwargs):
     """ dumps a set object to h5py file"""
     obj = list(obj)
-    h5f.create_dataset('data', data=obj, **kwargs)
-    h5f.create_dataset('type', data=['set'])
+    d = h5f.create_dataset('data', data=obj, **kwargs)
+    d.attrs["type"] = ['set']
 
 
 def dump_string(obj, h5f, **kwargs):
     """ dumps a list object to h5py file"""
-    h5f.create_dataset('data', data=[obj], **kwargs)
-    h5f.create_dataset('type', data=['string'])
+    d = h5f.create_dataset('data', data=[obj], **kwargs)
+    d.attrs["type"] = ['string']
 
 
 def dump_none(obj, h5f, **kwargs):
     """ Dump None type to file """
-    h5f.create_dataset('data', data=[0], **kwargs)
-    h5f.create_dataset('type', data=['none'])
+    d = h5f.create_dataset('data', data=[0], **kwargs)
+    d.attrs["type"] = ['none']
 
 
 def dump_unicode(obj, h5f, **kwargs):
@@ -248,7 +248,7 @@ def dump_unicode(obj, h5f, **kwargs):
     ll = len(obj)
     dset = h5f.create_dataset('data', shape=(ll, ), dtype=dt, **kwargs)
     dset[:ll] = obj
-    h5f.create_dataset('type', data=['unicode'])
+    dset.attrs['type'] = ['unicode']
 
 
 def _dump_dict(dd, hgroup, **kwargs):
@@ -263,52 +263,54 @@ def _dump_dict(dd, hgroup, **kwargs):
             if _key == 'unicode':
                 dd[key] = str(dd[key])
 
-            hgroup.create_dataset("%s" % key, data=[dd[key]], **kwargs)
-            hgroup.create_dataset("_%s" % key, data=[_key])
+            d = hgroup.create_dataset("%s" % key, data=[dd[key]], **kwargs)
+            d.attrs["type"] = [_key]
 
         elif type(dd[key]) in (type(np.array([1])), type(np.ma.array([1]))):
 
             if hasattr(dd[key], 'mask'):
-                hgroup.create_dataset("_%s" % key, data=["masked"])
-                hgroup.create_dataset("%s" % key, data=dd[key].data, **kwargs)
+                
+                d = hgroup.create_dataset("%s" % key, data=dd[key].data, **kwargs)
+                d.attrs["type"] = ["masked"]
                 hgroup.create_dataset(
                     "_%s_mask" % key, data=dd[key].mask, **kwargs)
             else:
-                hgroup.create_dataset("_%s" % key, data=["ndarray"])
-                hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
+                d = hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
+                d.attrs["type"] = ["ndarray"]
 
         elif type(dd[key]) is list:
-            hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
-            hgroup.create_dataset("_%s" % key, data=["list"])
+            d = hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
+            d.attrs["type"] = ["list"]
 
         elif type(dd[key]) is tuple:
-            hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
-            hgroup.create_dataset("_%s" % key, data=["tuple"])
+            d = hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
+            d.attrs["type"] =[ "tuple"]
 
         elif type(dd[key]) is set:
-            hgroup.create_dataset("%s" % key, data=list(dd[key]), **kwargs)
-            hgroup.create_dataset("_%s" % key, data=["set"])
+            d = hgroup.create_dataset("%s" % key, data=list(dd[key]), **kwargs)
+            d.attrs["type"] = ["set"]
 
         elif isinstance(dd[key], dict):
             new_group = hgroup.create_group("%s" % key)
+            new_group.attrs["type"] = ["dict"]
             _dump_dict(dd[key], new_group, **kwargs)
 
         elif type(dd[key]) is NoneType:
-            hgroup.create_dataset("%s" % key, data=[0], **kwargs)
-            hgroup.create_dataset("_%s" % key, data=["none"])
+            d = hgroup.create_dataset("%s" % key, data=[0], **kwargs)
+            d.attrs["type"] = ["none"]
 
         else:
             if type(dd[key]).__module__ == np.__name__:
-                hgroup.create_dataset("%s" % key, data=dd[key])
-                hgroup.create_dataset("_%s" % key, data=["np_dtype"])
+                d = hgroup.create_dataset("%s" % key, data=dd[key])
+                d.attrs["type"] = ["np_dtype"]
             else:
                 raise NoMatchError
 
 
 def dump_dict(obj, h5f='', **kwargs):
     """ dumps a dictionary to h5py file """
-    h5f.create_dataset('type', data=['dict'])
     hgroup = h5f.create_group('data')
+    hgroup.attrs["type"] = ['dict']
     _dump_dict(obj, hgroup, **kwargs)
 
 
@@ -317,9 +319,9 @@ def no_match(obj, h5f, *args, **kwargs):
     import cPickle
 
     pickled_obj = cPickle.dumps(obj)
-    h5f.create_dataset('type', data=['pickle'])
-    h5f.create_dataset('data', data=[pickled_obj])
-
+    d = h5f.create_dataset('data', data=[pickled_obj])
+    d.attrs["type"] = ['pickle']
+    
     warnings.warn("%s type not understood, data have been "
                   "serialized" % type(obj))
 
@@ -406,7 +408,7 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
 ###########
 
 def load_stuff(h5f,safe):
-        dtype = h5f["type"][0]
+        dtype = h5f["data"].attrs["type"][0]
 
         if dtype == 'dict':
             group = h5f["data"]
@@ -424,7 +426,7 @@ def load_stuff(h5f,safe):
         elif dtype == 'none':
             data = None
         elif dtype == 'python_dtype':
-            data = load_python_dtype()
+            data = load_python_dtype(h5f["data"])
         else:
             if dtype in ('string', 'unicode'):
                 data = h5f["data"][0]
@@ -537,20 +539,19 @@ def load_dict(group, safe):
             new_group = group[key]
             dd[key] = load_dict(new_group, safe)
         elif not key.startswith("_"):
-            _key = "_%s" % key
 
-            if group[_key][0] == 'np_dtype':
+            if group[key].attrs["type"][0] == 'np_dtype':
                 dd[key] = group[key].value
-            elif group[_key][0] in ('str', 'int', 'float', 'unicode', 'bool'):
+            elif group[key].attrs["type"][0] in ('str', 'int', 'float', 'unicode', 'bool'):
                 dd[key] = group[key][0]
-            elif group[_key][0] == 'masked':
+            elif group[key].attrs["type"][0] == 'masked':
                 key_ma = "_%s_mask" % key
                 dd[key] = np.ma.array(group[key][:], mask=group[key_ma])
             else:
                 dd[key] = group[key][:]
 
             # Convert numpy constructs back to string
-            dtype = group[_key][0]
+            dtype = group[key].attrs["type"][0]
             types = {'str': str, 'int': int, 'float': float, 'unicode':
                      unicode, 'bool': bool, 'list': list, 'none': NoneType}
             try:
