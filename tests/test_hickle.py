@@ -95,29 +95,6 @@ def test_list():
         print a['data'].keys()
         os.remove(filename)
         raise
-
-def test_list_long():
-    """ Check long comes back out as a long """
-    filename, mode = 'test.h5', 'w'
-    list_obj = [1L, 2L, 3L, 4L, 5L]
-    dump(list_obj, filename, mode)
-    list_hkl = load(filename)
-    #print "Initial list:   %s"%list_obj
-    #print "Unhickled data: %s"%list_hkl
-    try:
-        assert type(list_obj) == type(list_hkl) == list
-        assert list_obj == list_hkl
-        assert type(list_obj[0]) == type(list_hkl[0])
-        
-        os.remove(filename)
-    except AssertionError:
-        print "ERR:", list_obj, list_hkl
-        import h5py
-        a = h5py.File(filename)
-        print a.keys()
-        print a['data'].keys()
-        os.remove(filename)
-        raise
         
 def test_set():
     """ Dumping and loading a list """
@@ -519,30 +496,90 @@ def run_file_cleanup():
             os.remove(filename)
         except OSError:
             pass
+
+def test_list_long_type()):
+    """ Check long comes back out as a long """
+    filename, mode = 'test.h5', 'w'
+    list_obj = [1L, 2L, 3L, 4L, 5L]
+    dump(list_obj, filename, mode)
+    list_hkl = load(filename)
+    #print "Initial list:   %s"%list_obj
+    #print "Unhickled data: %s"%list_hkl
+    try:
+        assert type(list_obj) == type(list_hkl) == list
+        assert list_obj == list_hkl
+        assert type(list_obj[0]) == type(list_hkl[0])
+        
+        os.remove(filename)
+    except AssertionError:
+        print "ERR:", list_obj, list_hkl
+        import h5py
+        a = h5py.File(filename)
+        print a.keys()
+        print a['data'].keys()
+        os.remove(filename)
+        raise
+
+def test_list_order():
+    """ https://github.com/telegraphic/hickle/issues/26 """
+    d = [np.arange(n) for n in range(20)]
+    hickle.dump(d, 'test.h5')
+    d_hkl = hickle.load('test.h5')
     
+    try:
+        for ii, xx in enumerate(d):
+            assert d[ii].shape == d_hkl[ii].shape
+        for ii, xx in enumerate(d):
+            assert np.allclose(d[ii], d_hkl[ii])
+    except AssertionError:
+        print d[ii], d_hkl[ii]
+        raise
+    
+def test_embedded_array():
+    """ See https://github.com/telegraphic/hickle/issues/24 """
+    
+    d_orig = [[np.array([10., 20.]), np.array([10, 20, 30])], [np.array([10, 2]), np.array([1.])]]
+    hickle.dump(d_orig, 'test.h5')
+    d_hkl = hickle.load('test.h5')
+    
+    for ii, xx in enumerate(d_orig):
+        for jj, yy in enumerate(xx):
+            assert np.allclose(d_orig[ii][jj], d_hkl[ii][jj])
+    
+    print d_hkl
+    print d_orig
+
 if __name__ == '__main__':
     """ Some tests and examples """
-    test_file_open_close()
-    test_dict_none()
-    test_none()
-    test_unicode()
-    test_string()
-    test_masked_dict()
-    test_list()
-    #test_list_long()
-    test_set()
-    test_numpy()
-    test_dict()
-    test_compression()
-    test_masked()
-    test_dict_int_key()
-    test_dict_nested()
-    test_nomatch()
-    test_np_float()
-    test_comp_kwargs()
-    test_list_numpy()
-    test_tuple_numpy()
-    test_track_times()
+    #test_file_open_close()
+    #test_dict_none()
+    #test_none()
+    #test_unicode()
+    #test_string()
+    #test_masked_dict()
+    #test_list()
+
+    #test_set()
+    #test_numpy()
+    #test_dict()
+    #test_compression()
+    #test_masked()
+    #test_dict_int_key()
+    #test_dict_nested()
+    #test_nomatch()
+    #test_np_float()
+    #test_comp_kwargs()
+    #test_list_numpy()
+    #test_tuple_numpy()
+    #test_track_times()
+    #run_file_cleanup()
+    
+    #FAILING TESTS:
+    test_list_order()
+    test_list_long_type()
+    test_embedded_array()
+    
+    # Cleanup
     run_file_cleanup()
     print "ALL TESTS PASSED!"
   
