@@ -1,6 +1,7 @@
-from hickle_dev import check_is_iterable, check_iterable_item_type, _dump, dump
+from hickle_dev import check_is_iterable, check_iterable_item_type, _dump, dump, load
 import h5py
 import numpy as np
+from pprint import pprint
 
 def generate_nested():
     a = [1, 2, 3]
@@ -17,7 +18,9 @@ def generate_nested():
     c = (1, 2, 3, 4, 5)
     d = np.ma.array([1, 2, 3, 4, 5, 6, 7, 8])
     z = {'a': a, 'b': b, 'c': c, 'd': d, 'z': z}
-    z = [a, b, c, d, z]
+    z = [b, b, b] #, z]
+
+    z = (z, z, z)
     return z
 
 def test_is_iterable():
@@ -49,9 +52,24 @@ def test_dump_nested():
     z = generate_nested()
     dump(z, 'test.hkl', mode='w')
 
+def test_load():
+
+    z = {1, 2, 3, 4}
+    z = (z, z, z)
+    z = [z, z]
+    z = (z, z, z, z, z)
+
+    print "Original:"
+    pprint(z)
+    dump(z, 'test.hkl', mode='w')
+
+    print "\nReconstructed:"
+    z = load('test.hkl')
+    pprint(z)
+
 if __name__ == "__main__":
     test_is_iterable()
     test_check_iterable_item_type()
     test_dump_nested()
-
+    test_load()
     print("OK")

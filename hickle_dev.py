@@ -196,7 +196,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
 
         # item_type == False implies multiple types. Create a dataset
         if item_type is False:
-            h_subgroup = create_hkl_group(h_group, call_id)
+            h_subgroup = create_hkl_group(py_obj, h_group, call_id)
             for ii, py_subobj in enumerate(py_obj):
                 _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
@@ -207,7 +207,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
             if item_type in dumpable_dtypes:
                 create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
             else:
-                h_subgroup = create_hkl_group(h_group, call_id)
+                h_subgroup = create_hkl_group(py_obj, h_group, call_id)
                 for ii, py_subobj in enumerate(py_obj):
                     #print py_subobj, h_subgroup, ii
                     _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
@@ -216,33 +216,6 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
     else:
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
-def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ Create a dataset within the hickle HDF5 file
-
-    Args:
-        py_obj: python object to dump.
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-
-    """
-    #lookup dataset creator type based on python object type
-    create_dataset = create_dataset_lookup(py_obj)
-
-    # do the creation
-    create_dataset(py_obj, h_group, call_id, **kwargs)
-    #print call_id, create_dataset
-
-def create_hkl_group(h_group, call_id=0):
-    """ Create a new group within the hickle file
-
-    Args:
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-
-    """
-
-    h_subgroup = h_group.create_group('data_%i' % call_id)
-    return h_subgroup
 
 def dump(py_obj, file_obj, mode='w', track_times=True, **kwargs):
     """ Write a pickled representation of obj to the open file object file.
@@ -263,6 +236,10 @@ def dump(py_obj, file_obj, mode='w', track_times=True, **kwargs):
     try:
         # Open the file
         h5f = file_opener(file_obj, mode, track_times)
+        h5f.attrs["CLASS"] = 'hickle'
+        h5f.attrs["VERSION"] = 2
+        h5f.attrs["type"] = ['hickle']
+
         _dump(py_obj, h5f, **kwargs)
         h5f.close()
     except NoMatchError:
@@ -312,16 +289,37 @@ def create_dataset_lookup(py_obj):
     match = types.get(t, no_match)
     return match
 
-def no_match(py_obj, h_group, call_id=0, **kwargs):
-    """ If no match is made, raise an exception """
-    import cPickle
 
-    pickled_obj = cPickle.dumps(py_obj)
-    d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
-    d.attrs["type"] = ['pickle']
+def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ Create a dataset within the hickle HDF5 file
 
-    warnings.warn("%s type not understood, data have been "
-                  "serialized" % type(py_obj))
+    Args:
+        py_obj: python object to dump.
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the iterable.
+
+    """
+    #lookup dataset creator type based on python object type
+    create_dataset = create_dataset_lookup(py_obj)
+
+    # do the creation
+    create_dataset(py_obj, h_group, call_id, **kwargs)
+    #print call_id, create_dataset
+
+def create_hkl_group(py_obj, h_group, call_id=0):
+    """ Create a new group within the hickle file
+
+    Args:
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the iterable.
+
+    """
+
+    h_subgroup = h_group.create_group('data_%i' % call_id)
+    h_subgroup.attrs["type"] = [str(type(py_obj))]
+    return h_subgroup
+
+
 
 def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dumper for list, set, tuple
@@ -346,14 +344,15 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Creates a data group for each key in dictionary
     """
     h_dictgroup = h_group.create_group('data_%i' % call_id)
+    h_dictgroup.attrs["type"] = ['dict']
     for key, py_subobj in py_obj.items():
         #print key, py_subobj, h_group
         h_subgroup = h_dictgroup.create_group(key)
+        h_subgroup.attrs["type"] = ['dict_item']
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
 
 def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an ndarray object to h5py file"""
-
     if isinstance(py_obj, type(np.ma.array([1]))):
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
         m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
@@ -380,3 +379,120 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dump None type to file """
     d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
     d.attrs["type"] = ['none']
+
+def no_match(py_obj, h_group, call_id=0, **kwargs):
+    """ If no match is made, raise an exception """
+    import cPickle
+
+    pickled_obj = cPickle.dumps(py_obj)
+    d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
+    d.attrs["type"] = ['pickle']
+
+    warnings.warn("%s type not understood, data have been "
+                  "serialized" % type(py_obj))
+
+
+#############
+## LOADERS ##
+#############
+
+def load(file, safe=True):
+    """ Load a hickle file and reconstruct a python object
+
+    Args:
+    file: file object, h5py.File, or filename string
+    safe (bool): Disable automatic depickling of arbitrary python objects.
+    DO NOT set this to False unless the file is from a trusted source.
+    (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+    """
+
+    try:
+        h5f = file_opener(file)
+        try:
+            assert 'CLASS' in h5f.attrs.keys()
+            assert 'VERSION' in h5f.attrs.keys()
+        except AssertionError:
+            print "Error: this is not a Hickle V2 file."
+        py_container = PyContainer()
+        py_container.container_type = 'hickle'
+        py_container = _load(py_container, h5f)
+        return py_container[0][0]
+    finally:
+        if 'h5f' in locals():
+            h5f.close()
+
+
+def load_dataset(h_node):
+    py_type = h_node.attrs["type"][0]
+
+    if h_node.shape == ():
+        data = h_node.value
+    else:
+        data  = h_node[:]
+
+    #print h_node.name, py_type
+    if py_type == "<type 'list'>":
+        #print self.name
+        return list(data)
+    elif py_type == "<type 'tuple'>":
+        return tuple(data)
+    elif py_type == "<type 'set'>":
+        return set(data)
+    else:
+        return data
+
+def sort_keys(keys):
+    """ TODO: sort keys by ID """
+    return keys
+
+
+def _load(py_container, h_group):
+    """ Load a hickle file """
+
+    group_dtype   = h5._hl.group.Group
+    dataset_dtype = h5._hl.dataset.Dataset
+
+    #either a file, group, or dataset
+    if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
+        py_subcontainer = PyContainer()
+        py_subcontainer.container_type = h_group.attrs['type'][0]
+        py_subcontainer.name = h_group.name
+
+        h_keys = sort_keys(h_group.keys())
+
+        for h_name in h_keys:
+            h_node = h_group[h_name]
+            py_subcontainer = _load(py_subcontainer, h_node)
+
+        sub_data = py_subcontainer.convert()
+        py_container.append(sub_data)
+
+    else:
+        # must be a dataset
+        subdata = load_dataset(h_group)
+        py_container.append(subdata)
+
+    #print h_group.name, py_container
+    return py_container
+
+class PyContainer(list):
+    def __init__(self):
+        super(PyContainer, self).__init__()
+        self.container_type = None
+        self.name = None
+
+    def convert(self):
+        #print self.container_type
+
+        if self.container_type == "<type 'list'>":
+            #print self.name
+            return list(self)
+        if self.container_type == "<type 'tuple'>":
+            #print self.name
+            return tuple(self)
+        if self.container_type == "<type 'set'>":
+            return set(self)
+        else:
+            return self
+
+
