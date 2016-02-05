@@ -356,9 +356,10 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an ndarray object to h5py file"""
     if isinstance(py_obj, type(np.ma.array([1]))):
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-        m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
-        d.attrs["type"] = ['masked']
-        m.attrs["type"] = ['masked_mask']
+        #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
+        d.attrs["mask"] = py_obj.mask
+        d.attrs["type"] = ['ndarray_masked']
+        #m.attrs["type"] = ['masked_mask']
     else:
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
         d.attrs["type"] = ['ndarray']
@@ -431,7 +432,7 @@ def load_dataset(h_node):
     else:
         data  = h_node[:]
 
-    #print h_node.name, py_type
+
     if py_type == "<type 'list'>":
         #print self.name
         return list(data)
@@ -439,9 +440,18 @@ def load_dataset(h_node):
         return tuple(data)
     elif py_type == "<type 'set'>":
         return set(data)
-    else:
+    elif py_type == 'ndarray':
+        return np.array(data)
+    elif py_type == 'ndarray_masked':
+        try:
+            mask = h_node.attrs["mask"][:]
+        except IndexError:
+            mask = h_node.attrs["mask"]
+        data = np.ma.array(data, mask=mask)
         return data
-
+    else:
+        print h_node.name, py_type
+        return data
 
 
 def sort_keys(key_list):
@@ -498,7 +508,12 @@ class PyContainer(list):
             return tuple(self)
         if self.container_type == "<type 'set'>":
             return set(self)
+        if self.container_type == "dict":
+            keys = [str(item.name.split('/')[-1]) for item in self]
+            items = [item[0] for item in self]
+            return dict(zip(keys, items))
         else:
+
             return self
 
 

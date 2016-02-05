@@ -74,11 +74,50 @@ def test_sort_keys():
     keys_sorted = ['data_0', 'data_1', 'data_2', 'data_3', 'data_10']
     assert sort_keys(keys) == keys_sorted
 
+def test_ndarray():
+
+    a = np.array([1,2,3])
+    b = np.array([2,3,4])
+    z = (a, b)
+
+    print "Original:"
+    pprint(z)
+    dump(z, 'test.hkl', mode='w')
+
+    print "\nReconstructed:"
+    z = load('test.hkl')
+    pprint(z)
+
+def test_ndarray_masked():
+
+    a = np.ma.array([1,2,3])
+    b = np.ma.array([2,3,4], mask=[True, False, True])
+    z = (a, b)
+
+    print "Original:"
+    pprint(z)
+    dump(z, 'test.hkl', mode='w')
+
+    print "\nReconstructed:"
+    z = load('test.hkl')
+    pprint(z)
+
+def test_simple_dict():
+    a = {'key1': 1, 'key2': 2}
+
+    dump(a, 'test.hkl')
+    z = load('test.hkl')
+
+    pprint(a)
+    pprint(z)
 
 if __name__ == "__main__":
     #test_is_iterable()
     #test_check_iterable_item_type()
     #test_dump_nested()
     #test_load()
-    test_sort_keys()
+    #test_sort_keys()
+    #test_ndarray()
+    #test_ndarray_masked()
+    test_simple_dict()
     print("OK")
