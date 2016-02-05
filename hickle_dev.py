@@ -371,11 +371,12 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
         d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
         d.attrs["type"] = ['string']
     else:
-        dt = h_group.special_dtype(vlen=unicode)
+        dt = h5.special_dtype(vlen=unicode)
         ll = len(py_obj)
-        dset = h_group.create_dataset('data_%i' % call_id, shape=(ll, ), dtype=dt, **kwargs)
-        dset[:ll] = py_obj
+        dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
+        dset[0] = py_obj
         dset.attrs['type'] = ['unicode']
+
 
 def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dump None type to file """
@@ -449,8 +450,25 @@ def load_dataset(h_node):
             mask = h_node.attrs["mask"]
         data = np.ma.array(data, mask=mask)
         return data
+    elif py_type == 'python_dtype':
+        subtype = h_node.attrs["python_subdtype"]
+        type_dict = {
+            "<type 'int'>": int,
+            "<type 'float'>": float,
+            "<type 'long'>": long,
+            "<type 'bool>": bool,
+            "<type 'complex'>": complex
+        }
+        #print subtype
+        tcast = type_dict.get(subtype)
+
+        return tcast(data)
+    elif py_type == 'string':
+        return str(data[0])
+    elif py_type == 'unicode':
+        return unicode(data[0])
     else:
-        print h_node.name, py_type
+        print h_node.name, py_type, h_node.attrs.keys()
         return data
 
 
@@ -474,7 +492,10 @@ def _load(py_container, h_group):
         py_subcontainer.container_type = h_group.attrs['type'][0]
         py_subcontainer.name = h_group.name
 
-        h_keys = sort_keys(h_group.keys())
+        if py_subcontainer.container_type != 'dict':
+            h_keys = sort_keys(h_group.keys())
+        else:
+            h_keys = h_group.keys()
 
         for h_name in h_keys:
             h_node = h_group[h_name]
@@ -513,7 +534,6 @@ class PyContainer(list):
             items = [item[0] for item in self]
             return dict(zip(keys, items))
         else:
-
             return self
 
 

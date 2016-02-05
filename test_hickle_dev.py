@@ -18,9 +18,6 @@ def generate_nested():
     c = (1, 2, 3, 4, 5)
     d = np.ma.array([1, 2, 3, 4, 5, 6, 7, 8])
     z = {'a': a, 'b': b, 'c': c, 'd': d, 'z': z}
-    z = [b, b, b] #, z]
-
-    z = (z, z, z)
     return z
 
 def test_is_iterable():
@@ -111,13 +108,39 @@ def test_simple_dict():
     pprint(a)
     pprint(z)
 
+def test_complex_dict():
+    a = {'akey': 1, 'akey2': 2}
+    b = {'bkey': 2.0, 'bkey3': long(3.0)}
+    c = {'ckey': "hello", "ckey2": "hi there"}
+    z = {'zkey1': a, 'zkey2': b, 'zkey3': c}
+
+    print "Original:"
+    pprint(z)
+    dump(z, 'test.hkl', mode='w')
+
+    print "\nReconstructed:"
+    z = load('test.hkl')
+    pprint(z)
+
+def test_unicode():
+    a = u"unicode test"
+    dump(a, 'test.hkl', mode='w')
+
+    z = load('test.hkl')
+    assert a == z
+    assert type(a) == type(z) == unicode
+    pprint(z)
+
+
 if __name__ == "__main__":
-    #test_is_iterable()
-    #test_check_iterable_item_type()
-    #test_dump_nested()
-    #test_load()
-    #test_sort_keys()
-    #test_ndarray()
-    #test_ndarray_masked()
+    test_is_iterable()
+    test_check_iterable_item_type()
+    test_dump_nested()
+    test_load()
+    test_sort_keys()
+    test_ndarray()
+    test_ndarray_masked()
     test_simple_dict()
+    test_complex_dict()
+    test_unicode()
     print("OK")
