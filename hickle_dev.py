@@ -18,6 +18,7 @@ import exceptions
 import numpy as np
 import h5py as h5
 from types import NoneType
+import re
 
 import warnings
 __version__ = "2.0.0"
@@ -441,9 +442,14 @@ def load_dataset(h_node):
     else:
         return data
 
-def sort_keys(keys):
-    """ TODO: sort keys by ID """
-    return keys
+
+
+def sort_keys(key_list):
+    """ Take a list of strings and sort it by integer value within string
+    """
+    to_int = lambda x: int(re.search('\d+', x).group(0))
+    keys_by_int = sorted([(to_int(key), key) for key in key_list])
+    return [ii[1] for ii in keys_by_int ]
 
 
 def _load(py_container, h_group):

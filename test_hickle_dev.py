@@ -1,4 +1,4 @@
-from hickle_dev import check_is_iterable, check_iterable_item_type, _dump, dump, load
+from hickle_dev import check_is_iterable, check_iterable_item_type, _dump, dump, load, sort_keys
 import h5py
 import numpy as np
 from pprint import pprint
@@ -54,8 +54,10 @@ def test_dump_nested():
 
 def test_load():
 
-    z = {1, 2, 3, 4}
-    z = (z, z, z)
+    a = {1, 2, 3, 4}
+    b = {5, 6, 7, 8}
+    c = {9, 10, 11, 12}
+    z = (a, b, c)
     z = [z, z]
     z = (z, z, z, z, z)
 
@@ -67,9 +69,16 @@ def test_load():
     z = load('test.hkl')
     pprint(z)
 
+def test_sort_keys():
+    keys = ['data_0', 'data_1', 'data_2', 'data_3', 'data_10']
+    keys_sorted = ['data_0', 'data_1', 'data_2', 'data_3', 'data_10']
+    assert sort_keys(keys) == keys_sorted
+
+
 if __name__ == "__main__":
-    test_is_iterable()
-    test_check_iterable_item_type()
-    test_dump_nested()
-    test_load()
+    #test_is_iterable()
+    #test_check_iterable_item_type()
+    #test_dump_nested()
+    #test_load()
+    test_sort_keys()
     print("OK")
