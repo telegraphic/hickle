@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 # encoding: utf-8
 """
-test_hickle.py
-===============
+# test_hickle.py
 
 Unit tests for hickle module.
 
@@ -11,7 +10,6 @@ Unit tests for hickle module.
 import os
 from hickle import *
 import hickle
-import unicodedata
 import hashlib
 import time
 
@@ -20,24 +18,25 @@ import numpy as np
 from pprint import pprint
 
 NESTED_DICT = {
-        "level1_1" : {
-            "level2_1" : [1, 2, 3],
-            "level2_2" : [4, 5, 6]
+    "level1_1": {
+        "level2_1": [1, 2, 3],
+        "level2_2": [4, 5, 6]
+    },
+    "level1_2": {
+        "level2_1": [1, 2, 3],
+        "level2_2": [4, 5, 6]
+    },
+    "level1_3": {
+        "level2_1": {
+            "level3_1": [1, 2, 3],
+            "level3_2": [4, 5, 6]
         },
-        "level1_2" : {
-            "level2_1" : [1, 2, 3],
-            "level2_2" : [4, 5, 6]
-        },
-        "level1_3" : {
-            "level2_1" : {
-                "level3_1" : [1, 2, 3],
-                "level3_2" : [4, 5, 6]
-            },
-            "level2_2" : [4, 5, 6]
-        }
+        "level2_2": [4, 5, 6]
     }
+}
 
 DUMP_CACHE = []             # Used in test_track_times()
+
 
 def test_string():
     """ Dumping and loading a string """
@@ -54,6 +53,7 @@ def test_string():
     except AssertionError:
         os.remove(filename)
         raise
+
 
 def test_unicode():
     """ Dumping and loading a unicode string """
@@ -94,7 +94,8 @@ def test_list():
         import h5py
         os.remove(filename)
         raise
-        
+
+
 def test_set():
     """ Dumping and loading a list """
     filename, mode = 'test.h5', 'w'
@@ -110,6 +111,7 @@ def test_set():
     except AssertionError:
         os.remove(filename)
         raise
+
 
 def test_numpy():
     """ Dumping and loading numpy array """
@@ -187,6 +189,7 @@ def test_dict():
             raise
     os.remove(filename)
 
+
 def test_compression():
     """ Test compression on datasets"""
     
@@ -211,6 +214,7 @@ def test_compression():
         print array_obj
         raise
 
+
 def test_dict_int_key():
     """ Test for dictionaries with integer keys """
     filename, mode = 'test.h5', 'w'
@@ -226,6 +230,7 @@ def test_dict_int_key():
     
     os.remove(filename)
 
+
 def test_dict_nested():
     """ Test for dictionaries with integer keys """
     filename, mode = 'test.h5', 'w'
@@ -239,6 +244,7 @@ def test_dict_nested():
     ll     = dd["level1_3"]["level2_1"]["level3_1"]
     assert ll == ll_hkl
     os.remove(filename)
+
 
 def test_masked_dict():
     """ Test dictionaries with masked arrays """
@@ -275,6 +281,7 @@ def test_masked_dict():
             raise
     os.remove(filename)
 
+
 def test_nomatch():
     """ Test for non-supported data types.
 
@@ -292,6 +299,7 @@ def test_nomatch():
     
     assert type(dd_hkl) == type(dd) == Exception
     os.remove(filename)
+
 
 def test_np_float():
     """ Test for singular np dtypes """
@@ -323,6 +331,7 @@ def test_np_float():
 
     os.remove(filename)
 
+
 def md5sum(filename, blocksize=65536):
     """ Compute MD5 sum for a given file """
     hash = hashlib.md5()
@@ -332,10 +341,12 @@ def md5sum(filename, blocksize=65536):
             hash.update(block)
     return hash.hexdigest()
 
+
 def caching_dump(obj, filename, *args, **kwargs):
     """ Save arguments of all dump calls """
     DUMP_CACHE.append((obj, filename, args, kwargs))
     return hickle_dump(obj, filename, *args, **kwargs)
+
 
 def test_track_times():
     """ Verify that track_times = False produces identical files """
@@ -400,6 +411,7 @@ def test_comp_kwargs():
         print array_obj
         raise
 
+
 def test_list_numpy():
     """ Test converting a list of numpy arrays """
 
@@ -419,6 +431,7 @@ def test_list_numpy():
 
 
     os.remove(filename)
+
 
 def test_tuple_numpy():
     """ Test converting a list of numpy arrays """
@@ -440,6 +453,7 @@ def test_tuple_numpy():
 
     os.remove(filename)
 
+
 def test_none():
     """ Test None type hickling """
     
@@ -455,23 +469,25 @@ def test_none():
     assert isinstance(dd_hkl, NoneType)
 
     os.remove(filename)
- 
+
+
 def test_dict_none():
-     """ Test None type hickling """
+    """ Test None type hickling """
     
-     filename, mode = 'test.h5', 'w'
+    filename, mode = 'test.h5', 'w'
 
-     a = {'a': 1, 'b' : None}
+    a = {'a': 1, 'b' : None}
 
-     dump(a, filename, mode)
-     dd_hkl = load(filename)
-     print a
-     print dd_hkl
+    dump(a, filename, mode)
+    dd_hkl = load(filename)
+    print a
+    print dd_hkl
 
-     assert isinstance(a['b'], NoneType)
+    assert isinstance(a['b'], NoneType)
 
-     os.remove(filename)   
-    
+    os.remove(filename)
+
+
 def test_file_open_close():
     """ https://github.com/telegraphic/hickle/issues/20 """
     try:
@@ -492,6 +508,7 @@ def test_file_open_close():
         os.remove('test.hdf')
         os.remove('test.hkl')
 
+
 def run_file_cleanup():
     """ Clean up temp files """
     for filename in ('test.hdf', 'test.hkl', 'test.h5'):
@@ -499,6 +516,7 @@ def run_file_cleanup():
             os.remove(filename)
         except OSError:
             pass
+
 
 def test_list_long_type():
     """ Check long comes back out as a long """
@@ -523,6 +541,7 @@ def test_list_long_type():
         os.remove(filename)
         raise
 
+
 def test_list_order():
     """ https://github.com/telegraphic/hickle/issues/26 """
     d = [np.arange(n + 1) for n in range(20)]
@@ -537,7 +556,8 @@ def test_list_order():
     except AssertionError:
         print d[ii], d_hkl[ii]
         raise
-    
+
+
 def test_embedded_array():
     """ See https://github.com/telegraphic/hickle/issues/24 """
     
@@ -575,6 +595,7 @@ def generate_nested():
     z = {'a': a, 'b': b, 'c': c, 'd': d, 'z': z}
     return z
 
+
 def test_is_iterable():
     a = [1, 2, 3]
     b = 1
@@ -604,6 +625,7 @@ def test_dump_nested():
     z = generate_nested()
     dump(z, 'test.hkl', mode='w')
 
+
 def test_load():
 
     a = set([1, 2, 3, 4])
@@ -621,10 +643,12 @@ def test_load():
     z = load('test.hkl')
     pprint(z)
 
+
 def test_sort_keys():
     keys = ['data_0', 'data_1', 'data_2', 'data_3', 'data_10']
     keys_sorted = ['data_0', 'data_1', 'data_2', 'data_3', 'data_10']
     assert sort_keys(keys) == keys_sorted
+
 
 def test_ndarray():
 
@@ -640,6 +664,7 @@ def test_ndarray():
     z = load('test.hkl')
     pprint(z)
 
+
 def test_ndarray_masked():
 
     a = np.ma.array([1,2,3])
@@ -654,6 +679,7 @@ def test_ndarray_masked():
     z = load('test.hkl')
     pprint(z)
 
+
 def test_simple_dict():
     a = {'key1': 1, 'key2': 2}
 
@@ -662,6 +688,7 @@ def test_simple_dict():
 
     pprint(a)
     pprint(z)
+
 
 def test_complex_dict():
     a = {'akey': 1, 'akey2': 2}
@@ -677,6 +704,7 @@ def test_complex_dict():
     z = load('test.hkl')
     pprint(z)
 
+
 def test_unicode():
     a = u"unicode test"
     dump(a, 'test.hkl', mode='w')
@@ -685,6 +713,7 @@ def test_unicode():
     assert a == z
     assert type(a) == type(z) == unicode
     pprint(z)
+
 
 def test_legacy_hickles():
 
@@ -695,6 +724,7 @@ def test_legacy_hickles():
         # For travis-CI
         a = load("tests/hickle_1_1_0.hkl")
         b = load("tests/hickle_1_3_0.hkl")
+
 
 def test_multi_hickle():
     import os
@@ -759,4 +789,3 @@ if __name__ == '__main__':
     # Cleanup
     run_file_cleanup()
     print "ALL TESTS PASSED!"
-  
