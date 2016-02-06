@@ -417,12 +417,14 @@ def load(file, safe=True):
         try:
             assert 'CLASS' in h5f.attrs.keys()
             assert 'VERSION' in h5f.attrs.keys()
+            py_container = PyContainer()
+            py_container.container_type = 'hickle'
+            py_container = _load(py_container, h5f)
+            return py_container[0][0]
         except AssertionError:
-            print "Error: this is not a Hickle V2 file."
-        py_container = PyContainer()
-        py_container.container_type = 'hickle'
-        py_container = _load(py_container, h5f)
-        return py_container[0][0]
+            import hickle_legacy
+            hickle_legacy.load(file, safe)
+
     finally:
         if 'h5f' in locals():
             h5f.close()

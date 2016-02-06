@@ -1,3 +1,13 @@
+#! /usr/bin/env python
+# encoding: utf-8
+"""
+test_hickle_dev.py
+===============
+
+Unit tests for hickle module.
+
+"""
+
 from hickle import check_is_iterable, check_iterable_item_type, _dump, dump, load, sort_keys
 import h5py
 import numpy as np
@@ -131,8 +141,13 @@ def test_unicode():
     assert type(a) == type(z) == unicode
     pprint(z)
 
+def test_legacy_hickles():
+
+    a = load("hickle_1_1_0.hkl")
+    b = load("hickle_1_3_0.hkl")
 
 if __name__ == "__main__":
+    test_legacy_hickles()
     test_is_iterable()
     test_check_iterable_item_type()
     test_dump_nested()
