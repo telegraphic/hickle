@@ -569,7 +569,7 @@ def generate_nested():
     h = {'h': g, 'g' : f}
     z = [f, a, b, c, d, e, f, g, h, g, h]
     a = np.array([1, 2, 3, 4])
-    b = {1, 2, 3, 4, 5}
+    b = set([1, 2, 3, 4, 5])
     c = (1, 2, 3, 4, 5)
     d = np.ma.array([1, 2, 3, 4, 5, 6, 7, 8])
     z = {'a': a, 'b': b, 'c': c, 'd': d, 'z': z}
@@ -688,8 +688,13 @@ def test_unicode():
 
 def test_legacy_hickles():
 
-    a = load("hickle_1_1_0.hkl")
-    b = load("hickle_1_3_0.hkl")
+    try:
+        a = load("hickle_1_1_0.hkl")
+        b = load("hickle_1_3_0.hkl")
+    except IOError:
+        # For travis-CI
+        a = load("tests/hickle_1_1_0.hkl")
+        b = load("tests/hickle_1_3_0.hkl")
 
 def test_multi_hickle():
     import os
