@@ -186,7 +186,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
 
     """
 
-    dumpable_dtypes = {bool, int, float, long, complex, str, unicode}
+    dumpable_dtypes = set([bool, int, float, long, complex, str, unicode])
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_numpy_array(py_obj):
