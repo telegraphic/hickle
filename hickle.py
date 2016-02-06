@@ -219,7 +219,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
 
-def dump(py_obj, file_obj, mode='w', track_times=True, **kwargs):
+def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     """ Write a pickled representation of obj to the open file object file.
 
     Args:
@@ -233,6 +233,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, **kwargs):
             lzf (+ szip, if installed)
     track_times (bool): optional argument. If set to False, repeated hickling will produce
             identical files.
+    path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
     try:
@@ -242,7 +243,13 @@ def dump(py_obj, file_obj, mode='w', track_times=True, **kwargs):
         h5f.attrs["VERSION"] = 2
         h5f.attrs["type"] = ['hickle']
 
-        _dump(py_obj, h5f, **kwargs)
+        h_root_group = h5f.get(path)
+
+        if h_root_group is None:
+            h_root_group = h5f.create_group(path)
+            h_root_group.attrs["type"] = ['hickle']
+
+        _dump(py_obj, h_root_group, **kwargs)
         h5f.close()
     except NoMatchError:
         fname = h5f.filename
@@ -402,28 +409,34 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
 ## LOADERS ##
 #############
 
-def load(file, safe=True):
+def load(fileobj, path='/', safe=True):
     """ Load a hickle file and reconstruct a python object
+
+
 
     Args:
     file: file object, h5py.File, or filename string
     safe (bool): Disable automatic depickling of arbitrary python objects.
     DO NOT set this to False unless the file is from a trusted source.
     (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+
+    path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
     try:
-        h5f = file_opener(file)
+        h5f = file_opener(fileobj)
+
+        h_root_group = h5f.get(path)
         try:
             assert 'CLASS' in h5f.attrs.keys()
             assert 'VERSION' in h5f.attrs.keys()
             py_container = PyContainer()
             py_container.container_type = 'hickle'
-            py_container = _load(py_container, h5f)
+            py_container = _load(py_container, h_root_group)
             return py_container[0][0]
         except AssertionError:
             import hickle_legacy
-            hickle_legacy.load(file, safe)
+            hickle_legacy.load(fileobj, safe)
 
     finally:
         if 'h5f' in locals():
@@ -470,7 +483,7 @@ def load_dataset(h_node):
 
         tcast = type_dict.get(subtype)
 
-        print subtype, tcast, data
+        #print subtype, tcast, data
 
         return tcast(data)
     elif py_type == 'string':
