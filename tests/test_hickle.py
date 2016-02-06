@@ -83,16 +83,11 @@ def test_list():
         assert list_obj == list_hkl
         import h5py
         a = h5py.File(filename)
-        print a.keys()
-        print a['data'].keys()
-        
+
         os.remove(filename)
     except AssertionError:
         print "ERR:", list_obj, list_hkl
         import h5py
-        a = h5py.File(filename)
-        print a.keys()
-        print a['data'].keys()
         os.remove(filename)
         raise
         
@@ -277,7 +272,11 @@ def test_masked_dict():
     os.remove(filename)
 
 def test_nomatch():
-    """ Test for non-supported data types """
+    """ Test for non-supported data types.
+
+     Note: don't remember what I was trying to do with this test.
+     Ignoring it for now.
+     """
     filename, mode = 'nomatch.h5', 'w'
 
     dd = Exception('Nothing to see here')
@@ -303,7 +302,7 @@ def test_np_float():
     
         dd = dt(1)
         dump(dd, filename, mode)
-        dd_hkl = load(filename)  
+        dd_hkl = load(filename)
         assert dd == dd_hkl
         assert dd.dtype == dd_hkl.dtype
         os.remove(filename)
@@ -314,7 +313,7 @@ def test_np_float():
     dump(dd, filename, mode)
     dd_hkl = load(filename)
 
-    #print dd
+    print dd
     for dt in dtype_list:
         assert dd[str(dt)] == dd_hkl[str(dt)]
 
@@ -497,7 +496,7 @@ def run_file_cleanup():
         except OSError:
             pass
 
-def test_list_long_type()):
+def test_list_long_type():
     """ Check long comes back out as a long """
     filename, mode = 'test.h5', 'w'
     list_obj = [1L, 2L, 3L, 4L, 5L]
@@ -551,34 +550,32 @@ def test_embedded_array():
 
 if __name__ == '__main__':
     """ Some tests and examples """
-    #test_file_open_close()
-    #test_dict_none()
-    #test_none()
-    #test_unicode()
-    #test_string()
-    #test_masked_dict()
-    #test_list()
-
-    #test_set()
-    #test_numpy()
-    #test_dict()
-    #test_compression()
-    #test_masked()
-    #test_dict_int_key()
-    #test_dict_nested()
-    #test_nomatch()
-    #test_np_float()
-    #test_comp_kwargs()
-    #test_list_numpy()
-    #test_tuple_numpy()
-    #test_track_times()
-    #run_file_cleanup()
-    
-    #FAILING TESTS:
+    test_file_open_close()
+    test_dict_none()
+    test_none()
+    test_unicode()
+    test_string()
+    test_masked_dict()
+    test_list()
+    test_set()
+    test_numpy()
+    test_dict()
+    test_compression()
+    test_masked()
+    test_dict_nested()
+    test_comp_kwargs()
+    test_list_numpy()
+    test_tuple_numpy()
+    test_track_times()
     test_list_order()
-    test_list_long_type()
     test_embedded_array()
-    
+    test_np_float()
+
+    #FAILING TESTS:
+    #test_nomatch()
+    #test_dict_int_key()
+    #test_list_long_type()
+
     # Cleanup
     run_file_cleanup()
     print "ALL TESTS PASSED!"

@@ -3,24 +3,12 @@
 hickle.py
 =============
 
-Created by Danny Price 2012-05-28.
+Created by Danny Price 2016-02-03.
 
 Hickle is a HDF5 based clone of Pickle. Instead of serializing to a pickle
 file, Hickle dumps to a HDF5 file. It is designed to be as similar to pickle in
 usage as possible.
 
-Notes
------
-
-Hickle has two main advantages over Pickle:
-1) LARGE PICKLE HANDLING. Unpickling a large pickle is slow, as the Unpickler
-reads the entire pickle thing and loads it into memory. In comparison, HDF5
-files are designed for large datasets. Things are only loaded when accessed.
-
-2) CROSS PLATFORM SUPPORT. Attempting to unpickle a pickle pickled on Windows
-on Linux and vice versa is likely to fail with errors like "Insecure string
-pickle". HDF5 files will load fine, as long as both machines have h5py
-installed.
 
 
 """
@@ -30,9 +18,12 @@ import exceptions
 import numpy as np
 import h5py as h5
 from types import NoneType
+import re
+
 import warnings
-__version__ = "1.4.0"
+__version__ = "2.0.0"
 __author__ = "Danny Price"
+
 
 ##################
 # Error handling #
@@ -132,265 +123,126 @@ def file_opener(f, mode='r', track_times=True):
     return h5f
 
 
-###########
-# dumpers #
-###########
+def check_is_iterable(py_obj):
+    """ Check whether a python object is iterable.
 
-def dump_ndarray(obj, h5f, **kwargs):
-    """ dumps an ndarray object to h5py file"""
-    d = h5f.create_dataset('data', data=obj, **kwargs)
-    d.attrs["type"] = ['ndarray']
+    Note: this treats unicode and string as NON ITERABLE
 
-def dump_np_dtype(obj, h5f, **kwargs):
-    """ dumps an np dtype object to h5py file"""
-    d = h5f.create_dataset('data', data=obj)
-    d.attrs["type"] = ['np_dtype']
+    Args:
+        py_obj: python object to test
 
+    Returns:
+        iter_ok (bool): True if item is iterable, False is item is not
+    """
+    if type(py_obj) in (str, unicode):
+        return False
+    try:
+        iter(py_obj)
+        return True
+    except TypeError:
+        return False
 
-def dump_python_dtype(obj, h5f, **kwargs):
-    """ dumps a python dtype object to h5py file"""
-    d = h5f.create_dataset('data', data=obj, dtype=type(obj))
-    d.attrs["type"] = ['python_dtype']    
-    d.attrs['python_subdtype'] = str(type(obj))
+def check_iterable_item_type(iter_obj):
+    """ Check if all items within an iterable are the same type.
 
-def dump_np_dtype_dict(obj, h5f, **kwargs):
-    """ dumps an np dtype object within a group"""
-    d = h5f.create_dataset('data')
-    d.attrs['_data'] =['np_dtype']
+    Args:
+        iter_obj: iterable object
 
+    Returns:
+        iter_type: type of item contained within the iterable. If
+                   the iterable has many types, a boolean False is returned instead.
 
-def dump_masked(obj, h5f, **kwargs):
-    """ dumps an ndarray object to h5py file"""
-    d = h5f.create_dataset('data', data=obj, **kwargs)
-    m = h5f.create_dataset('mask', data=obj.mask, **kwargs)
-    d.attrs["type"] = ['masked']
+    References:
+    http://stackoverflow.com/questions/13252333/python-check-if-all-elements-of-a-list-are-the-same-type
+    """
+    iseq = iter(iter_obj)
+    first_type = type(next(iseq))
+    return first_type if all( (type(x) is first_type) for x in iseq ) else False
 
+def check_is_numpy_array(py_obj):
+    """ Check if a python object is a numpy array (masked or regular)
 
-def dump_list(obj, h5f, **kwargs):
-    """ dumps a list object to h5py file"""
+    Args:
+        py_obj: python object to check whether it is a numpy array
 
-    # Check if there are any numpy arrays in the list
-    contains_numpy = any(isinstance(el, np.ndarray) for el in obj)
+    Returns
+        is_numpy (bool): Returns True if it is a numpy array, else False if it isn't
+    """
 
-    if True or contains_numpy:
-        _dump_list_np(obj, h5f, **kwargs)
-    else:
-        d = h5f.create_dataset('data', data=obj, **kwargs)
-        d.attrs["type"] = ['list']
+    is_numpy = type(py_obj) in (type(np.array([1])), type(np.ma.array([1])))
 
-
-def _dump_list_np(obj, h5f, **kwargs):
-    """ Dump a list of numpy objects to file """
-
-    np_group = h5f.create_group('data')
-    np_group.attrs["type"] = ['np_list']
-
-    ii = 0
-    for np_item in obj:
-        item_dumper=dumper_lookup(np_item)
-
-        sub_group = np_group.create_group("%s" % (ii))
-        item_dumper(np_item,sub_group,**kwargs)
-        #np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
-        ii += 1
+    return is_numpy
 
 
-def dump_tuple(obj, h5f, **kwargs):
-    """ dumps a list object to h5py file"""
+def _dump(py_obj, h_group, call_id=0, **kwargs):
+    """ Dump a python object to a group within a HDF5 file.
 
-    # Check if there are any numpy arrays in the list
-    contains_numpy = any(isinstance(el, np.ndarray) for el in obj)
+    This function is called recursively by the main dump() function.
 
-    if True or contains_numpy:
-        _dump_tuple_np(obj, h5f, **kwargs)
-    else:
-        d = h5f.create_dataset('data', data=obj, **kwargs)
-        d.attrs["type"] = ['tuple']
+    Args:
+        py_obj: python object to dump.
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the iterable.
 
+    """
 
-def _dump_tuple_np(obj, h5f, **kwargs):
-    """ Dump a tuple of numpy objects to file """
+    dumpable_dtypes = {bool, int, float, long, complex, str, unicode}
 
-    np_group = h5f.create_group('data')
-    np_group.attrs['type'] = ['np_tuple']
+    # Firstly, check if item is a numpy array. If so, just dump it.
+    if check_is_numpy_array(py_obj):
+        create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
-    ii = 0
-    for np_item in obj:
-        item_dumper=dumper_lookup(np_item)
-        
-        sub_group = np_group.create_group("%s" % (ii))
-        item_dumper(np_item,sub_group,**kwargs)
-        #np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
-        ii += 1
+    # next, check if item is iterable
+    elif check_is_iterable(py_obj):
+        item_type = check_iterable_item_type(py_obj)
 
-def dump_set(obj, h5f, **kwargs):
-    """ dumps a set object to h5py file"""
-    obj = list(obj)
-    d = h5f.create_dataset('data', data=obj, **kwargs)
-    d.attrs["type"] = ['set']
+        # item_type == False implies multiple types. Create a dataset
+        if item_type is False:
+            h_subgroup = create_hkl_group(py_obj, h_group, call_id)
+            for ii, py_subobj in enumerate(py_obj):
+                _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
-
-def dump_string(obj, h5f, **kwargs):
-    """ dumps a list object to h5py file"""
-    d = h5f.create_dataset('data', data=[obj], **kwargs)
-    d.attrs["type"] = ['string']
-
-
-def dump_none(obj, h5f, **kwargs):
-    """ Dump None type to file """
-    d = h5f.create_dataset('data', data=[0], **kwargs)
-    d.attrs["type"] = ['none']
-
-
-def dump_unicode(obj, h5f, **kwargs):
-    """ dumps a list object to h5py file"""
-    dt = h5.special_dtype(vlen=unicode)
-    ll = len(obj)
-    dset = h5f.create_dataset('data', shape=(ll, ), dtype=dt, **kwargs)
-    dset[:ll] = obj
-    dset.attrs['type'] = ['unicode']
-
-
-def _dump_dict(dd, hgroup, **kwargs):
-    for key in dd:
-        if type(dd[key]) in (str, int, float, unicode, bool):
-            # Figure out type to be stored
-            types = {str: 'str', int: 'int', float: 'float',
-                     unicode: 'unicode', bool: 'bool', NoneType: 'none'}
-            _key = types.get(type(dd[key]))
-
-            # Store along with dtype info
-            if _key == 'unicode':
-                dd[key] = str(dd[key])
-
-            d = hgroup.create_dataset("%s" % key, data=[dd[key]], **kwargs)
-            d.attrs["type"] = [_key]
-
-        elif type(dd[key]) in (type(np.array([1])), type(np.ma.array([1]))):
-
-            if hasattr(dd[key], 'mask'):
-                
-                d = hgroup.create_dataset("%s" % key, data=dd[key].data, **kwargs)
-                d.attrs["type"] = ["masked"]
-                hgroup.create_dataset(
-                    "_%s_mask" % key, data=dd[key].mask, **kwargs)
-            else:
-                d = hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
-                d.attrs["type"] = ["ndarray"]
-
-        elif type(dd[key]) is list:
-            d = hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
-            d.attrs["type"] = ["list"]
-
-        elif type(dd[key]) is tuple:
-            d = hgroup.create_dataset("%s" % key, data=dd[key], **kwargs)
-            d.attrs["type"] =[ "tuple"]
-
-        elif type(dd[key]) is set:
-            d = hgroup.create_dataset("%s" % key, data=list(dd[key]), **kwargs)
-            d.attrs["type"] = ["set"]
-
-        elif isinstance(dd[key], dict):
-            new_group = hgroup.create_group("%s" % key)
-            new_group.attrs["type"] = ["dict"]
-            _dump_dict(dd[key], new_group, **kwargs)
-
-        elif type(dd[key]) is NoneType:
-            d = hgroup.create_dataset("%s" % key, data=[0], **kwargs)
-            d.attrs["type"] = ["none"]
-
+        # otherwise, subitems have same type. Check if subtype is an iterable
+        # (e.g. list of lists), or not (e.g. list of ints, which should be treated
+        # as a single dataset).
         else:
-            if type(dd[key]).__module__ == np.__name__:
-                d = hgroup.create_dataset("%s" % key, data=dd[key])
-                d.attrs["type"] = ["np_dtype"]
+            if item_type in dumpable_dtypes:
+                create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
             else:
-                raise NoMatchError
+                h_subgroup = create_hkl_group(py_obj, h_group, call_id)
+                for ii, py_subobj in enumerate(py_obj):
+                    #print py_subobj, h_subgroup, ii
+                    _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
+
+    # item is not iterable, so create a dataset for it
+    else:
+        create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
 
-def dump_dict(obj, h5f='', **kwargs):
-    """ dumps a dictionary to h5py file """
-    hgroup = h5f.create_group('data')
-    hgroup.attrs["type"] = ['dict']
-    _dump_dict(obj, hgroup, **kwargs)
-
-
-def no_match(obj, h5f, *args, **kwargs):
-    """ If no match is made, raise an exception """
-    import cPickle
-
-    pickled_obj = cPickle.dumps(obj)
-    d = h5f.create_dataset('data', data=[pickled_obj])
-    d.attrs["type"] = ['pickle']
-    
-    warnings.warn("%s type not understood, data have been "
-                  "serialized" % type(obj))
-
-
-def dumper_lookup(obj):
-    """ What type of object are we trying to pickle?  This is a python
-    dictionary based equivalent of a case statement.  It returns the correct
-    helper function for a given data type.  """
-    t = type(obj)
-
-    types = {
-        list: dump_list,
-        tuple: dump_tuple,
-        set: dump_set,
-        dict: dump_dict,
-        str: dump_string,
-        unicode: dump_unicode,
-        int: dump_python_dtype,
-        float: dump_python_dtype,
-        long: dump_python_dtype,
-        NoneType: dump_none,
-        np.ndarray: dump_ndarray,
-        np.ma.core.MaskedArray: dump_masked,
-        np.float16: dump_np_dtype,
-        np.float32: dump_np_dtype,
-        np.float64: dump_np_dtype,
-        np.int8: dump_np_dtype,
-        np.int16: dump_np_dtype,
-        np.int32: dump_np_dtype,
-        np.int64: dump_np_dtype,
-        np.uint8: dump_np_dtype,
-        np.uint16: dump_np_dtype,
-        np.uint32: dump_np_dtype,
-        np.uint64: dump_np_dtype,
-        np.complex64: dump_np_dtype,
-        np.complex128: dump_np_dtype
-    }
-
-    match = types.get(t, no_match)
-    return match
-
-
-def dump(obj, file, mode='w', track_times=True, **kwargs):
+def dump(py_obj, file_obj, mode='w', track_times=True, **kwargs):
     """ Write a pickled representation of obj to the open file object file.
 
-    Parameters
-    ----------
-    obj: object
-        python object o store in a Hickle
+    Args:
+    obj (object): python object o store in a Hickle
     file: file object, filename string, or h5py.File object
-        file in which to store the object. A h5py.File or a filename is also
-        acceptable.
-    mode: string
-        optional argument, 'r' (read only), 'w' (write) or 'a' (append).
-        Ignored if file is a file object.
-    compression: str
-        optional argument. Applies compression to dataset. Options: None, gzip,
-        lzf (+ szip, if installed)
-    track_times: bool
-        optional argument. If set to False, repeated hickling will produce
-        identical files.
+            file in which to store the object. A h5py.File or a filename is also
+            acceptable.
+    mode (str): optional argument, 'r' (read only), 'w' (write) or 'a' (append).
+            Ignored if file is a file object.
+    compression (str): optional argument. Applies compression to dataset. Options: None, gzip,
+            lzf (+ szip, if installed)
+    track_times (bool): optional argument. If set to False, repeated hickling will produce
+            identical files.
     """
 
     try:
-        # See what kind of object to dump
-        dumper = dumper_lookup(obj)
         # Open the file
-        h5f = file_opener(file, mode, track_times)
-        dumper(obj, h5f, **kwargs)
+        h5f = file_opener(file_obj, mode, track_times)
+        h5f.attrs["CLASS"] = 'hickle'
+        h5f.attrs["VERSION"] = 2
+        h5f.attrs["type"] = ['hickle']
+
+        _dump(py_obj, h5f, **kwargs)
         h5f.close()
     except NoMatchError:
         fname = h5f.filename
@@ -402,61 +254,159 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
         finally:
             raise NoMatchError
 
+def create_dataset_lookup(py_obj):
+    """ What type of object are we trying to pickle?  This is a python
+    dictionary based equivalent of a case statement.  It returns the correct
+    helper function for a given data type.  """
+    t = type(py_obj)
 
-###########
-# loaders #
-###########
+    types = {
+        dict: create_dict_dataset,
+        list: create_listlike_dataset,
+        tuple: create_listlike_dataset,
+        set: create_listlike_dataset,
+        str: create_stringlike_dataset,
+        unicode: create_stringlike_dataset,
+        int: create_python_dtype_dataset,
+        float: create_python_dtype_dataset,
+        long: create_python_dtype_dataset,
+        bool: create_python_dtype_dataset,
+        NoneType: create_none_dataset,
+        np.ndarray: create_np_array_dataset,
+        np.ma.core.MaskedArray: create_np_array_dataset,
+        np.float16: create_np_dtype_dataset,
+        np.float32: create_np_dtype_dataset,
+        np.float64: create_np_dtype_dataset,
+        np.int8: create_np_dtype_dataset,
+        np.int16: create_np_dtype_dataset,
+        np.int32: create_np_dtype_dataset,
+        np.int64: create_np_dtype_dataset,
+        np.uint8: create_np_dtype_dataset,
+        np.uint16: create_np_dtype_dataset,
+        np.uint32: create_np_dtype_dataset,
+        np.uint64: create_np_dtype_dataset,
+        np.complex64: create_np_dtype_dataset,
+        np.complex128: create_np_dtype_dataset
+    }
 
-def load_stuff(h5f,safe):
-        dtype = h5f["data"].attrs["type"][0]
+    match = types.get(t, no_match)
+    return match
 
-        if dtype == 'dict':
-            group = h5f["data"]
-            data = load_dict(group,safe)
-        elif dtype == 'pickle':
-            data = load_pickle(h5f, safe)
-        elif dtype == 'np_list':
-            group = h5f["data"]
-            data = load_np_list(group,safe)
-        elif dtype == 'np_tuple':
-            group = h5f["data"]
-            data = load_np_tuple(group,safe)
-        elif dtype == 'masked':
-            data = np.ma.array(h5f["data"][:], mask=h5f["mask"][:])
-        elif dtype == 'none':
-            data = None
-        elif dtype == 'python_dtype':
-            data = load_python_dtype(h5f["data"])
-        else:
-            if dtype in ('string', 'unicode'):
-                data = h5f["data"][0]
-            else:
-                try:
-                    data = h5f["data"][:]
-                except ValueError:
-                    data = h5f["data"]
-                except TypeError:
-                    data = h5f["data"]
-            types = {
-                'list': list,
-                'set': set,
-                'unicode': unicode,
-                'string': str,
-                'ndarray': load_ndarray,
-                'np_dtype': load_np_dtype
-            }
 
-            mod = types.get(dtype, no_match)
-            data = mod(data)
-        return data
+def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ Create a dataset within the hickle HDF5 file
+
+    Args:
+        py_obj: python object to dump.
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the iterable.
+
+    """
+    #lookup dataset creator type based on python object type
+    create_dataset = create_dataset_lookup(py_obj)
+
+    # do the creation
+    create_dataset(py_obj, h_group, call_id, **kwargs)
+    #print call_id, create_dataset
+
+def create_hkl_group(py_obj, h_group, call_id=0):
+    """ Create a new group within the hickle file
+
+    Args:
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the iterable.
+
+    """
+
+    h_subgroup = h_group.create_group('data_%i' % call_id)
+    h_subgroup.attrs["type"] = [str(type(py_obj))]
+    return h_subgroup
+
+
+
+def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ Dumper for list, set, tuple
+    """
+    dtype = str(type(py_obj))
+    obj = list(py_obj)
+    d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
+    d.attrs["type"] = [dtype]
+
+def create_np_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ dumps an np dtype object to h5py file"""
+    d = h_group.create_dataset('data_%i' % call_id, data=py_obj)
+    d.attrs["type"] = ['np_dtype']
+    d.attrs["np_dtype"] = str(d.dtype)
+
+def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ dumps a python dtype object to h5py file"""
+    d = h_group.create_dataset('data_%i' % call_id, data=py_obj, dtype=type(py_obj))
+    d.attrs["type"] = ['python_dtype']
+    d.attrs['python_subdtype'] = str(type(py_obj))
+
+def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ Creates a data group for each key in dictionary
+    """
+    h_dictgroup = h_group.create_group('data_%i' % call_id)
+    h_dictgroup.attrs["type"] = ['dict']
+    for key, py_subobj in py_obj.items():
+        #print key, py_subobj, h_group
+        h_subgroup = h_dictgroup.create_group(key)
+        h_subgroup.attrs["type"] = ['dict_item']
+        _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
+
+def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ dumps an ndarray object to h5py file"""
+    if isinstance(py_obj, type(np.ma.array([1]))):
+        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
+        #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
+        d.attrs["mask"] = py_obj.mask
+        d.attrs["type"] = ['ndarray_masked']
+        #m.attrs["type"] = ['masked_mask']
+    else:
+        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
+        d.attrs["type"] = ['ndarray']
+
+def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ dumps a list object to h5py file"""
+
+    if isinstance(py_obj, str):
+        d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
+        d.attrs["type"] = ['string']
+    else:
+        dt = h5.special_dtype(vlen=unicode)
+        ll = len(py_obj)
+        dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
+        dset[0] = py_obj
+        dset.attrs['type'] = ['unicode']
+
+
+def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ Dump None type to file """
+    d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
+    d.attrs["type"] = ['none']
+
+def no_match(py_obj, h_group, call_id=0, **kwargs):
+    """ If no match is made, raise an exception """
+    import cPickle
+
+    pickled_obj = cPickle.dumps(py_obj)
+    d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
+    d.attrs["type"] = ['pickle']
+
+    warnings.warn("%s type not understood, data have been "
+                  "serialized" % type(py_obj))
+
+
+#############
+## LOADERS ##
+#############
 
 def load(file, safe=True):
     """ Load a hickle file and reconstruct a python object
 
-    Parameters
-    ----------
+    Args:
     file: file object, h5py.File, or filename string
-
     safe (bool): Disable automatic depickling of arbitrary python objects.
     DO NOT set this to False unless the file is from a trusted source.
     (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
@@ -464,114 +414,136 @@ def load(file, safe=True):
 
     try:
         h5f = file_opener(file)
-        data=load_stuff(h5f,safe)
+        try:
+            assert 'CLASS' in h5f.attrs.keys()
+            assert 'VERSION' in h5f.attrs.keys()
+        except AssertionError:
+            print "Error: this is not a Hickle V2 file."
+        py_container = PyContainer()
+        py_container.container_type = 'hickle'
+        py_container = _load(py_container, h5f)
+        return py_container[0][0]
     finally:
         if 'h5f' in locals():
             h5f.close()
-    return data
 
 
-def load_pickle(h5f, safe=True):
-    """ Deserialize and load a pickled object within a hickle file
+def load_dataset(h_node):
+    py_type = h_node.attrs["type"][0]
 
-    WARNING: Pickle has
-
-    Parameters
-    ----------
-    h5f: h5py.File object
-
-    safe (bool): Disable automatic depickling of arbitrary python objects.
-    DO NOT set this to False unless the file is from a trusted source.
-    (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
-    """
-
-    if not safe:
-        import cPickle
-
-        data = h5f["data"][:]
-        data = cPickle.loads(data[0])
-        return data
+    if h_node.shape == ():
+        data = h_node.value
     else:
-        warnings.warn("Object is of an unknown type, and has not been loaded "
-                      "for security reasons (it could be malicious code). If "
-                      "you wish to continue, manually set safe=False")
+        data  = h_node[:]
 
-def load_python_dtype(arr):
-    """ Load a numpy array """
-    # Just return first value                                                   
-    return arr.value
+    if py_type == "<type 'list'>":
+        #print self.name
+        return list(data)
+    elif py_type == "<type 'tuple'>":
+        return tuple(data)
+    elif py_type == "<type 'set'>":
+        return set(data)
+    elif py_type == "np_dtype":
+        subtype = h_node.attrs["np_dtype"]
+        data = np.array(data, dtype=subtype)
+        return data
+    elif py_type == 'ndarray':
+        return np.array(data)
+    elif py_type == 'ndarray_masked':
+        try:
+            mask = h_node.attrs["mask"][:]
+        except IndexError:
+            mask = h_node.attrs["mask"]
+        data = np.ma.array(data, mask=mask)
+        return data
+    elif py_type == 'python_dtype':
+        subtype = h_node.attrs["python_subdtype"]
+        type_dict = {
+            "<type 'int'>": int,
+            "<type 'float'>": float,
+            "<type 'long'>": long,
+            "<type 'bool'>": bool,
+            "<type 'complex'>": complex
+        }
 
+        tcast = type_dict.get(subtype)
 
-def load_np_list(group,safe):
-    """ load a numpy list """
-    np_list = []
-    for key in sorted(group.keys()):
-        subgroup=group[key]
-        np_list.append(load_stuff(subgroup,safe))
-    #    data = group[key][:]
-    #    np_list.append(data)
-    return np_list
+        print subtype, tcast, data
 
-
-def load_np_tuple(group,safe):
-    """ load a tuple containing numpy arrays """
-    return tuple(load_np_list(group,safe))
-
-
-def load_ndarray(arr):
-    """ Load a numpy array """
-    # Nothing to be done!
-    return arr
-
-
-def load_np_dtype(arr):
-    """ Load a numpy array """
-    # Just return first value
-    return arr.value
-
-
-def load_dict(group, safe):
-    """ Load dictionary """
-
-    dd = {}
-    for key in group.keys():
-        if isinstance(group[key], h5._hl.group.Group):
-            new_group = group[key]
-            dd[key] = load_dict(new_group, safe)
-        elif not key.startswith("_"):
-
-            if group[key].attrs["type"][0] == 'np_dtype':
-                dd[key] = group[key].value
-            elif group[key].attrs["type"][0] in ('str', 'int', 'float', 'unicode', 'bool'):
-                dd[key] = group[key][0]
-            elif group[key].attrs["type"][0] == 'masked':
-                key_ma = "_%s_mask" % key
-                dd[key] = np.ma.array(group[key][:], mask=group[key_ma])
-            else:
-                dd[key] = group[key][:]
-
-            # Convert numpy constructs back to string
-            dtype = group[key].attrs["type"][0]
-            types = {'str': str, 'int': int, 'float': float, 'unicode':
-                     unicode, 'bool': bool, 'list': list, 'none': NoneType}
-            try:
-                mod = types.get(dtype)
-                if dtype == 'none':
-                    dd[key] = None
-                else:
-                    dd[key] = mod(dd[key])
-            except:
-                pass
-    return dd
+        return tcast(data)
+    elif py_type == 'string':
+        return str(data[0])
+    elif py_type == 'unicode':
+        return unicode(data[0])
+    elif py_type == 'none':
+        return None
+    else:
+        print h_node.name, py_type, h_node.attrs.keys()
+        return data
 
 
-def load_large(file):
-    """ Load a large hickle file (returns the h5py object not the data)
-
-    Parameters
-    ----------
-    file: file object, h5py.File, or filename string
+def sort_keys(key_list):
+    """ Take a list of strings and sort it by integer value within string
     """
+    to_int = lambda x: int(re.search('\d+', x).group(0))
+    keys_by_int = sorted([(to_int(key), key) for key in key_list])
+    return [ii[1] for ii in keys_by_int ]
 
-    h5f = file_opener(file)
-    return h5f
+
+def _load(py_container, h_group):
+    """ Load a hickle file """
+
+    group_dtype   = h5._hl.group.Group
+    dataset_dtype = h5._hl.dataset.Dataset
+
+    #either a file, group, or dataset
+    if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
+        py_subcontainer = PyContainer()
+        py_subcontainer.container_type = h_group.attrs['type'][0]
+        py_subcontainer.name = h_group.name
+
+        if py_subcontainer.container_type != 'dict':
+            h_keys = sort_keys(h_group.keys())
+        else:
+            h_keys = h_group.keys()
+
+        for h_name in h_keys:
+            h_node = h_group[h_name]
+            py_subcontainer = _load(py_subcontainer, h_node)
+
+        sub_data = py_subcontainer.convert()
+        py_container.append(sub_data)
+
+    else:
+        # must be a dataset
+        subdata = load_dataset(h_group)
+        py_container.append(subdata)
+
+    #print h_group.name, py_container
+    return py_container
+
+class PyContainer(list):
+    def __init__(self):
+        super(PyContainer, self).__init__()
+        self.container_type = None
+        self.name = None
+
+    def convert(self):
+        #print self.container_type
+
+        if self.container_type == "<type 'list'>":
+            #print self.name
+            return list(self)
+        if self.container_type == "<type 'tuple'>":
+            #print self.name
+            return tuple(self)
+        if self.container_type == "<type 'set'>":
+            return set(self)
+        if self.container_type == "dict":
+            keys = [str(item.name.split('/')[-1]) for item in self]
+            items = [item[0] for item in self]
+            return dict(zip(keys, items))
+        else:
+            return self
+
+

@@ -1,4 +1,4 @@
-from hickle_dev import check_is_iterable, check_iterable_item_type, _dump, dump, load, sort_keys
+from hickle import check_is_iterable, check_iterable_item_type, _dump, dump, load, sort_keys
 import h5py
 import numpy as np
 from pprint import pprint
