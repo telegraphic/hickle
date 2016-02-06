@@ -521,7 +521,7 @@ def test_list_long_type():
 
 def test_list_order():
     """ https://github.com/telegraphic/hickle/issues/26 """
-    d = [np.arange(n) for n in range(20)]
+    d = [np.arange(n + 1) for n in range(20)]
     hickle.dump(d, 'test.h5')
     d_hkl = hickle.load('test.h5')
     
