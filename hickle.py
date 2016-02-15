@@ -34,7 +34,7 @@ except ImportError:
     pass        # above imports will fail in python3
 
 import warnings
-__version__ = "2.0.3"
+__version__ = "2.0.4"
 __author__ = "Danny Price"
 
 
