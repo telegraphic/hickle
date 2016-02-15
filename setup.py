@@ -4,12 +4,12 @@
 # python setup.py sdist upload
 from distutils.core import setup
 setup(name = 'hickle',
-      version = '2.0.1',
+      version = '2.0.3',
       description = 'Hickle - a HDF5 based version of pickle',
       author = 'Danny Price',
       author_email = 'dan@thetelegraphic.com',
       url = 'http://github.com/telegraphic/hickle',
-      download_url='https://github.com/telegraphic/hickle/archive/2.0.1.tar.gz',
+      download_url='https://github.com/telegraphic/hickle/archive/2.0.3.tar.gz',
       platforms = 'Cross platform (Linux, Mac OSX, Windows)',
       keywords = ['pickle', 'hdf5', 'data storage', 'data export'],
       py_modules = ['hickle', 'hickle_legacy'],
