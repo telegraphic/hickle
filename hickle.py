@@ -1,6 +1,5 @@
 # encoding: utf-8
 """
-
 # hickle.py
 
 Created by Danny Price 2016-02-03.
@@ -44,7 +43,7 @@ __author__ = "Danny Price"
 ##################
 
 class FileError(Exception):
-    """ An exception raised if the file is fishy"""
+    """ An exception raised if the file is fishy """
     def __init__(self):
         return
 
@@ -559,8 +558,7 @@ def load(fileobj, path='/', safe=True):
             return py_container[0][0]
         except AssertionError:
             import hickle_legacy
-            hickle_legacy.load(fileobj, safe)
-
+            return hickle_legacy.load(fileobj, safe)
     finally:
         if 'h5f' in locals():
             h5f.close()

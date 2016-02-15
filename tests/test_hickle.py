@@ -720,10 +720,20 @@ def test_legacy_hickles():
     try:
         a = load("hickle_1_1_0.hkl")
         b = load("hickle_1_3_0.hkl")
+        
+        import h5py
+        d = h5py.File("hickle_1_1_0.hkl")["data"]["a"][:]
+        d2 = h5py.File("hickle_1_3_0.hkl")["data"]["a"][:]
+        assert np.allclose(d, a["a"])
+        assert np.allclose(d2, b["a"])
+        
     except IOError:
         # For travis-CI
         a = load("tests/hickle_1_1_0.hkl")
         b = load("tests/hickle_1_3_0.hkl")
+    
+    print a 
+    print b
 
 
 def test_multi_hickle():
@@ -746,40 +756,40 @@ def test_multi_hickle():
 
 if __name__ == '__main__':
     """ Some tests and examples """
-    test_file_open_close()
-    test_dict_none()
-    test_none()
-    test_unicode()
-    test_string()
-    test_masked_dict()
-    test_list()
-    test_set()
-    test_numpy()
-    test_dict()
-    test_compression()
-    test_masked()
-    test_dict_nested()
-    test_comp_kwargs()
-    test_list_numpy()
-    test_tuple_numpy()
-    test_track_times()
-    test_list_order()
-    test_embedded_array()
-    test_np_float()
+    #test_file_open_close()
+    #test_dict_none()
+    #test_none()
+    #test_unicode()
+    #test_string()
+    #test_masked_dict()
+    #test_list()
+    #test_set()
+    #test_numpy()
+    #test_dict()
+    #test_compression()
+    #test_masked()
+    #test_dict_nested()
+    #test_comp_kwargs()
+    #test_list_numpy()
+    #test_tuple_numpy()
+    #test_track_times()
+    #test_list_order()
+    #test_embedded_array()
+    #test_np_float()
 
     # NEW TESTS
     test_legacy_hickles()
-    test_is_iterable()
-    test_check_iterable_item_type()
-    test_dump_nested()
-    test_load()
-    test_sort_keys()
-    test_ndarray()
-    test_ndarray_masked()
-    test_simple_dict()
-    test_complex_dict()
-    test_unicode()
-    test_multi_hickle()
+    #test_is_iterable()
+    #test_check_iterable_item_type()
+    #test_dump_nested()
+    #test_load()
+    #test_sort_keys()
+    #test_ndarray()
+    #test_ndarray_masked()
+    #test_simple_dict()
+    #test_complex_dict()
+    #test_unicode()
+    #test_multi_hickle()
 
     #FAILING TESTS:
     #test_nomatch()
