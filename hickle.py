@@ -441,9 +441,9 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
     if isinstance(py_obj, type(np.ma.array([1]))):
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
         #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
-        d.attrs["mask"] = py_obj.mask
-        d.attrs["type"] = ['ndarray_masked']
-        #m.attrs["type"] = ['masked_mask']
+        m = h_group.create_dataset('data_%i_mask' % call_id, data=py_obj.mask, **kwargs)
+        d.attrs["type"] = ['ndarray_masked_data']
+        m.attrs["type"] = ['ndarray_masked_mask']
     else:
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
         d.attrs["type"] = ['ndarray']
@@ -593,11 +593,15 @@ def load_dataset(h_node):
         return data
     elif py_type == 'ndarray':
         return np.array(data)
-    elif py_type == 'ndarray_masked':
+    elif py_type == 'ndarray_masked_data':
         try:
-            mask = h_node.attrs["mask"][:]
+            mask_path = h_node.name + "_mask"
+            h_root = h_node.parent
+            mask = h_root.get(mask_path)[:]
         except IndexError:
-            mask = h_node.attrs["mask"]
+            mask = h_root.get(mask_path)
+        except ValueError:
+            mask = h_root.get(mask_path)
         data = np.ma.array(data, mask=mask)
         return data
     elif py_type == 'python_dtype':
