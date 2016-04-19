@@ -753,9 +753,21 @@ def test_multi_hickle():
     d = load("test.hkl", path="/test4")
     os.remove("test.hkl")
 
+def test_complex():
+    """ Test complex value dtype is handled correctly
+    
+    https://github.com/telegraphic/hickle/issues/29 """
+    
+    data = {"A":1.5, "B":1.5 + 1j, "C":np.linspace(0,1,4) + 2j}
+    dump(data, "test.hkl")   
+    data2 = load("test.hkl")
+    for key in data.keys():
+        assert type(data[key]) == type(data2[key])
 
+    
 if __name__ == '__main__':
     """ Some tests and examples """
+    test_complex()
     test_file_open_close()
     test_dict_none()
     test_none()
