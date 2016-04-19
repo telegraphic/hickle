@@ -322,6 +322,7 @@ def create_dataset_lookup(py_obj):
         float: create_python_dtype_dataset,
         long: create_python_dtype_dataset,
         bool: create_python_dtype_dataset,
+        complex: create_python_dtype_dataset,
         NoneType: create_none_dataset,
         np.ndarray: create_np_array_dataset,
         np.ma.core.MaskedArray: create_np_array_dataset,
