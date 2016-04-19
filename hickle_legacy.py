@@ -1,25 +1,17 @@
 # encoding: utf-8
 """
-hickle.py
-=============
+# hickle_legacy.py
 
 Created by Danny Price 2012-05-28.
 
-Hickle is a HDF5 based clone of Pickle. Instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file. It is designed to be as similar to pickle in usage as possible.
+Hickle is a HDF5 based clone of Pickle. Instead of serializing to a
+pickle file, Hickle dumps to a HDF5 file. It is designed to be as similar
+to pickle in usage as possible.
 
-Notes
------
+## Notes
 
-Hickle has two main advantages over Pickle:
-1) LARGE PICKLE HANDLING. Unpickling a large pickle is slow, as the Unpickler reads the entire pickle 
-thing and loads it into memory. In comparison, HDF5 files are designed for large datasets. Things are 
-only loaded when accessed. 
-
-2) CROSS PLATFORM SUPPORT. Attempting to unpickle a pickle pickled on Windows on Linux and vice versa
-is likely to fail with errors like "Insecure string pickle". HDF5 files will load fine, as long as
-both machines have h5py installed.
-
+This is a legacy handler, for hickle v1 files.
+If V2 reading fails, this will be called as a fail-over.
 
 """
 
@@ -29,12 +21,13 @@ import numpy as np
 import h5py as h5
 from types import NoneType
 
-__version__ = "1.1.1"
+__version__ = "1.3.0"
 __author__ = "Danny Price"
 
 ####################
 ## Error handling ##
 ####################
+
 
 class FileError(exceptions.Exception):
     """ An exception raised if the file is fishy"""
@@ -64,7 +57,8 @@ class ToDoError(exceptions.Exception):
 
     def __str__(self):
         print "Error: this functionality hasn't been implemented yet."
-        
+
+
 class H5GroupWrapper(h5.Group):
     def create_dataset(self, *args, **kwargs):
         kwargs['track_times'] = getattr(self, 'track_times', True)
@@ -76,6 +70,7 @@ class H5GroupWrapper(h5.Group):
         group.track_times = getattr(self, 'track_times', True)
         return group
 
+
 class H5FileWrapper(h5.File):
     def create_dataset(self, *args, **kwargs):
         kwargs['track_times'] = getattr(self, 'track_times', True)
@@ -86,6 +81,7 @@ class H5FileWrapper(h5.File):
         group.__class__ = H5GroupWrapper
         group.track_times = getattr(self, 'track_times', True)
         return group
+
 
 def file_opener(f, mode='r', track_times=True):
     """ A file opener helper function with some error handling.
@@ -126,10 +122,12 @@ def dump_np_dtype(obj, h5f, **kwargs):
     h5f.create_dataset('data', data=obj)
     h5f.create_dataset('type', data=['np_dtype'])
 
+
 def dump_np_dtype_dict(obj, h5f, **kwargs):
     """ dumps an np dtype object within a group"""
     h5f.create_dataset('data', data=obj)
     h5f.create_dataset('_data', data=['np_dtype'])
+
 
 def dump_masked(obj, h5f, **kwargs):
     """ dumps an ndarray object to h5py file"""
@@ -150,6 +148,7 @@ def dump_list(obj, h5f, **kwargs):
         h5f.create_dataset('data', data=obj, **kwargs)
         h5f.create_dataset('type', data=['list'])
 
+
 def _dump_list_np(obj, h5f, **kwargs):
     """ Dump a list of numpy objects to file """
 
@@ -160,6 +159,7 @@ def _dump_list_np(obj, h5f, **kwargs):
     for np_item in obj:
         np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
         ii += 1
+
 
 def dump_tuple(obj, h5f, **kwargs):
     """ dumps a list object to h5py file"""
@@ -173,6 +173,7 @@ def dump_tuple(obj, h5f, **kwargs):
         h5f.create_dataset('data', data=obj, **kwargs)
         h5f.create_dataset('type', data=['tuple'])
 
+
 def _dump_tuple_np(obj, h5f, **kwargs):
     """ Dump a tuple of numpy objects to file """
 
@@ -183,6 +184,7 @@ def _dump_tuple_np(obj, h5f, **kwargs):
     for np_item in obj:
         np_group.create_dataset("%s" % ii, data=np_item, **kwargs)
         ii += 1
+
 
 def dump_set(obj, h5f, **kwargs):
     """ dumps a set object to h5py file"""
@@ -196,10 +198,12 @@ def dump_string(obj, h5f, **kwargs):
     h5f.create_dataset('data', data=[obj], **kwargs)
     h5f.create_dataset('type', data=['string'])
 
+
 def dump_none(obj, h5f, **kwargs):
     """ Dump None type to file """
     h5f.create_dataset('data', data=[0], **kwargs)
     h5f.create_dataset('type', data=['none'])
+
 
 def dump_unicode(obj, h5f, **kwargs):
     """ dumps a list object to h5py file"""
@@ -452,9 +456,11 @@ def load_np_list(group):
         np_list.append(data)
     return np_list
 
+
 def load_np_tuple(group):
     """ load a tuple containing numpy arrays """
     return tuple(load_np_list(group))
+
 
 def load_ndarray(arr):
     """ Load a numpy array """
