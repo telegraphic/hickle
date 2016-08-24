@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.sparse import csr_matrix, csc_matrix
+from scipy.sparse import csr_matrix, csc_matrix, bsr_matrix
 import os
 
 from hickle import check_is_scipy_sparse_array
@@ -22,21 +22,36 @@ def test_sparse_matrix():
     sm1 = csr_matrix((data, (row, col)), shape=(3, 3))
     sm2 = csc_matrix((data, (row, col)), shape=(3, 3))
 
+    indptr = np.array([0, 2, 3, 6])
+    indices = np.array([0, 2, 2, 0, 1, 2])
+    data = np.array([1, 2, 3, 4, 5, 6]).repeat(4).reshape(6, 2, 2)
+    sm3 = bsr_matrix((data,indices,indptr), shape=(6, 6))
+
     try:
         hickle.dump(sm1, 'test.h5')
         sm1_h = hickle.load('test.h5')
         hickle.dump(sm2, 'test2.h5')
         sm2_h = hickle.load('test2.h5')
+        hickle.dump(sm3, 'test3.h5')
+        sm3_h = hickle.load('test3.h5')
 
         assert isinstance(sm1_h, csr_matrix)
         assert isinstance(sm2_h, csc_matrix)
+        assert isinstance(sm3_h, bsr_matrix)
 
         assert np.allclose(sm1_h.data, sm1.data)
         assert np.allclose(sm2_h.data, sm2.data)
+        assert np.allclose(sm3_h.data, sm3.data)
+
+        assert sm1_h. shape == sm1.shape
+        assert sm2_h. shape == sm2.shape
+        assert sm3_h. shape == sm3.shape
 
     finally:
         #os.remove('test.h5')
         pass
+
+
 
 
 

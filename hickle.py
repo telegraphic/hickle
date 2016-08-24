@@ -233,8 +233,10 @@ def check_is_scipy_sparse_array(py_obj):
     Returns
         is_numpy (bool): Returns True if it is a sparse array, else False if it isn't
     """
-
-    is_sparse = type(py_obj) in (type(scipy.sparse.csr_matrix([0])), type(scipy.sparse.csc_matrix([0])))
+    t_csr = type(scipy.sparse.csr_matrix([0]))
+    t_csc = type(scipy.sparse.csc_matrix([0]))
+    t_bsr = type(scipy.sparse.bsr_matrix([0]))
+    is_sparse = type(py_obj) in (t_csr, t_csc, t_bsr)
 
     return is_sparse
 
@@ -250,7 +252,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
 
-    dumpable_dtypes = set([bool, int, float, long, complex, str, unicode])
+    dumpable_dtypes = {bool, int, float, long, complex, str, unicode}
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_numpy_array(py_obj):
@@ -375,6 +377,7 @@ def create_dataset_lookup(py_obj):
     if _has_scipy:
         types[scipy.sparse.csr_matrix] = create_sparse_dataset
         types[scipy.sparse.csc_matrix] = create_sparse_dataset
+        types[scipy.sparse.bsr_matrix] = create_sparse_dataset
 
     match = types.get(t, no_match)
     return match
@@ -500,18 +503,18 @@ def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
     shape   = h_sparsegroup.create_dataset('shape',   data=py_obj.shape, **kwargs)
 
     if isinstance(py_obj, type(sparse.csr_matrix([0]))):
-        h_sparsegroup.attrs["type"] = ['csr_matrix']
-        data.attrs["type"] = ["csr_matrix_data"]
-        indices.attrs["type"] = ["csr_matrix_indices"]
-        indptr.attrs["type"] = ["csr_matrix_indptr"]
-        shape.attrs["type"] = ["csr_matrix_shape"]
-
+        type_str = 'csr'
     elif isinstance(py_obj, type(sparse.csc_matrix([0]))):
-        h_sparsegroup.attrs["type"] = ['csc_matrix']
-        data.attrs["type"] = ["csc_matrix_data"]
-        indices.attrs["type"] = ["csc_matrix_indices"]
-        indptr.attrs["type"] = ["csc_matrix_indptr"]
-        shape.attrs["type"] = ["csc_matrix_shape"]
+        type_str = 'csc'
+    elif isinstance(py_obj, type(sparse.bsr_matrix([0]))):
+        type_str = 'bsr'
+
+    h_sparsegroup.attrs["type"] = ['%s_matrix' % type_str]
+    data.attrs["type"] = ["%s_matrix_data" % type_str]
+    indices.attrs["type"] = ["%s_matrix_indices" % type_str]
+    indptr.attrs["type"] = ["%s_matrix_indptr" % type_str]
+    shape.attrs["type"] = ["%s_matrix_shape" % type_str]
+
 
 
 def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -594,7 +597,7 @@ class PyContainer(list):
             keys = [str(item.name.split('/')[-1]) for item in self]
             items = [item[0] for item in self]
             return dict(zip(keys, items))
-        if self.container_type in ('csr_matrix', 'csc_matrix'):
+        if self.container_type in ('csr_matrix', 'csc_matrix', 'bsr_matrix'):
             return self[0]
         else:
             return self
@@ -688,7 +691,7 @@ def load_dataset(h_node):
         return unicode(data[0])
     elif py_type == 'none':
         return None
-    elif py_type in ('csc_matrix_data', 'csr_matrix_data'):
+    elif py_type in ('csc_matrix_data', 'csr_matrix_data', 'bsr_matrix_data'):
         h_root  = h_node.parent
         indices = h_root.get('indices')[:]
         indptr  = h_root.get('indptr')[:]
@@ -698,6 +701,8 @@ def load_dataset(h_node):
             smat = sparse.csc_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
         elif py_type == 'csr_matrix_data':
             smat = sparse.csr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
+        elif py_type == 'bsr_matrix_data':
+            smat = sparse.bsr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
         return smat
 
     else:
@@ -739,7 +744,7 @@ def _load(py_container, h_group):
         py_subcontainer.container_type = h_group.attrs['type'][0]
         py_subcontainer.name = h_group.name
 
-        if py_subcontainer.container_type not in ('dict', 'csr_matrix', 'csc_matrix'):
+        if py_subcontainer.container_type not in ('dict', 'csr_matrix', 'csc_matrix', 'bsr_matrix'):
             h_keys = sort_keys(h_group.keys())
         else:
             h_keys = h_group.keys()
