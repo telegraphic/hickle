@@ -33,8 +33,21 @@ try:
 except ImportError:
     pass        # above imports will fail in python3
 
+try:
+    import astropy
+    _has_astropy = True
+except ImportError:
+    _has_astropy = False
+
+try:
+    import scipy
+    from scipy import sparse
+    _has_scipy = True
+except ImportError:
+    _has_scipy = False
+
 import warnings
-__version__ = "2.0.4"
+__version__ = "2.1.0"
 __author__ = "Danny Price"
 
 
@@ -211,6 +224,21 @@ def check_is_numpy_array(py_obj):
     return is_numpy
 
 
+def check_is_scipy_sparse_array(py_obj):
+    """ Check if a python object is a scipy sparse array
+
+    Args:
+        py_obj: python object to check whether it is a sparse array
+
+    Returns
+        is_numpy (bool): Returns True if it is a sparse array, else False if it isn't
+    """
+
+    is_sparse = type(py_obj) in (type(scipy.sparse.csr_matrix([0])), type(scipy.sparse.csc_matrix([0])))
+
+    return is_sparse
+
+
 def _dump(py_obj, h_group, call_id=0, **kwargs):
     """ Dump a python object to a group within a HDF5 file.
 
@@ -226,6 +254,9 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_numpy_array(py_obj):
+        create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
+
+    elif check_is_scipy_sparse_array(py_obj):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
     # next, check if item is iterable
@@ -276,7 +307,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
         # Open the file
         h5f = file_opener(file_obj, mode, track_times)
         h5f.attrs["CLASS"] = 'hickle'
-        h5f.attrs["VERSION"] = 2
+        h5f.attrs["VERSION"] = 3
         h5f.attrs["type"] = ['hickle']
 
         h_root_group = h5f.get(path)
@@ -340,6 +371,10 @@ def create_dataset_lookup(py_obj):
         np.complex64: create_np_dtype_dataset,
         np.complex128: create_np_dtype_dataset
     }
+
+    if _has_scipy:
+        types[scipy.sparse.csr_matrix] = create_sparse_dataset
+        types[scipy.sparse.csc_matrix] = create_sparse_dataset
 
     match = types.get(t, no_match)
     return match
@@ -450,6 +485,35 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
         d.attrs["type"] = ['ndarray']
 
 
+def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
+    """ dumps an sparse array to h5py file
+
+    Args:
+        py_obj: python object to dump; should be a numpy array or np.ma.array (masked)
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the iterable.
+    """
+    h_sparsegroup = h_group.create_group('data_%i' % call_id)
+    data    = h_sparsegroup.create_dataset('data',    data=py_obj.data, **kwargs)
+    indices = h_sparsegroup.create_dataset('indices', data=py_obj.indices, **kwargs)
+    indptr  = h_sparsegroup.create_dataset('indptr',  data=py_obj.indptr, **kwargs)
+    shape   = h_sparsegroup.create_dataset('shape',   data=py_obj.shape, **kwargs)
+
+    if isinstance(py_obj, type(sparse.csr_matrix([0]))):
+        h_sparsegroup.attrs["type"] = ['csr_matrix']
+        data.attrs["type"] = ["csr_matrix_data"]
+        indices.attrs["type"] = ["csr_matrix_indices"]
+        indptr.attrs["type"] = ["csr_matrix_indptr"]
+        shape.attrs["type"] = ["csr_matrix_shape"]
+
+    elif isinstance(py_obj, type(sparse.csc_matrix([0]))):
+        h_sparsegroup.attrs["type"] = ['csc_matrix']
+        data.attrs["type"] = ["csc_matrix_data"]
+        indices.attrs["type"] = ["csc_matrix_indices"]
+        indptr.attrs["type"] = ["csc_matrix_indptr"]
+        shape.attrs["type"] = ["csc_matrix_shape"]
+
+
 def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ dumps a list object to h5py file
 
@@ -530,6 +594,8 @@ class PyContainer(list):
             keys = [str(item.name.split('/')[-1]) for item in self]
             items = [item[0] for item in self]
             return dict(zip(keys, items))
+        if self.container_type in ('csr_matrix', 'csc_matrix'):
+            return self[0]
         else:
             return self
 
@@ -622,8 +688,20 @@ def load_dataset(h_node):
         return unicode(data[0])
     elif py_type == 'none':
         return None
+    elif py_type in ('csc_matrix_data', 'csr_matrix_data'):
+        h_root  = h_node.parent
+        indices = h_root.get('indices')[:]
+        indptr  = h_root.get('indptr')[:]
+        shape   = h_root.get('shape')[:]
+
+        if py_type == 'csc_matrix_data':
+            smat = sparse.csc_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
+        elif py_type == 'csr_matrix_data':
+            smat = sparse.csr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
+        return smat
+
     else:
-        print(h_node.name, py_type, h_node.attrs.keys())
+        #print(h_node.name, py_type, h_node.attrs.keys())
         return data
 
 
@@ -661,7 +739,7 @@ def _load(py_container, h_group):
         py_subcontainer.container_type = h_group.attrs['type'][0]
         py_subcontainer.name = h_group.name
 
-        if py_subcontainer.container_type != 'dict':
+        if py_subcontainer.container_type not in ('dict', 'csr_matrix', 'csc_matrix'):
             h_keys = sort_keys(h_group.keys())
         else:
             h_keys = h_group.keys()
