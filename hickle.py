@@ -47,7 +47,7 @@ except ImportError:
     _has_scipy = False
 
 import warnings
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "Danny Price"
 
 
@@ -191,6 +191,23 @@ def check_is_iterable(py_obj):
         return False
 
 
+def check_is_hashable(py_obj):
+    """ Check if a python object is hashable
+
+    Note: this function is currently not used, but is useful for future
+          development.
+
+    Args:
+        py_obj: python object to test
+    """
+
+    try:
+        py_obj.__hash__()
+        return True
+    except TypeError:
+        return False
+
+
 def check_iterable_item_type(iter_obj):
     """ Check if all items within an iterable are the same type.
 
@@ -206,7 +223,11 @@ def check_iterable_item_type(iter_obj):
     """
     iseq = iter(iter_obj)
     first_type = type(next(iseq))
-    return first_type if all((type(x) is first_type) for x in iseq) else False
+
+    if isinstance(iter_obj, dict):
+        return first_type
+    else:
+        return first_type if all((type(x) is first_type) for x in iseq) else False
 
 
 def check_is_numpy_array(py_obj):
@@ -264,6 +285,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
     # next, check if item is iterable
     elif check_is_iterable(py_obj):
         item_type = check_iterable_item_type(py_obj)
+        #print item_type
 
         # item_type == False implies multiple types. Create a dataset
         if item_type is False:
@@ -351,27 +373,28 @@ def create_dataset_lookup(py_obj):
         set: create_listlike_dataset,
         str: create_stringlike_dataset,
         unicode: create_stringlike_dataset,
-        int: create_python_dtype_dataset,
-        float: create_python_dtype_dataset,
-        long: create_python_dtype_dataset,
-        bool: create_python_dtype_dataset,
-        complex: create_python_dtype_dataset,
+        int:         create_python_dtype_dataset,
+        float:       create_python_dtype_dataset,
+        long:        create_python_dtype_dataset,
+        bool:        create_python_dtype_dataset,
+        complex:     create_python_dtype_dataset,
         NoneType: create_none_dataset,
         np.ndarray: create_np_array_dataset,
         np.ma.core.MaskedArray: create_np_array_dataset,
-        np.float16: create_np_dtype_dataset,
-        np.float32: create_np_dtype_dataset,
-        np.float64: create_np_dtype_dataset,
-        np.int8: create_np_dtype_dataset,
-        np.int16: create_np_dtype_dataset,
-        np.int32: create_np_dtype_dataset,
-        np.int64: create_np_dtype_dataset,
-        np.uint8: create_np_dtype_dataset,
-        np.uint16: create_np_dtype_dataset,
-        np.uint32: create_np_dtype_dataset,
-        np.uint64: create_np_dtype_dataset,
-        np.complex64: create_np_dtype_dataset,
-        np.complex128: create_np_dtype_dataset
+        np.float16:    create_np_scalar_dataset,
+        np.float32:    create_np_scalar_dataset,
+        np.float64:    create_np_scalar_dataset,
+        np.int8:       create_np_scalar_dataset,
+        np.int16:      create_np_scalar_dataset,
+        np.int32:      create_np_scalar_dataset,
+        np.int64:      create_np_scalar_dataset,
+        np.uint8:      create_np_scalar_dataset,
+        np.uint16:     create_np_scalar_dataset,
+        np.uint32:     create_np_scalar_dataset,
+        np.uint64:     create_np_scalar_dataset,
+        np.complex64:  create_np_scalar_dataset,
+        np.complex128: create_np_scalar_dataset,
+        np.dtype:      create_np_dtype
     }
 
     if _has_scipy:
@@ -426,7 +449,7 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     d.attrs["type"] = [dtype]
 
 
-def create_np_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
@@ -434,9 +457,23 @@ def create_np_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-    d.attrs["type"] = ['np_dtype']
+
+    # DO NOT PASS KWARGS TO SCALAR DATASETS!
+    d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
+    d.attrs["type"] = ['np_scalar']
     d.attrs["np_dtype"] = str(d.dtype)
+
+
+def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
+    """ dumps an np dtype object to h5py file
+
+    Args:
+        py_obj: python object to dump; should be a numpy scalar, e.g. np.float16(1)
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the iterable.
+    """
+    d = h_group.create_dataset('data_%i' % call_id, data=[str(py_obj)])
+    d.attrs["type"] = ['np_dtype']
 
 
 def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -447,8 +484,9 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
+    # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
-                               dtype=type(py_obj), **kwargs)
+                               dtype=type(py_obj))     #, **kwargs)
     d.attrs["type"] = ['python_dtype']
     d.attrs['python_subdtype'] = str(type(py_obj))
 
@@ -463,9 +501,15 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
     """
     h_dictgroup = h_group.create_group('data_%i' % call_id)
     h_dictgroup.attrs["type"] = ['dict']
+
     for key, py_subobj in py_obj.items():
-        h_subgroup = h_dictgroup.create_group(key)
+        if type(key) in {unicode, str}:
+            h_subgroup = h_dictgroup.create_group(key)
+        else:
+            h_subgroup = h_dictgroup.create_group(str(key))
         h_subgroup.attrs["type"] = ['dict_item']
+        h_subgroup.attrs["key_type"] = [str(type(key))]
+
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
 
 
@@ -561,8 +605,7 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
     d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
     d.attrs["type"] = ['pickle']
 
-    warnings.warn("%s type not understood, data have been "
-                  "serialized" % type(py_obj))
+    warnings.warn("%s type not understood, data have been serialized" % type(py_obj))
 
 
 #############
@@ -581,6 +624,7 @@ class PyContainer(list):
         super(PyContainer, self).__init__()
         self.container_type = None
         self.name = None
+        self.key_type = None
 
     def convert(self):
         """ Convert from PyContainer to python core data type.
@@ -594,7 +638,22 @@ class PyContainer(list):
         if self.container_type == "<type 'set'>":
             return set(self)
         if self.container_type == "dict":
-            keys = [str(item.name.split('/')[-1]) for item in self]
+            keys = []
+            for item in self:
+                key = item.name.split('/')[-1]
+                key_type = item.key_type
+                if key_type == "<type 'str'>":
+                    key = str(key)
+                elif key_type == "<type 'unicode'>":
+                    key = unicode(key)
+                elif key_type == "<type 'int'>":
+                    key = int(key)
+                elif key_type ==  "<type 'float'>":
+                    key = float(key)
+                elif key_type ==  "<type 'bool'>":
+                    key = bool(key)
+                keys.append(key)
+
             items = [item[0] for item in self]
             return dict(zip(keys, items))
         if self.container_type in ('csr_matrix', 'csc_matrix', 'bsr_matrix'):
@@ -658,6 +717,9 @@ def load_dataset(h_node):
     elif py_type == "<type 'set'>":
         return set(data)
     elif py_type == "np_dtype":
+        data = np.dtype(data[0])
+        return data
+    elif py_type == "np_scalar":
         subtype = h_node.attrs["np_dtype"]
         data = np.array(data, dtype=subtype)
         return data
@@ -741,8 +803,15 @@ def _load(py_container, h_group):
     #either a file, group, or dataset
     if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
         py_subcontainer = PyContainer()
-        py_subcontainer.container_type = h_group.attrs['type'][0]
+        try:
+            py_subcontainer.container_type = h_group.attrs['type'][0]
+        except KeyError:
+            raise
+            #py_subcontainer.container_type = ''
         py_subcontainer.name = h_group.name
+
+        if py_subcontainer.container_type == 'dict_item':
+            py_subcontainer.key_type = h_group.attrs['key_type']
 
         if py_subcontainer.container_type not in ('dict', 'csr_matrix', 'csc_matrix', 'bsr_matrix'):
             h_keys = sort_keys(h_group.keys())

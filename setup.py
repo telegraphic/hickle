@@ -4,7 +4,7 @@
 # python setup.py sdist upload
 from distutils.core import setup
 setup(name = 'hickle',
-      version = '2.1.0',
+      version = '2.2.0',
       description = 'Hickle - a HDF5 based version of pickle',
       author = 'Danny Price',
       author_email = 'dan@thetelegraphic.com',

@@ -74,6 +74,15 @@ def test_unicode():
         raise
 
 
+def test_unicode2():
+    a = u"unicode test"
+    dump(a, 'test.hkl', mode='w')
+
+    z = load('test.hkl')
+    assert a == z
+    assert type(a) == type(z) == unicode
+    pprint(z)
+
 def test_list():
     """ Dumping and loading a list """
     filename, mode = 'test.h5', 'w'
@@ -705,14 +714,6 @@ def test_complex_dict():
     pprint(z)
 
 
-def test_unicode():
-    a = u"unicode test"
-    dump(a, 'test.hkl', mode='w')
-
-    z = load('test.hkl')
-    assert a == z
-    assert type(a) == type(z) == unicode
-    pprint(z)
 
 
 def test_legacy_hickles():
@@ -764,14 +765,54 @@ def test_complex():
     for key in data.keys():
         assert type(data[key]) == type(data2[key])
 
+def test_nonstring_keys():
+    """ Test that keys are reconstructed back to their original datatypes
+    https://github.com/telegraphic/hickle/issues/36
+    """
+    u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
+
+    data = {u'test': 123,
+            'def': 456,
+            'hik' : np.array([1,2,3]),
+            u: u,
+            0: 0,
+            True: 'hi',
+            1.1 : 'hey'
+            }
+    #data = {'0': 123, 'def': 456}
+    print data
+    dump(data, "test.hkl") 
+    data2 = load("test.hkl")
+    
+    for key in data.keys():
+        assert key in data2.keys()
+
+    print data2
+
+def test_scalar_compression():
+    """ Test bug where compression causes a crash on scalar datasets
+
+    (Scalars are incompressible!)
+    https://github.com/telegraphic/hickle/issues/37
+    """
+    data = {'a' : 0, 'b' : np.float(2), 'c' : True}
+
+    dump(data, "test.hkl", compression='gzip')
+    data2 = load("test.hkl")
+    for key in data.keys():
+        assert type(data[key]) == type(data2[key])
+
     
 if __name__ == '__main__':
     """ Some tests and examples """
+    test_nonstring_keys()
+    test_scalar_compression()
     test_complex()
     test_file_open_close()
     test_dict_none()
     test_none()
     test_unicode()
+    test_unicode2()
     test_string()
     test_masked_dict()
     test_list()
@@ -802,10 +843,10 @@ if __name__ == '__main__':
     test_complex_dict()
     test_unicode()
     test_multi_hickle()
+    test_dict_int_key()
 
     #FAILING TESTS:
     #test_nomatch()
-    #test_dict_int_key()
     #test_list_long_type()
 
     # Cleanup
