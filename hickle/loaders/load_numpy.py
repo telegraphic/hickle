@@ -7,8 +7,16 @@ Utilities and dump / load handlers for handling numpy and scipy arrays
 """
 
 import numpy as np
-import scipy
-from scipy import sparse
+
+try:
+    import scipy
+    from scipy import sparse
+    _has_scipy = True
+except ImportError:
+    _has_scipy = False
+
+from hickle.helpers import get_type_and_data
+
 
 def check_is_numpy_array(py_obj):
     """ Check if a python object is a numpy array (masked or regular)
@@ -114,3 +122,104 @@ def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
     indices.attrs["type"] = ["%s_matrix_indices" % type_str]
     indptr.attrs["type"] = ["%s_matrix_indptr" % type_str]
     shape.attrs["type"] = ["%s_matrix_shape" % type_str]
+
+
+
+
+#######################
+## Lookup dictionary ##
+#######################
+
+types_dict = {
+    np.ndarray:  create_np_array_dataset,
+    np.ma.core.MaskedArray: create_np_array_dataset,
+    np.float16:    create_np_scalar_dataset,
+    np.float32:    create_np_scalar_dataset,
+    np.float64:    create_np_scalar_dataset,
+    np.int8:       create_np_scalar_dataset,
+    np.int16:      create_np_scalar_dataset,
+    np.int32:      create_np_scalar_dataset,
+    np.int64:      create_np_scalar_dataset,
+    np.uint8:      create_np_scalar_dataset,
+    np.uint16:     create_np_scalar_dataset,
+    np.uint32:     create_np_scalar_dataset,
+    np.uint64:     create_np_scalar_dataset,
+    np.complex64:  create_np_scalar_dataset,
+    np.complex128: create_np_scalar_dataset,
+    np.dtype:      create_np_dtype
+}
+
+def load_np_dtype_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    data = np.dtype(data[0])
+    return data
+
+def load_np_scalar_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    subtype = h_node.attrs["np_dtype"]
+    data = np.array(data, dtype=subtype)
+    return data
+
+def load_ndarray_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    return np.array(data)
+
+def load_ndarray_masked_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    try:
+        mask_path = h_node.name + "_mask"
+        h_root = h_node.parent
+        mask = h_root.get(mask_path)[:]
+    except IndexError:
+        mask = h_root.get(mask_path)
+    except ValueError:
+        mask = h_root.get(mask_path)
+    data = np.ma.array(data, mask=mask)
+    return data
+
+def load_nothing(h_hode):
+    pass
+
+hkl_types_dict = {
+    "np_dtype"            : load_np_dtype_dataset,
+    "np_scalar"           : load_np_scalar_dataset,
+    "ndarray"             : load_ndarray_dataset,
+    "ndarray_masked_data" : load_ndarray_masked_dataset,
+    "ndarray_masked_mask" : load_nothing        # Loaded autormatically
+}
+
+
+###########
+## Scipy ##
+###########
+
+if _has_scipy:
+
+    def load_sparse_matrix_data(h_node):
+        py_type, data = get_type_and_data(h_node)
+        h_root  = h_node.parent
+        indices = h_root.get('indices')[:]
+        indptr  = h_root.get('indptr')[:]
+        shape   = h_root.get('shape')[:]
+
+        if py_type == 'csc_matrix_data':
+            smat = sparse.csc_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
+        elif py_type == 'csr_matrix_data':
+            smat = sparse.csr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
+        elif py_type == 'bsr_matrix_data':
+            smat = sparse.bsr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
+        return smat
+
+    types_dict[scipy.sparse.csr_matrix] = create_sparse_dataset
+    types_dict[scipy.sparse.csc_matrix] = create_sparse_dataset
+    types_dict[scipy.sparse.bsr_matrix] = create_sparse_dataset
+
+
+    hkl_types_dict["csc_matrix_data"] = load_sparse_matrix_data
+    hkl_types_dict["csr_matrix_data"] = load_sparse_matrix_data
+    hkl_types_dict["bsr_matrix_data"] = load_sparse_matrix_data
+
+    # Need to ignore things like csc_matrix_indices which are loaded automatically
+    for mat_type in {'csr', 'csc', 'bsr'}:
+        for attrib in {'indices', 'indptr', 'shape'}:
+            hkl_types_dict["%s_matrix_%s" %(mat_type, attrib)] = load_nothing

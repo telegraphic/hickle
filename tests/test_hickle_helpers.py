@@ -7,8 +7,10 @@ Unit tests for hickle module -- helper functions.
 
 """
 
-from hickle import *
+from hickle.helpers import check_is_hashable, check_is_iterable, check_iterable_item_type
+from hickle.loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array
 import numpy as np
+import scipy
 
 
 def test_check_is_iterable():

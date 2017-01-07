@@ -23,15 +23,13 @@ h5py installed.
 """
 
 import os
-import re
 
 import numpy as np
 import h5py as h5
 
-from loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array, create_np_scalar_dataset, \
-    create_np_dtype, create_np_array_dataset, create_sparse_dataset
-from loaders.load_python import create_listlike_dataset, create_python_dtype_dataset, \
-    create_stringlike_dataset, create_none_dataset
+from .helpers import get_type_and_data, sort_keys, check_is_iterable, check_iterable_item_type
+from .lookup import types_dict, hkl_types_dict, types_not_to_sort, container_types_dict, container_key_types_dict
+from .loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array
 
 
 try:
@@ -40,98 +38,11 @@ try:
 except ImportError:
     pass        # above imports will fail in python3
 
-try:
-    import astropy
-    _has_astropy = True
-except ImportError:
-    _has_astropy = False
-
-try:
-    import scipy
-    from scipy import sparse
-    _has_scipy = True
-except ImportError:
-    _has_scipy = False
 
 import warnings
-__version__ = "2.2.0"
+__version__ = "3.0.0"
 __author__ = "Danny Price"
 
-
-#######################
-# Utilities / helpers #
-#######################
-
-def sort_keys(key_list):
-    """ Take a list of strings and sort it by integer value within string
-
-    Args:
-        key_list (list): List of keys
-
-    Returns:
-        key_list_sorted (list): List of keys, sorted by integer
-    """
-    to_int = lambda x: int(re.search('\d+', x).group(0))
-    keys_by_int = sorted([(to_int(key), key) for key in key_list])
-    return [ii[1] for ii in keys_by_int]
-
-def check_is_iterable(py_obj):
-    """ Check whether a python object is iterable.
-
-    Note: this treats unicode and string as NON ITERABLE
-
-    Args:
-        py_obj: python object to test
-
-    Returns:
-        iter_ok (bool): True if item is iterable, False is item is not
-    """
-    if type(py_obj) in (str, unicode):
-        return False
-    try:
-        iter(py_obj)
-        return True
-    except TypeError:
-        return False
-
-
-def check_is_hashable(py_obj):
-    """ Check if a python object is hashable
-
-    Note: this function is currently not used, but is useful for future
-          development.
-
-    Args:
-        py_obj: python object to test
-    """
-
-    try:
-        py_obj.__hash__()
-        return True
-    except TypeError:
-        return False
-
-
-def check_iterable_item_type(iter_obj):
-    """ Check if all items within an iterable are the same type.
-
-    Args:
-        iter_obj: iterable object
-
-    Returns:
-        iter_type: type of item contained within the iterable. If
-                   the iterable has many types, a boolean False is returned instead.
-
-    References:
-    http://stackoverflow.com/questions/13252333/python-check-if-all-elements-of-a-list-are-the-same-type
-    """
-    iseq = iter(iter_obj)
-    first_type = type(next(iseq))
-
-    if isinstance(iter_obj, dict):
-        return first_type
-    else:
-        return first_type if all((type(x) is first_type) for x in iseq) else False
 
 ##################
 # Error handling #
@@ -357,45 +268,13 @@ def create_dataset_lookup(py_obj):
         match: function that should be used to dump data to a new dataset
     """
     t = type(py_obj)
+    types_lookup = {dict: create_dict_dataset}
+    types_lookup.update(types_dict)
 
-    types = {
-        dict:        create_dict_dataset,
-        list:        create_listlike_dataset,
-        tuple:       create_listlike_dataset,
-        set:         create_listlike_dataset,
-        str:         create_stringlike_dataset,
-        unicode:     create_stringlike_dataset,
-        int:         create_python_dtype_dataset,
-        float:       create_python_dtype_dataset,
-        long:        create_python_dtype_dataset,
-        bool:        create_python_dtype_dataset,
-        complex:     create_python_dtype_dataset,
-        NoneType:    create_none_dataset,
-        np.ndarray:  create_np_array_dataset,
-        np.ma.core.MaskedArray: create_np_array_dataset,
-        np.float16:    create_np_scalar_dataset,
-        np.float32:    create_np_scalar_dataset,
-        np.float64:    create_np_scalar_dataset,
-        np.int8:       create_np_scalar_dataset,
-        np.int16:      create_np_scalar_dataset,
-        np.int32:      create_np_scalar_dataset,
-        np.int64:      create_np_scalar_dataset,
-        np.uint8:      create_np_scalar_dataset,
-        np.uint16:     create_np_scalar_dataset,
-        np.uint32:     create_np_scalar_dataset,
-        np.uint64:     create_np_scalar_dataset,
-        np.complex64:  create_np_scalar_dataset,
-        np.complex128: create_np_scalar_dataset,
-        np.dtype:      create_np_dtype
-    }
+    match = types_lookup.get(t, no_match)
 
-    if _has_scipy:
-        types[scipy.sparse.csr_matrix] = create_sparse_dataset
-        types[scipy.sparse.csc_matrix] = create_sparse_dataset
-        types[scipy.sparse.bsr_matrix] = create_sparse_dataset
-
-    match = types.get(t, no_match)
     return match
+
 
 
 def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -472,6 +351,7 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
     warnings.warn("%s type not understood, data have been serialized" % type(py_obj))
 
 
+
 #############
 ## LOADERS ##
 #############
@@ -494,37 +374,48 @@ class PyContainer(list):
         """ Convert from PyContainer to python core data type.
 
         Returns: self, either as a list, tuple, set or dict
+                 (or other type specified in lookup.py)
         """
-        if self.container_type == "<type 'list'>":
-            return list(self)
-        if self.container_type == "<type 'tuple'>":
-            return tuple(self)
-        if self.container_type == "<type 'set'>":
-            return set(self)
+
+        if self.container_type in container_types_dict.keys():
+            convert_fn = container_types_dict[self.container_type]
+            return convert_fn(self)
         if self.container_type == "dict":
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
-                key_type = item.key_type
-                if key_type == "<type 'str'>":
-                    key = str(key)
-                elif key_type == "<type 'unicode'>":
-                    key = unicode(key)
-                elif key_type == "<type 'int'>":
-                    key = int(key)
-                elif key_type ==  "<type 'float'>":
-                    key = float(key)
-                elif key_type ==  "<type 'bool'>":
-                    key = bool(key)
+                key_type = item.key_type[0]
+                if key_type in container_key_types_dict.keys():
+                    to_type_fn = container_key_types_dict[key_type]
+                    key = to_type_fn(key)
                 keys.append(key)
 
             items = [item[0] for item in self]
             return dict(zip(keys, items))
-        if self.container_type in ('csr_matrix', 'csc_matrix', 'bsr_matrix'):
-            return self[0]
         else:
             return self
 
+def no_match_load(key):
+    """ If no match is made when loading, need to raise an exception
+    """
+    raise RuntimeError("Cannot load %s data type" % key)
+    #pass
+
+def load_dataset_lookup(key):
+    """ What type of object are we trying to unpickle?  This is a python
+    dictionary based equivalent of a case statement.  It returns the type
+    a given 'type' keyword in the hickle file.
+
+    Args:
+        py_obj: python object to look-up what function to use to dump to disk
+
+    Returns:
+        match: function that should be used to dump data to a new dataset
+    """
+
+    match = hkl_types_dict.get(key, no_match_load)
+
+    return match
 
 def load(fileobj, path='/', safe=True):
     """ Load a hickle file and reconstruct a python object
@@ -556,7 +447,6 @@ def load(fileobj, path='/', safe=True):
         if 'h5f' in locals():
             h5f.close()
 
-
 def load_dataset(h_node):
     """ Load a dataset, converting into its correct python type
 
@@ -566,74 +456,14 @@ def load_dataset(h_node):
     Returns:
         data: reconstructed python object from loaded data
     """
-    py_type = h_node.attrs["type"][0]
+    py_type, data = get_type_and_data(h_node)
 
-    if h_node.shape == ():
-        data = h_node.value
-    else:
-        data  = h_node[:]
-
-    if py_type == "<type 'list'>":
-        #print self.name
-        return list(data)
-    elif py_type == "<type 'tuple'>":
-        return tuple(data)
-    elif py_type == "<type 'set'>":
-        return set(data)
-    elif py_type == "np_dtype":
-        data = np.dtype(data[0])
-        return data
-    elif py_type == "np_scalar":
-        subtype = h_node.attrs["np_dtype"]
-        data = np.array(data, dtype=subtype)
-        return data
-    elif py_type == 'ndarray':
-        return np.array(data)
-    elif py_type == 'ndarray_masked_data':
-        try:
-            mask_path = h_node.name + "_mask"
-            h_root = h_node.parent
-            mask = h_root.get(mask_path)[:]
-        except IndexError:
-            mask = h_root.get(mask_path)
-        except ValueError:
-            mask = h_root.get(mask_path)
-        data = np.ma.array(data, mask=mask)
-        return data
-    elif py_type == 'python_dtype':
-        subtype = h_node.attrs["python_subdtype"]
-        type_dict = {
-            "<type 'int'>": int,
-            "<type 'float'>": float,
-            "<type 'long'>": long,
-            "<type 'bool'>": bool,
-            "<type 'complex'>": complex
-        }
-        tcast = type_dict.get(subtype)
-        return tcast(data)
-    elif py_type == 'string':
-        return str(data[0])
-    elif py_type == 'unicode':
-        return unicode(data[0])
-    elif py_type == 'none':
-        return None
-    elif py_type in ('csc_matrix_data', 'csr_matrix_data', 'bsr_matrix_data'):
-        h_root  = h_node.parent
-        indices = h_root.get('indices')[:]
-        indptr  = h_root.get('indptr')[:]
-        shape   = h_root.get('shape')[:]
-
-        if py_type == 'csc_matrix_data':
-            smat = sparse.csc_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
-        elif py_type == 'csr_matrix_data':
-            smat = sparse.csr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
-        elif py_type == 'bsr_matrix_data':
-            smat = sparse.bsr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
-        return smat
-
-    else:
-        #print(h_node.name, py_type, h_node.attrs.keys())
-        return data
+    try:
+        load_fn = load_dataset_lookup(py_type)
+        return load_fn(h_node)
+    except:
+        raise
+        #raise RuntimeError("Hickle type %s not understood." % py_type)
 
 def _load(py_container, h_group):
     """ Load a hickle file
@@ -662,7 +492,7 @@ def _load(py_container, h_group):
         if py_subcontainer.container_type == 'dict_item':
             py_subcontainer.key_type = h_group.attrs['key_type']
 
-        if py_subcontainer.container_type not in ('dict', 'csr_matrix', 'csc_matrix', 'bsr_matrix'):
+        if py_subcontainer.container_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())
         else:
             h_keys = h_group.keys()

@@ -510,7 +510,7 @@ def test_file_open_close():
         dump(a, f, mode='w')
         try:
             dump(a, f, mode='w')
-        except ClosedFileError:
+        except hickle.ClosedFileError:
             print "Tests: Closed file exception caught"
         
     finally:
@@ -777,12 +777,15 @@ def test_nonstring_keys():
             u: u,
             0: 0,
             True: 'hi',
-            1.1 : 'hey'
+            1.1 : 'hey',
+            2L : 'omg',
+            1j: 'complex_hashable'
             }
     #data = {'0': 123, 'def': 456}
     print data
     dump(data, "test.hkl") 
     data2 = load("test.hkl")
+    print data2
     
     for key in data.keys():
         assert key in data2.keys()

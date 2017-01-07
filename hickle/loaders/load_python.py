@@ -6,6 +6,14 @@ Handlers for dumping and loading built-in python types.
 NB: As these are for built-in types, they are critical to the functioning of hickle.
 
 """
+from hickle.helpers import get_type_and_data
+
+
+try:
+    from exceptions import Exception
+    from types import NoneType
+except ImportError:
+    pass        # above imports will fail in python3
 
 import h5py as h5
 
@@ -66,3 +74,65 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
     """
     d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
     d.attrs["type"] = ['none']
+
+
+def load_list_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    return list(data)
+
+def load_tuple_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    return tuple(data)
+
+def load_set_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    return set(data)
+
+def load_string_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    return str(data[0])
+
+def load_unicode_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    return unicode(data[0])
+
+def load_none_dataset(h_node):
+    return None
+
+def load_python_dtype_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    subtype = h_node.attrs["python_subdtype"]
+    type_dict = {
+        "<type 'int'>": int,
+        "<type 'float'>": float,
+        "<type 'long'>": long,
+        "<type 'bool'>": bool,
+        "<type 'complex'>": complex
+    }
+    tcast = type_dict.get(subtype)
+    return tcast(data)
+
+types_dict = {
+    list:        create_listlike_dataset,
+    tuple:       create_listlike_dataset,
+    set:         create_listlike_dataset,
+    str:         create_stringlike_dataset,
+    unicode:     create_stringlike_dataset,
+    int:         create_python_dtype_dataset,
+    float:       create_python_dtype_dataset,
+    long:        create_python_dtype_dataset,
+    bool:        create_python_dtype_dataset,
+    complex:     create_python_dtype_dataset,
+    NoneType:    create_none_dataset,
+}
+
+hkl_types_dict = {
+    "<type 'list'>"  : load_list_dataset,
+    "<type 'tuple'>" : load_tuple_dataset,
+    "<type 'set'>"   : load_set_dataset,
+    "python_dtype"   : load_python_dtype_dataset,
+    "string"         : load_string_dataset,
+    "unicode"        : load_unicode_dataset,
+    "none"           : load_none_dataset
+}
+
