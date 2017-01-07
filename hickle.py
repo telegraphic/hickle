@@ -23,9 +23,16 @@ h5py installed.
 """
 
 import os
+import re
+
 import numpy as np
 import h5py as h5
-import re
+
+from loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array, create_np_scalar_dataset, \
+    create_np_dtype, create_np_array_dataset, create_sparse_dataset
+from loaders.load_python import create_listlike_dataset, create_python_dtype_dataset, \
+    create_stringlike_dataset, create_none_dataset
+
 
 try:
     from exceptions import Exception
@@ -50,6 +57,81 @@ import warnings
 __version__ = "2.2.0"
 __author__ = "Danny Price"
 
+
+#######################
+# Utilities / helpers #
+#######################
+
+def sort_keys(key_list):
+    """ Take a list of strings and sort it by integer value within string
+
+    Args:
+        key_list (list): List of keys
+
+    Returns:
+        key_list_sorted (list): List of keys, sorted by integer
+    """
+    to_int = lambda x: int(re.search('\d+', x).group(0))
+    keys_by_int = sorted([(to_int(key), key) for key in key_list])
+    return [ii[1] for ii in keys_by_int]
+
+def check_is_iterable(py_obj):
+    """ Check whether a python object is iterable.
+
+    Note: this treats unicode and string as NON ITERABLE
+
+    Args:
+        py_obj: python object to test
+
+    Returns:
+        iter_ok (bool): True if item is iterable, False is item is not
+    """
+    if type(py_obj) in (str, unicode):
+        return False
+    try:
+        iter(py_obj)
+        return True
+    except TypeError:
+        return False
+
+
+def check_is_hashable(py_obj):
+    """ Check if a python object is hashable
+
+    Note: this function is currently not used, but is useful for future
+          development.
+
+    Args:
+        py_obj: python object to test
+    """
+
+    try:
+        py_obj.__hash__()
+        return True
+    except TypeError:
+        return False
+
+
+def check_iterable_item_type(iter_obj):
+    """ Check if all items within an iterable are the same type.
+
+    Args:
+        iter_obj: iterable object
+
+    Returns:
+        iter_type: type of item contained within the iterable. If
+                   the iterable has many types, a boolean False is returned instead.
+
+    References:
+    http://stackoverflow.com/questions/13252333/python-check-if-all-elements-of-a-list-are-the-same-type
+    """
+    iseq = iter(iter_obj)
+    first_type = type(next(iseq))
+
+    if isinstance(iter_obj, dict):
+        return first_type
+    else:
+        return first_type if all((type(x) is first_type) for x in iseq) else False
 
 ##################
 # Error handling #
@@ -171,96 +253,6 @@ def file_opener(f, mode='r', track_times=True):
 # DUMPERS #
 ###########
 
-def check_is_iterable(py_obj):
-    """ Check whether a python object is iterable.
-
-    Note: this treats unicode and string as NON ITERABLE
-
-    Args:
-        py_obj: python object to test
-
-    Returns:
-        iter_ok (bool): True if item is iterable, False is item is not
-    """
-    if type(py_obj) in (str, unicode):
-        return False
-    try:
-        iter(py_obj)
-        return True
-    except TypeError:
-        return False
-
-
-def check_is_hashable(py_obj):
-    """ Check if a python object is hashable
-
-    Note: this function is currently not used, but is useful for future
-          development.
-
-    Args:
-        py_obj: python object to test
-    """
-
-    try:
-        py_obj.__hash__()
-        return True
-    except TypeError:
-        return False
-
-
-def check_iterable_item_type(iter_obj):
-    """ Check if all items within an iterable are the same type.
-
-    Args:
-        iter_obj: iterable object
-
-    Returns:
-        iter_type: type of item contained within the iterable. If
-                   the iterable has many types, a boolean False is returned instead.
-
-    References:
-    http://stackoverflow.com/questions/13252333/python-check-if-all-elements-of-a-list-are-the-same-type
-    """
-    iseq = iter(iter_obj)
-    first_type = type(next(iseq))
-
-    if isinstance(iter_obj, dict):
-        return first_type
-    else:
-        return first_type if all((type(x) is first_type) for x in iseq) else False
-
-
-def check_is_numpy_array(py_obj):
-    """ Check if a python object is a numpy array (masked or regular)
-
-    Args:
-        py_obj: python object to check whether it is a numpy array
-
-    Returns
-        is_numpy (bool): Returns True if it is a numpy array, else False if it isn't
-    """
-
-    is_numpy = type(py_obj) in (type(np.array([1])), type(np.ma.array([1])))
-
-    return is_numpy
-
-
-def check_is_scipy_sparse_array(py_obj):
-    """ Check if a python object is a scipy sparse array
-
-    Args:
-        py_obj: python object to check whether it is a sparse array
-
-    Returns
-        is_numpy (bool): Returns True if it is a sparse array, else False if it isn't
-    """
-    t_csr = type(scipy.sparse.csr_matrix([0]))
-    t_csc = type(scipy.sparse.csc_matrix([0]))
-    t_bsr = type(scipy.sparse.bsr_matrix([0]))
-    is_sparse = type(py_obj) in (t_csr, t_csc, t_bsr)
-
-    return is_sparse
-
 
 def _dump(py_obj, h_group, call_id=0, **kwargs):
     """ Dump a python object to a group within a HDF5 file.
@@ -367,19 +359,19 @@ def create_dataset_lookup(py_obj):
     t = type(py_obj)
 
     types = {
-        dict: create_dict_dataset,
-        list: create_listlike_dataset,
-        tuple: create_listlike_dataset,
-        set: create_listlike_dataset,
-        str: create_stringlike_dataset,
-        unicode: create_stringlike_dataset,
+        dict:        create_dict_dataset,
+        list:        create_listlike_dataset,
+        tuple:       create_listlike_dataset,
+        set:         create_listlike_dataset,
+        str:         create_stringlike_dataset,
+        unicode:     create_stringlike_dataset,
         int:         create_python_dtype_dataset,
         float:       create_python_dtype_dataset,
         long:        create_python_dtype_dataset,
         bool:        create_python_dtype_dataset,
         complex:     create_python_dtype_dataset,
-        NoneType: create_none_dataset,
-        np.ndarray: create_np_array_dataset,
+        NoneType:    create_none_dataset,
+        np.ndarray:  create_np_array_dataset,
         np.ma.core.MaskedArray: create_np_array_dataset,
         np.float16:    create_np_scalar_dataset,
         np.float32:    create_np_scalar_dataset,
@@ -435,64 +427,14 @@ def create_hkl_group(py_obj, h_group, call_id=0):
     return h_subgroup
 
 
-def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ Dumper for list, set, tuple
-
-    Args:
-        py_obj: python object to dump; should be list-like
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    dtype = str(type(py_obj))
-    obj = list(py_obj)
-    d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
-    d.attrs["type"] = [dtype]
-
-
-def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ dumps an np dtype object to h5py file
-
-    Args:
-        py_obj: python object to dump; should be a numpy scalar, e.g. np.float16(1)
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-
-    # DO NOT PASS KWARGS TO SCALAR DATASETS!
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
-    d.attrs["type"] = ['np_scalar']
-    d.attrs["np_dtype"] = str(d.dtype)
-
-
-def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
-    """ dumps an np dtype object to h5py file
-
-    Args:
-        py_obj: python object to dump; should be a numpy scalar, e.g. np.float16(1)
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    d = h_group.create_dataset('data_%i' % call_id, data=[str(py_obj)])
-    d.attrs["type"] = ['np_dtype']
-
-
-def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ dumps a python dtype object to h5py file
-
-    Args:
-        py_obj: python object to dump; should be a python type (int, float, bool etc)
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
-                               dtype=type(py_obj))     #, **kwargs)
-    d.attrs["type"] = ['python_dtype']
-    d.attrs['python_subdtype'] = str(type(py_obj))
-
-
 def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Creates a data group for each key in dictionary
+
+    Notes:
+        This is a very important function which uses the recursive _dump
+        method to build up hierarchical data models stored in the HDF5 file.
+        As this is critical to functioning, it is kept in the main hickle.py
+        file instead of in the loaders/ directory.
 
     Args:
         py_obj: python object to dump; should be dictionary
@@ -511,84 +453,6 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_subgroup.attrs["key_type"] = [str(type(key))]
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
-
-
-def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ dumps an ndarray object to h5py file
-
-    Args:
-        py_obj: python object to dump; should be a numpy array or np.ma.array (masked)
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    if isinstance(py_obj, type(np.ma.array([1]))):
-        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-        #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
-        m = h_group.create_dataset('data_%i_mask' % call_id, data=py_obj.mask, **kwargs)
-        d.attrs["type"] = ['ndarray_masked_data']
-        m.attrs["type"] = ['ndarray_masked_mask']
-    else:
-        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-        d.attrs["type"] = ['ndarray']
-
-
-def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ dumps an sparse array to h5py file
-
-    Args:
-        py_obj: python object to dump; should be a numpy array or np.ma.array (masked)
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    h_sparsegroup = h_group.create_group('data_%i' % call_id)
-    data    = h_sparsegroup.create_dataset('data',    data=py_obj.data, **kwargs)
-    indices = h_sparsegroup.create_dataset('indices', data=py_obj.indices, **kwargs)
-    indptr  = h_sparsegroup.create_dataset('indptr',  data=py_obj.indptr, **kwargs)
-    shape   = h_sparsegroup.create_dataset('shape',   data=py_obj.shape, **kwargs)
-
-    if isinstance(py_obj, type(sparse.csr_matrix([0]))):
-        type_str = 'csr'
-    elif isinstance(py_obj, type(sparse.csc_matrix([0]))):
-        type_str = 'csc'
-    elif isinstance(py_obj, type(sparse.bsr_matrix([0]))):
-        type_str = 'bsr'
-
-    h_sparsegroup.attrs["type"] = ['%s_matrix' % type_str]
-    data.attrs["type"] = ["%s_matrix_data" % type_str]
-    indices.attrs["type"] = ["%s_matrix_indices" % type_str]
-    indptr.attrs["type"] = ["%s_matrix_indptr" % type_str]
-    shape.attrs["type"] = ["%s_matrix_shape" % type_str]
-
-
-
-def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ dumps a list object to h5py file
-
-    Args:
-        py_obj: python object to dump; should be string-like (unicode or string)
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    if isinstance(py_obj, str):
-        d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs["type"] = ['string']
-    else:
-        dt = h5.special_dtype(vlen=unicode)
-        dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
-        dset[0] = py_obj
-        dset.attrs['type'] = ['unicode']
-
-
-def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
-    """ Dump None type to file
-
-    Args:
-        py_obj: python object to dump; must be None object
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
-    d.attrs["type"] = ['none']
 
 
 def no_match(py_obj, h_group, call_id=0, **kwargs):
@@ -770,21 +634,6 @@ def load_dataset(h_node):
     else:
         #print(h_node.name, py_type, h_node.attrs.keys())
         return data
-
-
-def sort_keys(key_list):
-    """ Take a list of strings and sort it by integer value within string
-
-    Args:
-        key_list (list): List of keys
-
-    Returns:
-        key_list_sorted (list): List of keys, sorted by integer
-    """
-    to_int = lambda x: int(re.search('\d+', x).group(0))
-    keys_by_int = sorted([(to_int(key), key) for key in key_list])
-    return [ii[1] for ii in keys_by_int]
-
 
 def _load(py_container, h_group):
     """ Load a hickle file

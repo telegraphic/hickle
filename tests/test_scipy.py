@@ -2,8 +2,9 @@ import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix, bsr_matrix
 import os
 
-from hickle import check_is_scipy_sparse_array
 import hickle
+from loaders.load_numpy import check_is_scipy_sparse_array
+
 
 def test_is_sparse():
     sm0 = csr_matrix((3, 4), dtype=np.int8)
