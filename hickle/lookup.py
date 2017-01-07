@@ -43,16 +43,34 @@ container_key_types_dict: mapping specifically for converting hickled dict data 
 type_not_to_sort is a list of hickle type attributes that may be hierarchical,
 but don't require sorting by integer index.
 
+## Extending hickle to add support for other classes and types
+
+The process to add new load/dump capabilities is as follows:
+
+1) Create a file called load_[newstuff].py in loaders/
+2) In the load_[newstuff].py file, define your create_dataset and load_dataset functions,
+   along with all required mapping dictionaries.
+3) Add an import call here, and populate the lookup dictionaries with update() calls:
+    # Add loaders for [newstuff]
+    try:
+        from .loaders.load_[newstuff[ import types_dict as ns_types_dict
+        from .loaders.load_[newstuff[ import hkl_types_dict as ns_hkl_types_dict
+        types_dict.update(ns_types_dict)
+        hkl_types_dict.update(ns_hkl_types_dict)
+        ... (Add container_types_dict etc if required)
+    except ImportError:
+        raise
 """
+
+def return_first(x):
+    """ Return first element of a list """
+    return x[0]
 
 types_dict = {}
 
 hkl_types_dict = {}
 
 types_not_to_sort = {'dict', 'csr_matrix', 'csc_matrix', 'bsr_matrix'}
-
-def return_first(x):
-    return x[0]
 
 container_types_dict = {
     "<type 'list'>": list,
