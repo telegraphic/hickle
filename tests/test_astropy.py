@@ -1,6 +1,7 @@
 import hickle as hkl
 from astropy.units import Quantity
 from astropy.constants import Constant, EMConstant, G
+from astropy.table import Table
 
 def test_astropy_quantity():
 
@@ -26,6 +27,18 @@ def test_astropy_constant():
         print G
         print gg
 
+def test_astropy_table():
+    t = Table([[1, 2], [3, 4]], names=('a', 'b'), meta={'name': 'test_thing'})
+
+    hkl.dump(t, "test.h5")
+    t2 = hkl.load("test.h5")
+
+    print t
+    print t.meta
+    print t2
+    print t2.meta
+
 if __name__ == "__main__":
     test_astropy_quantity()
     test_astropy_constant()
+    test_astropy_table()

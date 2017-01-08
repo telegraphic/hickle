@@ -29,7 +29,7 @@ import h5py as h5
 
 from .helpers import get_type_and_data, sort_keys, check_is_iterable, check_iterable_item_type
 from .lookup import types_dict, hkl_types_dict, types_not_to_sort, container_types_dict, container_key_types_dict
-from .loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array
+from .lookup import check_is_ndarray_like
 
 
 try:
@@ -179,10 +179,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
     dumpable_dtypes = {bool, int, float, long, complex, str, unicode}
 
     # Firstly, check if item is a numpy array. If so, just dump it.
-    if check_is_numpy_array(py_obj):
-        create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
-
-    elif check_is_scipy_sparse_array(py_obj):
+    if check_is_ndarray_like(py_obj):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
     # next, check if item is iterable

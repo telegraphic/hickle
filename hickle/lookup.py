@@ -66,11 +66,12 @@ def return_first(x):
     """ Return first element of a list """
     return x[0]
 
+
 types_dict = {}
 
 hkl_types_dict = {}
 
-types_not_to_sort = {'dict', 'csr_matrix', 'csc_matrix', 'bsr_matrix'}
+types_not_to_sort = ['dict', 'csr_matrix', 'csc_matrix', 'bsr_matrix']
 
 container_types_dict = {
     "<type 'list'>": list,
@@ -102,16 +103,39 @@ hkl_types_dict.update(py_hkl_types_dict)
 # Add loaders for numpy types
 from .loaders.load_numpy import  types_dict as np_types_dict
 from .loaders.load_numpy import  hkl_types_dict as np_hkl_types_dict
+from .loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array
 types_dict.update(np_types_dict)
 hkl_types_dict.update(np_hkl_types_dict)
+
+#######################
+## ND-ARRAY checking ##
+#######################
+
+ndarray_like_check_fns = [
+    check_is_numpy_array,
+    check_is_scipy_sparse_array
+]
+
+def check_is_ndarray_like(py_obj):
+    is_ndarray_like = False
+    for ii, check_fn in enumerate(ndarray_like_check_fns):
+        is_ndarray_like = check_fn(py_obj)
+        if is_ndarray_like:
+            break
+    return is_ndarray_like
+
+
+#######################
+## loading optional  ##
+#######################
 
 # Add loaders for astropy
 try:
     from .loaders.load_astropy import types_dict as ap_types_dict
     from .loaders.load_astropy import hkl_types_dict as ap_hkl_types_dict
+    from .loaders.load_astropy import check_is_astropy_table
     types_dict.update(ap_types_dict)
     hkl_types_dict.update(ap_hkl_types_dict)
-
+    ndarray_like_check_fns.append(check_is_astropy_table)
 except ImportError:
     raise
-
