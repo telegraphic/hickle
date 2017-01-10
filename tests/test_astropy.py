@@ -30,8 +30,8 @@ def test_astropy_constant():
 def test_astropy_table():
     t = Table([[1, 2], [3, 4]], names=('a', 'b'), meta={'name': 'test_thing'})
 
-    hkl.dump(t, "test.h5")
-    t2 = hkl.load("test.h5")
+    hkl.dump({'a': t}, "test.h5")
+    t2 = hkl.load("test.h5")['a']
 
     print t
     print t.meta
