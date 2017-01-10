@@ -38,6 +38,8 @@ try:
 except ImportError:
     pass        # above imports will fail in python3
 
+import six
+import io
 
 import warnings
 __version__ = "3.0.0"
@@ -138,6 +140,8 @@ def file_opener(f, mode='r', track_times=True):
 
     """
     # Were we handed a file object or just a file name string?
+    if not six.PY2:
+        file = io.TextIOWrapper
     if isinstance(f, file):
         filename, mode = f.name, f.mode
         f.close()
@@ -176,7 +180,10 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
 
-    dumpable_dtypes = {bool, int, float, long, complex, str, unicode}
+    if six.PY2:
+        dumpable_dtypes = {bool, int, float, long, complex, str, unicode}
+    else:
+        dumpable_dtypes = {bool, int, float, complex, bytes, str}
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_ndarray_like(py_obj):
@@ -230,15 +237,15 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     try:
         # Open the file
         h5f = file_opener(file_obj, mode, track_times)
-        h5f.attrs["CLASS"] = 'hickle'
+        h5f.attrs["CLASS"] = b'hickle'
         h5f.attrs["VERSION"] = 3
-        h5f.attrs["type"] = ['hickle']
+        h5f.attrs["type"] = [b'hickle']
 
         h_root_group = h5f.get(path)
 
         if h_root_group is None:
             h_root_group = h5f.create_group(path)
-            h_root_group.attrs["type"] = ['hickle']
+            h_root_group.attrs["type"] = [b'hickle']
 
         _dump(py_obj, h_root_group, **kwargs)
         h5f.close()
@@ -299,7 +306,7 @@ def create_hkl_group(py_obj, h_group, call_id=0):
 
     """
     h_subgroup = h_group.create_group('data_%i' % call_id)
-    h_subgroup.attrs["type"] = [str(type(py_obj))]
+    h_subgroup.attrs["type"] = [bytes(type(py_obj))]
     return h_subgroup
 
 
@@ -326,7 +333,7 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         else:
             h_subgroup = h_dictgroup.create_group(str(key))
         h_subgroup.attrs["type"] = ['dict_item']
-        h_subgroup.attrs["key_type"] = [str(type(key))]
+        h_subgroup.attrs["key_type"] = [bytes(type(key))]
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
 
@@ -343,7 +350,7 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
 
     pickled_obj = cPickle.dumps(py_obj)
     d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
-    d.attrs["type"] = ['pickle']
+    d.attrs["type"] = [b'pickle']
 
     warnings.warn("%s type not understood, data have been serialized" % type(py_obj))
 
@@ -480,7 +487,7 @@ def _load(py_container, h_group):
     if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
         py_subcontainer = PyContainer()
         try:
-            py_subcontainer.container_type = h_group.attrs['type'][0]
+            py_subcontainer.container_type = bytes(h_group.attrs['type'][0])
         except KeyError:
             raise
             #py_subcontainer.container_type = ''

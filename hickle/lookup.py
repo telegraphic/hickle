@@ -62,6 +62,8 @@ The process to add new load/dump capabilities is as follows:
         raise
 """
 
+import six
+
 def return_first(x):
     """ Return first element of a list """
     return x[0]
@@ -85,17 +87,23 @@ container_types_dict = {
 # Technically, any hashable object can be used, for now sticking with built-in types
 container_key_types_dict = {
     "<type 'str'>": str,
-    "<type 'unicode'>": unicode,
     "<type 'float'>": float,
     "<type 'bool'>": bool,
     "<type 'int'>": int,
-    "<type 'long'>": long,
     "<type 'complex'>": complex
     }
 
+if six.PY2:
+    container_key_types_dict["<type 'unicode'>"] = unicode
+    container_key_types_dict["<type 'long'>"] = long
+
 # Add loaders for built-in python types
-from .loaders.load_python import types_dict as py_types_dict
-from .loaders.load_python import hkl_types_dict as py_hkl_types_dict
+if six.PY2:
+    from .loaders.load_python import types_dict as py_types_dict
+    from .loaders.load_python import hkl_types_dict as py_hkl_types_dict
+else:
+    from .loaders.load_python3 import types_dict as py_types_dict
+    from .loaders.load_python3 import hkl_types_dict as py_hkl_types_dict
 
 types_dict.update(py_types_dict)
 hkl_types_dict.update(py_hkl_types_dict)

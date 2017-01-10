@@ -9,11 +9,8 @@ NB: As these are for built-in types, they are critical to the functioning of hic
 
 from hickle.helpers import get_type_and_data
 
-
-
 try:
     from exceptions import Exception
-    from types import NoneType
 except ImportError:
     pass        # above imports will fail in python3
 
@@ -30,7 +27,7 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     dtype = str(type(py_obj))
     obj = list(py_obj)
     d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
-    d.attrs["type"] = [dtype]
+    d.attrs["type"] = [bytes(dtype, 'ascii')]
 
 
 def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -44,8 +41,8 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
                                dtype=type(py_obj))     #, **kwargs)
-    d.attrs["type"] = ['python_dtype']
-    d.attrs['python_subdtype'] = str(type(py_obj))
+    d.attrs["type"] = [b'python_dtype']
+    d.attrs['python_subdtype'] = bytes(type(py_obj), 'ascii')
 
 
 def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -58,12 +55,12 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     """
     if isinstance(py_obj, str):
         d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs["type"] = ['string']
+        d.attrs["type"] = [b'string']
     else:
         dt = h5.special_dtype(vlen=unicode)
         dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
         dset[0] = py_obj
-        dset.attrs['type'] = ['unicode']
+        dset.attrs['type'] = [b'unicode']
 
 
 def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -75,7 +72,7 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
-    d.attrs["type"] = ['none']
+    d.attrs["type"] = [b'none']
 
 
 def load_list_dataset(h_node):
@@ -107,34 +104,33 @@ def load_python_dtype_dataset(h_node):
     type_dict = {
         "<type 'int'>": int,
         "<type 'float'>": float,
-        "<type 'long'>": long,
         "<type 'bool'>": bool,
         "<type 'complex'>": complex
     }
+
     tcast = type_dict.get(subtype)
     return tcast(data)
+
+
 
 types_dict = {
     list:        create_listlike_dataset,
     tuple:       create_listlike_dataset,
     set:         create_listlike_dataset,
     str:         create_stringlike_dataset,
-    unicode:     create_stringlike_dataset,
     int:         create_python_dtype_dataset,
     float:       create_python_dtype_dataset,
-    long:        create_python_dtype_dataset,
     bool:        create_python_dtype_dataset,
     complex:     create_python_dtype_dataset,
-    NoneType:    create_none_dataset,
+    type(None):    create_none_dataset,
 }
 
 hkl_types_dict = {
-    "<type 'list'>"  : load_list_dataset,
-    "<type 'tuple'>" : load_tuple_dataset,
-    "<type 'set'>"   : load_set_dataset,
-    "python_dtype"   : load_python_dtype_dataset,
-    "string"         : load_string_dataset,
-    "unicode"        : load_unicode_dataset,
-    "none"           : load_none_dataset
+    b"<class 'list'>"  : load_list_dataset,
+    b"<class 'tuple'>" : load_tuple_dataset,
+    b"<class 'set'>"   : load_set_dataset,
+    b"python_dtype"   : load_python_dtype_dataset,
+    b"string"         : load_string_dataset,
+    b"none"           : load_none_dataset
 }
 

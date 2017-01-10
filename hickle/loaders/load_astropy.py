@@ -48,7 +48,6 @@ def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    print "HERE!"
     data = py_obj.as_array()
     d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=data.dtype, **kwargs)
     d.attrs['type']  = ['astropy_table']

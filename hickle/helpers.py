@@ -1,4 +1,5 @@
 import re
+import six
 
 __author__ = 'dan'
 
@@ -38,7 +39,11 @@ def check_is_iterable(py_obj):
     Returns:
         iter_ok (bool): True if item is iterable, False is item is not
     """
-    if type(py_obj) in (str, unicode):
+    if six.PY2:
+        string_types = {str, unicode}
+    else:
+        string_types = {str, bytes, bytearray}
+    if type(py_obj) in string_types:
         return False
     try:
         iter(py_obj)
