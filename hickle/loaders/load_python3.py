@@ -42,7 +42,7 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
                                dtype=type(py_obj))     #, **kwargs)
     d.attrs["type"] = [b'python_dtype']
-    d.attrs['python_subdtype'] = bytes(type(py_obj), 'ascii')
+    d.attrs['python_subdtype'] = bytes(str(type(py_obj)), 'ascii')
 
 
 def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -102,10 +102,10 @@ def load_python_dtype_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     subtype = h_node.attrs["python_subdtype"]
     type_dict = {
-        "<type 'int'>": int,
-        "<type 'float'>": float,
-        "<type 'bool'>": bool,
-        "<type 'complex'>": complex
+        b"<type 'int'>": int,
+        b"<type 'float'>": float,
+        b"<type 'bool'>": bool,
+        b"<type 'complex'>": complex
     }
 
     tcast = type_dict.get(subtype)

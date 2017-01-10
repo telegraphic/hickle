@@ -306,7 +306,7 @@ def create_hkl_group(py_obj, h_group, call_id=0):
 
     """
     h_subgroup = h_group.create_group('data_%i' % call_id)
-    h_subgroup.attrs["type"] = [bytes(type(py_obj))]
+    h_subgroup.attrs["type"] = [bytes(str(type(py_obj)), 'ascii')]
     return h_subgroup
 
 

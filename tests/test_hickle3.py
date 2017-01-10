@@ -80,7 +80,7 @@ def test_list():
 def test_set():
     """ Dumping and loading a list """
     filename, mode = 'test.h5', 'w'
-    list_obj = set([1, 0, 3, 4.5, 11.2])
+    list_obj ={1.0, 0.0, 3.0, 4.5, 11.2}
     dump(list_obj, filename, mode)
     list_hkl = load(filename)
     #print "Initial list:   %s"%list_obj
@@ -97,7 +97,7 @@ def test_set():
 def test_numpy():
     """ Dumping and loading numpy array """
     filename, mode = 'test.h5', 'w'
-    dtypes = ['float32', 'float64', 'complex64', 'complex128']
+    dtypes = [b'float32', b'float64', b'complex64', b'complex128']
     
     for dt in dtypes:
         array_obj = np.ones(8, dtype=dt)
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     """ Some tests and examples """
     #test_string()
     test_list()
-    #test_set()
-    #test_numpy()
+    test_set()
+    test_numpy()
 
     print("ALL TESTS PASSED!")

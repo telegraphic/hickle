@@ -61,8 +61,8 @@ def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
 
     # DO NOT PASS KWARGS TO SCALAR DATASETS!
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
-    d.attrs["type"] = ['np_scalar']
-    d.attrs["np_dtype"] = str(d.dtype)
+    d.attrs["type"] = [b'np_scalar']
+    d.attrs["np_dtype"] = bytes(str(d.dtype))
 
 
 def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
@@ -74,7 +74,7 @@ def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     d = h_group.create_dataset('data_%i' % call_id, data=[str(py_obj)])
-    d.attrs["type"] = ['np_dtype']
+    d.attrs["type"] = [b'np_dtype']
 
 
 def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -89,11 +89,11 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
         #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
         m = h_group.create_dataset('data_%i_mask' % call_id, data=py_obj.mask, **kwargs)
-        d.attrs["type"] = ['ndarray_masked_data']
-        m.attrs["type"] = ['ndarray_masked_mask']
+        d.attrs["type"] = [b'ndarray_masked_data']
+        m.attrs["type"] = [b'ndarray_masked_mask']
     else:
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-        d.attrs["type"] = ['ndarray']
+        d.attrs["type"] = [b'ndarray']
 
 
 def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -111,17 +111,17 @@ def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
     shape   = h_sparsegroup.create_dataset('shape',   data=py_obj.shape, **kwargs)
 
     if isinstance(py_obj, type(sparse.csr_matrix([0]))):
-        type_str = 'csr'
+        type_str = b'csr'
     elif isinstance(py_obj, type(sparse.csc_matrix([0]))):
-        type_str = 'csc'
+        type_str = b'csc'
     elif isinstance(py_obj, type(sparse.bsr_matrix([0]))):
-        type_str = 'bsr'
+        type_str = b'bsr'
 
-    h_sparsegroup.attrs["type"] = ['%s_matrix' % type_str]
-    data.attrs["type"] = ["%s_matrix_data" % type_str]
-    indices.attrs["type"] = ["%s_matrix_indices" % type_str]
-    indptr.attrs["type"] = ["%s_matrix_indptr" % type_str]
-    shape.attrs["type"] = ["%s_matrix_shape" % type_str]
+    h_sparsegroup.attrs["type"] = [b'%s_matrix' % type_str]
+    data.attrs["type"] = [b"%s_matrix_data" % type_str]
+    indices.attrs["type"] = [b"%s_matrix_indices" % type_str]
+    indptr.attrs["type"] = [b"%s_matrix_indptr" % type_str]
+    shape.attrs["type"] = [b"%s_matrix_shape" % type_str]
 
 
 
@@ -181,11 +181,11 @@ def load_nothing(h_hode):
     pass
 
 hkl_types_dict = {
-    "np_dtype"            : load_np_dtype_dataset,
-    "np_scalar"           : load_np_scalar_dataset,
-    "ndarray"             : load_ndarray_dataset,
-    "ndarray_masked_data" : load_ndarray_masked_dataset,
-    "ndarray_masked_mask" : load_nothing        # Loaded autormatically
+    b"np_dtype"            : load_np_dtype_dataset,
+    b"np_scalar"           : load_np_scalar_dataset,
+    b"ndarray"             : load_ndarray_dataset,
+    b"ndarray_masked_data" : load_ndarray_masked_dataset,
+    b"ndarray_masked_mask" : load_nothing        # Loaded autormatically
 }
 
 
@@ -220,6 +220,6 @@ if _has_scipy:
     hkl_types_dict["bsr_matrix_data"] = load_sparse_matrix_data
 
     # Need to ignore things like csc_matrix_indices which are loaded automatically
-    for mat_type in {'csr', 'csc', 'bsr'}:
-        for attrib in {'indices', 'indptr', 'shape'}:
+    for mat_type in {b'csr', b'csc', b'bsr'}:
+        for attrib in {b'indices', b'indptr', b'shape'}:
             hkl_types_dict["%s_matrix_%s" %(mat_type, attrib)] = load_nothing
