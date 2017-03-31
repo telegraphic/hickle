@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
 
+**Note to Python 3 users:** Some experimental Python 3 support has now been added, and needs input from Python 3 users (developers too!). You will need to use the [dev branch](https://github.com/telegraphic/hickle/tree/dev).
+
 Hickle
 ======
 
