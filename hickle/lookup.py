@@ -119,9 +119,14 @@ hkl_types_dict.update(py_hkl_types_dict)
 # Add loaders for numpy types
 from .loaders.load_numpy import  types_dict as np_types_dict
 from .loaders.load_numpy import  hkl_types_dict as np_hkl_types_dict
-from .loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array
+from .loaders.load_numpy import check_is_numpy_array
 types_dict.update(np_types_dict)
 hkl_types_dict.update(np_hkl_types_dict)
+
+try:
+    from .loaders.load_numpy import check_is_scipy_sparse_array
+except ImportError:
+    pass
 
 #######################
 ## ND-ARRAY checking ##
