@@ -123,20 +123,12 @@ from .loaders.load_numpy import check_is_numpy_array
 types_dict.update(np_types_dict)
 hkl_types_dict.update(np_hkl_types_dict)
 
-try:
-    from .loaders.load_numpy import check_is_scipy_sparse_array
-except ImportError:
-    pass
-except NameError:
-    pass
-
 #######################
 ## ND-ARRAY checking ##
 #######################
 
 ndarray_like_check_fns = [
-    check_is_numpy_array,
-    check_is_scipy_sparse_array
+    check_is_numpy_array
 ]
 
 def check_is_ndarray_like(py_obj):
@@ -147,10 +139,24 @@ def check_is_ndarray_like(py_obj):
             break
     return is_ndarray_like
 
+########################
+## Scipy sparse array ##
+########################
+
+try:
+    from .loaders.load_numpy import check_is_scipy_sparse_array
+    ndarray_like_check_fns.append(check_is_scipy_sparse_array)
+
+except ImportError:
+    pass
+except NameError:
+    pass
+
 
 #######################
 ## loading optional  ##
 #######################
+
 
 # Add loaders for astropy
 try:
