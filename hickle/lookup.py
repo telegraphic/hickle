@@ -127,6 +127,8 @@ try:
     from .loaders.load_numpy import check_is_scipy_sparse_array
 except ImportError:
     pass
+except NameError:
+    pass
 
 #######################
 ## ND-ARRAY checking ##
