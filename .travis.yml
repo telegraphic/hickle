@@ -16,5 +16,4 @@ install:
 script: python tests/test_hickle.py
 branches:
   only:
-    - master
     - dev
