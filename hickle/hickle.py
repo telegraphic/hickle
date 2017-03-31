@@ -200,7 +200,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
     """
 
     if six.PY2:
-        dumpable_dtypes = {bool, int, float, long, complex, str, unicode}
+        dumpable_dtypes = (bool, int, float, long, complex, str, unicode)
     else:
         dumpable_dtypes = {bool, int, float, complex, bytes, str}
 
