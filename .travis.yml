@@ -2,6 +2,7 @@ language: python
 python:
   - "2.6"
   - "2.7"
+  - "3.4"
 
 # command to install dependencies
 install:
@@ -15,4 +16,4 @@ install:
 script: python tests/test_hickle.py
 branches:
   only:
-    - master
+    - dev
