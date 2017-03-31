@@ -5,7 +5,7 @@
 Utilities and dump / load handlers for handling numpy and scipy arrays
 
 """
-
+import six
 import numpy as np
 
 try:
@@ -62,7 +62,10 @@ def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
     # DO NOT PASS KWARGS TO SCALAR DATASETS!
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
     d.attrs["type"] = [b'np_scalar']
-    d.attrs["np_dtype"] = bytes(str(d.dtype))
+    if six.PY2:
+        d.attrs["np_dtype"] = str(d.dtype)
+    else:
+        d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
 
 
 def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):

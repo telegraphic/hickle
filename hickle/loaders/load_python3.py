@@ -7,6 +7,7 @@ NB: As these are for built-in types, they are critical to the functioning of hic
 
 """
 
+import six
 from hickle.helpers import get_type_and_data
 
 try:
@@ -53,15 +54,14 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    if isinstance(py_obj, str):
+    if isinstance(py_obj, bytes):
         d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs["type"] = [b'string']
-    else:
-        dt = h5.special_dtype(vlen=unicode)
+        d.attrs["type"] = [b'bytes']
+    elif isinstance(py_obj, str):
+        dt = h5.special_dtype(vlen=str)
         dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
         dset[0] = py_obj
-        dset.attrs['type'] = [b'unicode']
-
+        dset.attrs['type'] = [b'string']
 
 def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dump None type to file
@@ -87,6 +87,10 @@ def load_set_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     return set(data)
 
+def load_bytes_dataset(h_node):
+    py_type, data = get_type_and_data(h_node)
+    return bytes(data[0])
+
 def load_string_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     return str(data[0])
@@ -102,10 +106,10 @@ def load_python_dtype_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     subtype = h_node.attrs["python_subdtype"]
     type_dict = {
-        b"<type 'int'>": int,
-        b"<type 'float'>": float,
-        b"<type 'bool'>": bool,
-        b"<type 'complex'>": complex
+        b"<class 'int'>": int,
+        b"<class 'float'>": float,
+        b"<class 'bool'>": bool,
+        b"<class 'complex'>": complex
     }
 
     tcast = type_dict.get(subtype)
@@ -117,7 +121,9 @@ types_dict = {
     list:        create_listlike_dataset,
     tuple:       create_listlike_dataset,
     set:         create_listlike_dataset,
-    str:         create_stringlike_dataset,
+    bytes:         create_stringlike_dataset,
+    str:           create_stringlike_dataset,
+    #bytearray:     create_stringlike_dataset,
     int:         create_python_dtype_dataset,
     float:       create_python_dtype_dataset,
     bool:        create_python_dtype_dataset,
@@ -129,6 +135,7 @@ hkl_types_dict = {
     b"<class 'list'>"  : load_list_dataset,
     b"<class 'tuple'>" : load_tuple_dataset,
     b"<class 'set'>"   : load_set_dataset,
+    b"bytes"           : load_bytes_dataset,
     b"python_dtype"   : load_python_dtype_dataset,
     b"string"         : load_string_dataset,
     b"none"           : load_none_dataset

@@ -139,25 +139,44 @@ def file_opener(f, mode='r', track_times=True):
                  different times to produce identical files (e.g. for MD5 hash check).
 
     """
+
     # Were we handed a file object or just a file name string?
-    if not six.PY2:
-        file = io.TextIOWrapper
-    if isinstance(f, file):
-        filename, mode = f.name, f.mode
-        f.close()
-        h5f = h5.File(filename, mode)
-    elif isinstance(f, str) or isinstance(f, unicode):
-        filename = f
-        h5f = h5.File(filename, mode)
-    elif isinstance(f, H5FileWrapper) or isinstance(f, h5._hl.files.File):
-        try:
-            filename = f.filename
-        except ValueError:
-            raise ClosedFileError()
-        h5f = f
+    if six.PY2:
+        if isinstance(f, file):
+            filename, mode = f.name, f.mode
+            f.close()
+            h5f = h5.File(filename, mode)
+        elif isinstance(f, str) or isinstance(f, unicode):
+            filename = f
+            h5f = h5.File(filename, mode)
+        elif isinstance(f, H5FileWrapper) or isinstance(f, h5._hl.files.File):
+            try:
+                filename = f.filename
+            except ValueError:
+                raise ClosedFileError()
+            h5f = f
+        else:
+            print(type(f))
+            raise FileError
+
     else:
-        print(type(f))
-        raise FileError
+        if isinstance(f, io.TextIOWrapper):
+            filename, mode = f.name, f.mode
+            f.close()
+            h5f = h5.File(filename, mode)
+        elif isinstance(f, str) or isinstance(f, bytes):
+            filename = f
+            h5f = h5.File(filename, mode)
+        elif isinstance(f, H5FileWrapper) or isinstance(f, h5._hl.files.File):
+            try:
+                filename = f.filename
+            except ValueError:
+                raise ClosedFileError()
+            h5f = f
+        else:
+            print(type(f))
+            raise FileError
+
 
     h5f.__class__ = H5FileWrapper
     h5f.track_times = track_times
@@ -306,7 +325,10 @@ def create_hkl_group(py_obj, h_group, call_id=0):
 
     """
     h_subgroup = h_group.create_group('data_%i' % call_id)
-    h_subgroup.attrs["type"] = [bytes(str(type(py_obj)), 'ascii')]
+    if six.PY2:
+        h_subgroup.attrs["type"] = [str(type(py_obj))]
+    else:
+        h_subgroup.attrs["type"] = [bytes(str(type(py_obj)), 'ascii')]
     return h_subgroup
 
 
@@ -325,15 +347,23 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     h_dictgroup = h_group.create_group('data_%i' % call_id)
-    h_dictgroup.attrs["type"] = ['dict']
+    h_dictgroup.attrs["type"] = [b'dict']
 
     for key, py_subobj in py_obj.items():
-        if type(key) in {unicode, str}:
-            h_subgroup = h_dictgroup.create_group(key)
+        if six.PY2:
+            if type(key) in {unicode, str}:
+                h_subgroup = h_dictgroup.create_group(key)
+            else:
+                h_subgroup = h_dictgroup.create_group(str(key))
         else:
             h_subgroup = h_dictgroup.create_group(str(key))
-        h_subgroup.attrs["type"] = ['dict_item']
-        h_subgroup.attrs["key_type"] = [bytes(type(key))]
+        h_subgroup.attrs["type"] = [b'dict_item']
+        #print(key, str(type(key)))
+        if six.PY2:
+            h_subgroup.attrs["key_type"] = [str(type(key))]
+        else:
+            tk = str(type(key)).encode('utf-8')
+            h_subgroup.attrs["key_type"] = [tk]
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
 
@@ -384,7 +414,7 @@ class PyContainer(list):
         if self.container_type in container_types_dict.keys():
             convert_fn = container_types_dict[self.container_type]
             return convert_fn(self)
-        if self.container_type == "dict":
+        if self.container_type == b"dict":
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
@@ -493,10 +523,11 @@ def _load(py_container, h_group):
             #py_subcontainer.container_type = ''
         py_subcontainer.name = h_group.name
 
-        if py_subcontainer.container_type == 'dict_item':
+        if py_subcontainer.container_type == b'dict_item':
             py_subcontainer.key_type = h_group.attrs['key_type']
 
         if py_subcontainer.container_type not in types_not_to_sort:
+            #print(h_group)
             h_keys = sort_keys(h_group.keys())
         else:
             h_keys = h_group.keys()

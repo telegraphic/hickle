@@ -73,29 +73,37 @@ types_dict = {}
 
 hkl_types_dict = {}
 
-types_not_to_sort = ['dict', 'csr_matrix', 'csc_matrix', 'bsr_matrix']
+types_not_to_sort = [b'dict', b'csr_matrix', b'csc_matrix', b'bsr_matrix']
 
 container_types_dict = {
-    "<type 'list'>": list,
-    "<type 'tuple'>": tuple,
-    "<type 'set'>": set,
-    "csr_matrix":  return_first,
-    "csc_matrix": return_first,
-    "bsr_matrix": return_first
+    b"<type 'list'>": list,
+    b"<type 'tuple'>": tuple,
+    b"<type 'set'>": set,
+    b"<class 'list'>": list,
+    b"<class 'tuple'>": tuple,
+    b"<class 'set'>": set,
+    b"csr_matrix":  return_first,
+    b"csc_matrix": return_first,
+    b"bsr_matrix": return_first
     }
 
 # Technically, any hashable object can be used, for now sticking with built-in types
 container_key_types_dict = {
-    "<type 'str'>": str,
-    "<type 'float'>": float,
-    "<type 'bool'>": bool,
-    "<type 'int'>": int,
-    "<type 'complex'>": complex
+    b"<type 'str'>": str,
+    b"<type 'float'>": float,
+    b"<type 'bool'>": bool,
+    b"<type 'int'>": int,
+    b"<type 'complex'>": complex,
+    b"<class 'str'>": str,
+    b"<class 'float'>": float,
+    b"<class 'bool'>": bool,
+    b"<class 'int'>": int,
+    b"<class 'complex'>": complex
     }
 
 if six.PY2:
-    container_key_types_dict["<type 'unicode'>"] = unicode
-    container_key_types_dict["<type 'long'>"] = long
+    container_key_types_dict[b"<type 'unicode'>"] = unicode
+    container_key_types_dict[b"<type 'long'>"] = long
 
 # Add loaders for built-in python types
 if six.PY2:
@@ -146,4 +154,4 @@ try:
     hkl_types_dict.update(ap_hkl_types_dict)
     ndarray_like_check_fns.append(check_is_astropy_table)
 except ImportError:
-    raise
+    pass
