@@ -45,9 +45,9 @@ def check_is_iterable(py_obj):
         iter_ok (bool): True if item is iterable, False is item is not
     """
     if six.PY2:
-        string_types = {str, unicode}
+        string_types = (str, unicode)
     else:
-        string_types = {str, bytes, bytearray}
+        string_types = (str, bytes, bytearray)
     if type(py_obj) in string_types:
         return False
     try:
