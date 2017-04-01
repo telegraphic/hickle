@@ -229,8 +229,8 @@ if _has_scipy:
     hkl_types_dict["bsr_matrix_data"] = load_sparse_matrix_data
 
     # Need to ignore things like csc_matrix_indices which are loaded automatically
-    for mat_type in {b'csr', b'csc', b'bsr'}:
-        for attrib in {b'indices', b'indptr', b'shape'}:
+    for mat_type in (b'csr', b'csc', b'bsr'):
+        for attrib in (b'indices', b'indptr', b'shape'):
             if six.PY2:
                 hkl_types_dict["%s_matrix_%s" %(mat_type, attrib)] = load_nothing
             else:
