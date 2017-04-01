@@ -351,7 +351,7 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
 
     for key, py_subobj in py_obj.items():
         if six.PY2:
-            if type(key) in {unicode, str}:
+            if type(key) in (unicode, str):
                 h_subgroup = h_dictgroup.create_group(key)
             else:
                 h_subgroup = h_dictgroup.create_group(str(key))
