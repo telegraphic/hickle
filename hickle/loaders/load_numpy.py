@@ -191,11 +191,18 @@ if _has_scipy:
         elif isinstance(py_obj, type(sparse.bsr_matrix([0]))):
             type_str = b'bsr'
 
-        h_sparsegroup.attrs["type"] = [b'%s_matrix' % type_str]
-        data.attrs["type"] = [b"%s_matrix_data" % type_str]
-        indices.attrs["type"] = [b"%s_matrix_indices" % type_str]
-        indptr.attrs["type"] = [b"%s_matrix_indptr" % type_str]
-        shape.attrs["type"] = [b"%s_matrix_shape" % type_str]
+        if six.PY2:
+            h_sparsegroup.attrs["type"] = [b'%s_matrix' % type_str]
+            data.attrs["type"]          = [b"%s_matrix_data" % type_str]
+            indices.attrs["type"]       = [b"%s_matrix_indices" % type_str]
+            indptr.attrs["type"]        = [b"%s_matrix_indptr" % type_str]
+            shape.attrs["type"]         = [b"%s_matrix_shape" % type_str]
+        else:
+            h_sparsegroup.attrs["type"] = [bytes(str('%s_matrix' % type_str), 'ascii')]
+            data.attrs["type"]          = [bytes(str("%s_matrix_data" % type_str), 'ascii')]
+            indices.attrs["type"]       = [bytes(str("%s_matrix_indices" % type_str), 'ascii')]
+            indptr.attrs["type"]        = [bytes(str("%s_matrix_indptr" % type_str), 'ascii')]
+            shape.attrs["type"]         = [bytes(str("%s_matrix_shape" % type_str), 'ascii')]
 
     def load_sparse_matrix_data(h_node):
         py_type, data = get_type_and_data(h_node)
@@ -224,4 +231,7 @@ if _has_scipy:
     # Need to ignore things like csc_matrix_indices which are loaded automatically
     for mat_type in {b'csr', b'csc', b'bsr'}:
         for attrib in {b'indices', b'indptr', b'shape'}:
-            hkl_types_dict["%s_matrix_%s" %(mat_type, attrib)] = load_nothing
+            if six.PY2:
+                hkl_types_dict["%s_matrix_%s" %(mat_type, attrib)] = load_nothing
+            else:
+                hkl_types_dict[bytes(str("%s_matrix_%s" % (mat_type, attrib)), 'ascii')] = load_nothing

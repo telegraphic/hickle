@@ -202,7 +202,7 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
     if six.PY2:
         dumpable_dtypes = (bool, int, float, long, complex, str, unicode)
     else:
-        dumpable_dtypes = {bool, int, float, complex, bytes, str}
+        dumpable_dtypes = (bool, int, float, complex, bytes, str)
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_ndarray_like(py_obj):
