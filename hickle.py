@@ -498,9 +498,9 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
                   "serialized" % type(py_obj))
 
 
-#############
-## LOADERS ##
-#############
+#  ############
+#  # LOADERS ##
+#  ############
 
 class PyContainer(list):
     """ A group-like object into which to load datasets.
@@ -579,10 +579,10 @@ def load_dataset(h_node):
     if h_node.shape == ():
         data = h_node.value
     else:
-        data  = h_node[:]
+        data = h_node[:]
 
     if py_type == "<type 'list'>":
-        #print self.name
+        # print self.name
         return list(data)
     elif py_type == "<type 'tuple'>":
         return tuple(data)
@@ -655,7 +655,7 @@ def _load(py_container, h_group):
     group_dtype   = h5._hl.group.Group
     dataset_dtype = h5._hl.dataset.Dataset
 
-    #either a file, group, or dataset
+    # either a file, group, or dataset
     if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
         py_subcontainer = PyContainer()
         py_subcontainer.container_type = h_group.attrs['type'][0]
@@ -678,5 +678,5 @@ def _load(py_container, h_group):
         subdata = load_dataset(h_group)
         py_container.append(subdata)
 
-    #print h_group.name, py_container
+    # print h_group.name, py_container
     return py_container
