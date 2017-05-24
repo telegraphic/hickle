@@ -7,10 +7,20 @@ Unit tests for hickle module -- helper functions.
 
 """
 
-from hickle.helpers import check_is_hashable, check_is_iterable, check_iterable_item_type
-from hickle.loaders.load_numpy import check_is_numpy_array, check_is_scipy_sparse_array
 import numpy as np
-import scipy
+try:
+    import scipy
+    from scipy import sparse
+    _has_scipy = True
+except ImportError:
+    _has_scipy = False
+
+from hickle.helpers import check_is_hashable, check_is_iterable, check_iterable_item_type
+
+from hickle.loaders.load_numpy import check_is_numpy_array 
+if _has_scipy:
+    from hickle.loaders.load_numpy import check_is_scipy_sparse_array
+
 
 
 def test_check_is_iterable():
@@ -26,6 +36,7 @@ def test_check_is_hashable():
 def test_check_iterable_item_type():
     assert check_iterable_item_type([1,2,3]) is int
     assert check_iterable_item_type([int(1), float(1)]) is False
+    assert check_iterable_item_type([]) is False
 
 
 def test_check_is_numpy_array():
@@ -48,4 +59,5 @@ if __name__ == "__main__":
     test_check_is_iterable()
     test_check_is_numpy_array()
     test_check_iterable_item_type()
-    test_check_is_scipy_sparse_array()
+    if _has_scipy:
+        test_check_is_scipy_sparse_array()

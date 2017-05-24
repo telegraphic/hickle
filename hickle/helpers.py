@@ -88,7 +88,11 @@ def check_iterable_item_type(iter_obj):
     http://stackoverflow.com/questions/13252333/python-check-if-all-elements-of-a-list-are-the-same-type
     """
     iseq = iter(iter_obj)
-    first_type = type(next(iseq))
+
+    try:
+        first_type = type(next(iseq))
+    except StopIteration:
+        return False
 
     if isinstance(iter_obj, dict):
         return first_type

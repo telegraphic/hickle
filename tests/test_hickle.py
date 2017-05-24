@@ -90,18 +90,20 @@ def test_list():
     list_obj = [1, 2, 3, 4, 5]
     dump(list_obj, filename, mode)
     list_hkl = load(filename)
-    #print "Initial list:   %s"%list_obj
-    #print "Unhickled data: %s"%list_hkl
+    print(f'Initial list: {list_obj}')
+    print(f'Unhickled data: {list_hkl}')
     try:
         assert type(list_obj) == type(list_hkl) == list
         assert list_obj == list_hkl
         import h5py
         a = h5py.File(filename)
+        a.close()
 
         os.remove(filename)
     except AssertionError:
         print("ERR:", list_obj, list_hkl)
         import h5py
+        
         os.remove(filename)
         raise()
 
