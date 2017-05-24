@@ -90,8 +90,8 @@ def test_list():
     list_obj = [1, 2, 3, 4, 5]
     dump(list_obj, filename, mode)
     list_hkl = load(filename)
-    print(f'Initial list: {list_obj}')
-    print(f'Unhickled data: {list_hkl}')
+    #print(f'Initial list: {list_obj}')
+    #print(f'Unhickled data: {list_hkl}')
     try:
         assert type(list_obj) == type(list_hkl) == list
         assert list_obj == list_hkl
