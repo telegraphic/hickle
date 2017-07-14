@@ -41,6 +41,13 @@ except ImportError:
 import six
 import io
 
+try:
+    import dill
+except ImportError:
+    import cPickle as pickle
+except ModuleNotFoundError:
+    import pickle 
+
 import warnings
 __version__ = "3.0.0"
 __author__ = "Danny Price"
@@ -376,11 +383,6 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    try:
-        import cPickle as pickle
-    except ModuleNotFoundError:
-        import pickle 
-
     pickled_obj = pickle.dumps(py_obj)
     d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
     d.attrs["type"] = [b'pickle']
