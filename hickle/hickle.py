@@ -41,10 +41,17 @@ except ImportError:
 import six
 import io
 
+# Import a default 'pickler'
+# Not the nicest import code, but should work on Py2/Py3
 try:
     import dill
 except ImportError:
-    import cPickle as pickle
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
+    except ModuleNotFoundError:
+        import pickle
 except ModuleNotFoundError:
     import pickle 
 
