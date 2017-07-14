@@ -142,6 +142,7 @@ hkl_types_dict = {
     b"np_dtype"            : load_np_dtype_dataset,
     b"np_scalar"           : load_np_scalar_dataset,
     b"ndarray"             : load_ndarray_dataset,
+    b"numpy.ndarray"       : load_ndarray_dataset,
     b"ndarray_masked_data" : load_ndarray_masked_dataset,
     b"ndarray_masked_mask" : load_nothing        # Loaded autormatically
 }
