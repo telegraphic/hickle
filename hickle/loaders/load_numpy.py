@@ -45,6 +45,7 @@ def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
     # DO NOT PASS KWARGS TO SCALAR DATASETS!
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
     d.attrs["type"] = [b'np_scalar']
+
     if six.PY2:
         d.attrs["np_dtype"] = str(d.dtype)
     else:
@@ -115,7 +116,7 @@ def load_np_dtype_dataset(h_node):
 def load_np_scalar_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     subtype = h_node.attrs["np_dtype"]
-    data = np.array(data, dtype=subtype)
+    data = np.array([data], dtype=subtype)[0]
     return data
 
 def load_ndarray_dataset(h_node):

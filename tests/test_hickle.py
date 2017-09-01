@@ -808,10 +808,23 @@ def test_bytes():
         #os.remove(filename)
         raise
 
+def test_np_scalar():
+    """ Numpy scalar datatype
+
+    https://github.com/telegraphic/hickle/issues/50
+    """
+
+    fid='test.h5py'
+    r0={'test':  np.float64(10.)}
+    s = dump(r0, fid)
+    r = load(fid)
+    print(r)
+    assert type(r0['test']) == type(r['test'])
     
 if __name__ == '__main__':
     """ Some tests and examples """
 
+    test_np_scalar()
     test_scalar_compression()
     test_complex()
     test_file_open_close()
