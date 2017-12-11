@@ -4,7 +4,7 @@
 # python setup.py sdist upload
 from setuptools import setup, find_packages
 
-version = '3.0.1'
+version = '3.1.0'
 
 setup(name='hickle',
       version=version,

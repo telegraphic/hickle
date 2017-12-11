@@ -15,6 +15,11 @@ try:
 except ImportError:
     pass        # above imports will fail in python3
 
+try:
+    ModuleNotFoundError  # This fails on Py3.5 and below
+except NameError:
+    ModuleNotFoundError = ImportError
+
 import h5py as h5
 
 def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -107,7 +112,7 @@ def load_pickled_data(h_node):
     try:
         import cPickle as pickle
     except ModuleNotFoundError:
-        import pickle 
+        import pickle
     return pickle.loads(data[0])
 
 
@@ -150,4 +155,3 @@ hkl_types_dict = {
     b"pickle"         : load_pickled_data,
     b"none"           : load_none_dataset,
 }
-
