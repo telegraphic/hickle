@@ -22,10 +22,16 @@ h5py installed.
 
 """
 
+__version__ = b"3.1.0"
+__author__  = b"Danny Price"
+
+import sys
 import os
+from pkg_resources import get_distribution
 
 import numpy as np
 import h5py as h5
+
 
 from .helpers import get_type_and_data, sort_keys, check_is_iterable, check_iterable_item_type
 from .lookup import types_dict, hkl_types_dict, types_not_to_sort, container_types_dict, container_key_types_dict
@@ -53,7 +59,7 @@ except ImportError:
     except ModuleNotFoundError:
         import pickle
 except ModuleNotFoundError:
-    import pickle 
+    import pickle
 
 import warnings
 
@@ -267,15 +273,19 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     try:
         # Open the file
         h5f = file_opener(file_obj, mode, track_times)
-        h5f.attrs["CLASS"] = b'hickle'
-        h5f.attrs["VERSION"] = 3
-        h5f.attrs["type"] = [b'hickle']
+        h5f.attrs[b"CLASS"] = b'hickle'
+        h5f.attrs[b"VERSION"] = get_distribution('hickle').version
+        h5f.attrs[b"type"] = [b'hickle']
+        # Log which version of python was used to generate the hickle file
+        pv = sys.version_info
+        py_ver = b"%i.%i.%i" % (pv[0], pv[1], pv[2])
+        h5f.attrs[b"PYTHON_VERSION"] = py_ver
 
         h_root_group = h5f.get(path)
 
         if h_root_group is None:
             h_root_group = h5f.create_group(path)
-            h_root_group.attrs["type"] = [b'hickle']
+            h_root_group.attrs[b"type"] = [b'hickle']
 
         _dump(py_obj, h_root_group, **kwargs)
         h5f.close()

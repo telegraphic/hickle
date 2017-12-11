@@ -5,11 +5,12 @@
 from setuptools import setup, find_packages
 
 version = '3.1.0'
+author  = 'Danny Price'
 
 setup(name='hickle',
       version=version,
       description='Hickle - a HDF5 based version of pickle',
-      author='Danny Price',
+      author=author,
       author_email='dan@thetelegraphic.com',
       url='http://github.com/telegraphic/hickle',
       download_url='https://github.com/telegraphic/hickle/archive/%s.tar.gz' % version,
