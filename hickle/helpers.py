@@ -1,9 +1,6 @@
 import re
 import six
 
-__author__ = 'dan'
-
-
 def get_type_and_data(h_node):
     """ Helper function to return the py_type and data block for a HDF node """
     py_type = h_node.attrs["type"][0]
@@ -98,4 +95,3 @@ def check_iterable_item_type(iter_obj):
         return first_type
     else:
         return first_type if all((type(x) is first_type) for x in iseq) else False
-

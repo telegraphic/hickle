@@ -491,8 +491,12 @@ def load(fileobj, path='/', safe=True):
             py_container = _load(py_container, h_root_group)
             return py_container[0][0]
         except AssertionError:
-            import hickle_legacy
-            return hickle_legacy.load(fileobj, safe)
+            if six.PY2:
+                import hickle_legacy
+                return hickle_legacy.load(fileobj, safe)
+            else:
+                raise RuntimeError("Cannot open file. This file was likely"
+                                   " created with Python 2 and an old hickle version.")
     finally:
         if 'h5f' in locals():
             h5f.close()
