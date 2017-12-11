@@ -275,7 +275,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
         h5f.attrs[b"type"] = [b'hickle']
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
-        py_ver = b"%i.%i.%i" % (pv[0], pv[1], pv[2])
+        py_ver = bytes("%i.%i.%i" % (pv[0], pv[1], pv[2]), 'ascii')
         h5f.attrs[b"PYTHON_VERSION"] = py_ver
 
         h_root_group = h5f.get(path)
