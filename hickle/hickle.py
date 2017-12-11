@@ -22,9 +22,6 @@ h5py installed.
 
 """
 
-__version__ = b"3.1.0"
-__author__  = b"Danny Price"
-
 import sys
 import os
 from pkg_resources import get_distribution
