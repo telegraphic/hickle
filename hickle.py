@@ -26,6 +26,7 @@ import os
 import numpy as np
 import h5py as h5
 import re
+import io
 
 try:
     from exceptions import Exception
@@ -132,7 +133,7 @@ def file_opener(f, mode='r', track_times=True):
 
     """
     # Were we handed a file object or just a file name string?
-    if isinstance(f, file):
+    if isinstance(f, io.IOBase):  # Check against IOBase, the abstact class implemented by any File-like object
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
