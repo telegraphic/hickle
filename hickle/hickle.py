@@ -104,6 +104,14 @@ class ToDoError(Exception):
         return "Error: this functionality hasn't been implemented yet."
 
 
+class SerializedWarning(UserWarning):
+    """ An object type was not understood
+
+    The data will be serialized using pickle.
+    """
+    pass
+
+
 ######################
 # H5PY file wrappers #
 ######################
@@ -398,7 +406,7 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
     d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
     d.attrs["type"] = [b'pickle']
 
-    warnings.warn("%s type not understood, data have been serialized" % type(py_obj))
+    warnings.warn("%s type not understood, data have been serialized" % type(py_obj), SerializedWarning)
 
 
 
