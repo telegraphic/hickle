@@ -36,7 +36,7 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     # h5py does not handle Py3 'str' objects well. Need to catch this
     # Only need to check first element as this method
     # is only called if all elements have same dtype
-    if type(py_obj[0]) is str:
+    if type(obj[0]) is str:
         obj = [bytes(oo, 'utf8') for oo in obj]
     d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
     d.attrs["type"] = [bytes(dtype, 'ascii')]
