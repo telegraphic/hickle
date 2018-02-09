@@ -22,6 +22,22 @@ except NameError:
 
 import h5py as h5
 
+
+def get_py3_string_type(h_node):
+    """ Helper function to return the python string type for items in a list.
+
+    Notes:
+        Py3 string handling is a bit funky and doesn't play too nicely with HDF5.
+        We needed to add metadata to say if the strings in a list started off as
+        bytes, string, etc. This helper loads
+
+    """
+    try:
+        py_type = h_node.attrs["py3_string_type"][0]
+        return py_type
+    except:
+        return None
+
 def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dumper for list, set, tuple
 
@@ -36,10 +52,24 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     # h5py does not handle Py3 'str' objects well. Need to catch this
     # Only need to check first element as this method
     # is only called if all elements have same dtype
+    py3_str_type = None
+    if type(obj[0]) in (str, bytes):
+        py3_str_type = bytes(str(type(obj[0])), 'ascii')
+
     if type(obj[0]) is str:
+        #print(py3_str_type)
+        #print(obj, "HERE")
         obj = [bytes(oo, 'utf8') for oo in obj]
+        #print(obj, "HERE")
+
+
     d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
     d.attrs["type"] = [bytes(dtype, 'ascii')]
+
+    # Need to add some metadata to aid in unpickling if it's a string type
+    if py3_str_type is not None:
+        d.attrs["py3_string_type"] = [py3_str_type]
+
 
 
 def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -88,14 +118,22 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
 
 def load_list_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    return list(data)
+    py3_str_type = get_py3_string_type(h_node)
+
+    if py3_str_type == b"<class 'bytes'>":
+        # Yuck. Convert numpy._bytes -> str -> bytes
+        return [bytes(str(item, 'utf8'), 'utf8') for item in data]
+    if py3_str_type == b"<class 'str'>":
+        return [str(item, 'utf8') for item in data]
+    else:
+        return list(data)
 
 def load_tuple_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    data = load_list_dataset(h_node)
     return tuple(data)
 
 def load_set_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    data = load_list_dataset(h_node)
     return set(data)
 
 def load_bytes_dataset(h_node):
