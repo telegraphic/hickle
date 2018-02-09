@@ -2,6 +2,7 @@ import hickle as hkl
 from astropy.units import Quantity
 from astropy.constants import Constant, EMConstant, G
 from astropy.table import Table
+import numpy as np
 
 def test_astropy_quantity():
 
@@ -38,7 +39,12 @@ def test_astropy_table():
     print t2
     print t2.meta
 
+    assert t.meta == t2.meta
+    assert t.dtype == t2.dtype
+
+    assert np.allclose(t.as_array().astype('float32'), t2.as_array().astype('float32'))
+
 if __name__ == "__main__":
-    test_astropy_quantity()
+    #test_astropy_quantity()
     test_astropy_constant()
-    test_astropy_table()
+    #test_astropy_table()

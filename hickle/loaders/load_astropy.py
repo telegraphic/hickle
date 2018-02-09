@@ -5,6 +5,7 @@ from astropy.table import Table
 
 from hickle.helpers import get_type_and_data
 
+
 def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an astropy quantity
 
@@ -18,6 +19,7 @@ def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
                                dtype='float64')     #, **kwargs)
     d.attrs["type"] = ['astropy_quantity']
     d.attrs['unit'] = [str(py_obj.unit)]
+
 
 def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an astropy constant
@@ -39,6 +41,7 @@ def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
 
     if py_obj.system:
         d.attrs["system"] = [py_obj.system]
+
 
 def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
     """ Dump an astropy Table
