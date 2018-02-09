@@ -36,7 +36,7 @@ class FileError(exceptions.Exception):
         return
 
     def __str__(self):
-        print "Error: cannot open file. Please pass either a filename string, a file object, or a h5py.File"
+        print("Error: cannot open file. Please pass either a filename string, a file object, or a h5py.File")
 
 
 class NoMatchError(exceptions.Exception):
@@ -46,7 +46,7 @@ class NoMatchError(exceptions.Exception):
         return
 
     def __str__(self):
-        print "Error: this type of python object cannot be converted into a hickle."
+        print("Error: this type of python object cannot be converted into a hickle.")
 
 
 class ToDoError(exceptions.Exception):
@@ -56,7 +56,7 @@ class ToDoError(exceptions.Exception):
         return
 
     def __str__(self):
-        print "Error: this functionality hasn't been implemented yet."
+        print("Error: this functionality hasn't been implemented yet.")
 
 
 class H5GroupWrapper(h5.Group):
@@ -285,7 +285,7 @@ def no_match(obj, h5f, *args, **kwargs):
     h5f.create_dataset('type', data=['pickle'])
     h5f.create_dataset('data', data=[pickled_obj])
 
-    print "Warning: %s type not understood, data have been serialized" % type(obj)
+    print("Warning: %s type not understood, data have been serialized" % type(obj))
     #raise NoMatchError
 
 
@@ -348,7 +348,7 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
         dumper = dumper_lookup(obj)
         # Open the file
         h5f = file_opener(file, mode, track_times)
-        print "dumping %s to file %s" % (type(obj), repr(h5f))
+        print("dumping %s to file %s" % (type(obj), repr(h5f)))
         dumper(obj, h5f, **kwargs)
         h5f.close()
     except NoMatchError:
@@ -357,7 +357,7 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
         try:
             os.remove(fname)
         except:
-            print "Warning: dump failed. Could not remove %s" % fname
+            print("Warning: dump failed. Could not remove %s" % fname)
         finally:
             raise NoMatchError
 
@@ -443,9 +443,9 @@ def load_pickle(h5f, safe=True):
         data = cPickle.loads(data[0])
         return data
     else:
-        print "\nWarning: Object is of an unknown type, and has not been loaded"
-        print "         for security reasons (it could be malicious code). If"
-        print "         you wish to continue, manually set safe=False\n"
+        print("\nWarning: Object is of an unknown type, and has not been loaded")
+        print("         for security reasons (it could be malicious code). If")
+        print("         you wish to continue, manually set safe=False\n")
 
 
 def load_np_list(group):
