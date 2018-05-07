@@ -47,7 +47,7 @@ import io
 # Import a default 'pickler'
 # Not the nicest import code, but should work on Py2/Py3
 try:
-    import dill
+    import dill as pickle
 except ImportError:
     try:
         import cPickle as pickle
