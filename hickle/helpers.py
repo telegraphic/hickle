@@ -22,14 +22,19 @@ def sort_keys(key_list):
     """
 
     # Py3 h5py returns an irritating KeysView object
-    key_list = list(key_list)
+    # Py3 also complains about bytes and strings, convert all keys to bytes
+    if six.PY3:
+        key_list2 = []
+        for key in key_list:
+            if isinstance(key, str):
+                key = bytes(key, 'ascii')
+            key_list2.append(key)
+        key_list = key_list2
+
     #print(key_list)
 
     to_int = lambda x: int(re.search(b'\d+', x).group(0))
-    if six.PY2:
-        keys_by_int = sorted([(to_int(key), key) for key in key_list])
-    else:
-        keys_by_int = sorted([(to_int(bytes(key, 'ascii')), bytes(key, 'ascii')) for key in key_list])
+    keys_by_int = sorted([(to_int(key), key) for key in key_list])
     return [ii[1] for ii in keys_by_int]
 
 

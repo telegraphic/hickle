@@ -627,6 +627,9 @@ def test_load():
 def test_sort_keys():
     keys = [b'data_0', b'data_1', b'data_2', b'data_3', b'data_10']
     keys_sorted = [b'data_0', b'data_1', b'data_2', b'data_3', b'data_10']
+
+    print(keys)
+    print(keys_sorted)
     assert sort_keys(keys) == keys_sorted
 
 
@@ -797,6 +800,7 @@ def test_np_scalar():
     
 if __name__ == '__main__':
     """ Some tests and examples """
+    test_sort_keys()
 
     test_np_scalar()
     test_scalar_compression()
