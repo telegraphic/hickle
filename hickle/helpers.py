@@ -25,7 +25,7 @@ def sort_keys(key_list):
     key_list = list(key_list)
     #print(key_list)
 
-    to_int = lambda x: int(re.search(r'\d+', x).group(0))
+    to_int = lambda x: int(re.search(b'\d+', x).group(0))
     if six.PY2:
         keys_by_int = sorted([(to_int(key), key) for key in key_list])
     else:
