@@ -21,7 +21,7 @@ def test_astropy_quantity():
         assert a == b
         assert a.unit == b.unit
 
-def test_astropy_constant():
+def TODO_test_astropy_constant():
         hkl.dump(G, "test.h5")
         gg = hkl.load("test.h5")
 
@@ -45,6 +45,6 @@ def test_astropy_table():
     assert np.allclose(t.as_array().astype('float32'), t2.as_array().astype('float32'))
 
 if __name__ == "__main__":
-    #test_astropy_quantity()
+    test_astropy_quantity()
     test_astropy_constant()
-    #test_astropy_table()
+    test_astropy_table()

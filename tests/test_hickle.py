@@ -296,25 +296,6 @@ def test_masked_dict():
     os.remove(filename)
 
 
-def test_nomatch():
-    """ Test for non-supported data types.
-
-     Note: don't remember what I was trying to do with this test.
-     Ignoring it for now.
-     """
-    filename, mode = 'nomatch.h5', 'w'
-
-    dd = Exception('Nothing to see here')
-    no_match = False
-    dump(dd, filename, mode)
-    
-    #dd_hkl = load(filename)
-    dd_hkl = load(filename, safe=False)
-    
-    assert type(dd_hkl) == type(dd) == Exception
-    os.remove(filename)
-
-
 def test_np_float():
     """ Test for singular np dtypes """
     filename, mode = 'np_float.h5', 'w'    
