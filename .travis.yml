@@ -17,7 +17,7 @@ install:
 
 # command to install dependencies
 script:
-  - cd tests; coverage run --source=blimpy -m py.test
+  - cd tests; coverage run --source=hickle -m py.test
 
 after_success: coveralls
 
