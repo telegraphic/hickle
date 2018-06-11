@@ -25,8 +25,8 @@ def TODO_test_astropy_constant():
         hkl.dump(G, "test.h5")
         gg = hkl.load("test.h5")
 
-        print G
-        print gg
+        print(G)
+        print(gg)
 
 def test_astropy_table():
     t = Table([[1, 2], [3, 4]], names=('a', 'b'), meta={'name': 'test_thing'})
@@ -34,10 +34,10 @@ def test_astropy_table():
     hkl.dump({'a': t}, "test.h5")
     t2 = hkl.load("test.h5")['a']
 
-    print t
-    print t.meta
-    print t2
-    print t2.meta
+    print(t)
+    print(t.meta)
+    print(t2)
+    print(t2.meta)()
 
     assert t.meta == t2.meta
     assert t.dtype == t2.dtype
