@@ -10,12 +10,16 @@ python:
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libhdf5-serial-dev
-  - pip install unittest2
+  - pip install pytest coverage coveralls
   - pip install -r requirements.txt
   - pip install .
 
 # command to install dependencies
-script: python tests/test_hickle.py
+script:
+  - cd tests; coverage run --source=blimpy -m py.test
+
+after_success: coveralls
+
 branches:
   only:
     - dev
