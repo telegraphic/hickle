@@ -12,7 +12,7 @@ install:
   - sudo apt-get install -qq libhdf5-serial-dev
   - pip install pytest coverage coveralls
   - pip install -r requirements.txt
-  - pip install astropy
+  - pip install scipy astropy
   - pip install .
 
 # command to install dependencies
