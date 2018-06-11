@@ -37,7 +37,7 @@ def test_astropy_table():
     print(t)
     print(t.meta)
     print(t2)
-    print(t2.meta)()
+    print(t2.meta)
 
     assert t.meta == t2.meta
     assert t.dtype == t2.dtype
