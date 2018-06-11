@@ -625,8 +625,8 @@ def test_load():
 
 
 def test_sort_keys():
-    keys = ['data_0', 'data_1', 'data_2', 'data_3', 'data_10']
-    keys_sorted = ['data_0', 'data_1', 'data_2', 'data_3', 'data_10']
+    keys = [b'data_0', b'data_1', b'data_2', b'data_3', b'data_10']
+    keys_sorted = [b'data_0', b'data_1', b'data_2', b'data_3', b'data_10']
     assert sort_keys(keys) == keys_sorted
 
 
