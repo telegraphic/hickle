@@ -41,48 +41,57 @@ DUMP_CACHE = []             # Used in test_track_times()
 
 def test_string():
     """ Dumping and loading a string """
-    filename, mode = 'test.h5', 'w'
-    string_obj = "The quick brown fox jumps over the lazy dog"
-    dump(string_obj, filename, mode)
-    string_hkl = load(filename)
-    #print "Initial list:   %s"%list_obj
-    #print "Unhickled data: %s"%list_hkl
-    try:
-        assert type(string_obj) == type(string_hkl) == str
-        assert string_obj == string_hkl
-        os.remove(filename)
-    except AssertionError:
-        os.remove(filename)
-        raise
+    if six.PY2:
+        filename, mode = 'test.h5', 'w'
+        string_obj = "The quick brown fox jumps over the lazy dog"
+        dump(string_obj, filename, mode)
+        string_hkl = load(filename)
+        #print "Initial list:   %s"%list_obj
+        #print "Unhickled data: %s"%list_hkl
+        try:
+            assert type(string_obj) == type(string_hkl) == str
+            assert string_obj == string_hkl
+            os.remove(filename)
+        except AssertionError:
+            os.remove(filename)
+            raise
+    else:
+        pass
 
 
 def test_unicode():
     """ Dumping and loading a unicode string """
-    filename, mode = 'test.h5', 'w'
-    u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
-    dump(u, filename, mode)
-    u_hkl = load(filename)
+    if six.PY2:
+        filename, mode = 'test.h5', 'w'
+        u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
+        dump(u, filename, mode)
+        u_hkl = load(filename)
 
-    try:
-        assert type(u) == type(u_hkl) == unicode
-        assert u == u_hkl
-        # For those interested, uncomment below to see what those codes are:
-        # for i, c in enumerate(u_hkl):
-        #     print i, '%04x' % ord(c), unicodedata.category(c),
-        #     print unicodedata.name(c)
-    except AssertionError:
-        os.remove(filename)
-        raise
+        try:
+            assert type(u) == type(u_hkl) == unicode
+            assert u == u_hkl
+            # For those interested, uncomment below to see what those codes are:
+            # for i, c in enumerate(u_hkl):
+            #     print i, '%04x' % ord(c), unicodedata.category(c),
+            #     print unicodedata.name(c)
+        except AssertionError:
+            os.remove(filename)
+            raise
+    else:
+        pass
 
 
 def test_unicode2():
-    a = u"unicode test"
-    dump(a, 'test.hkl', mode='w')
+    if six.PY2:
+        a = u"unicode test"
+        dump(a, 'test.hkl', mode='w')
 
-    z = load('test.hkl')
-    assert a == z
-    assert type(a) == type(z) == unicode
-    pprint(z)
+        z = load('test.hkl')
+        assert a == z
+        assert type(a) == type(z) == unicode
+        pprint(z)
+    else:
+        pass
 
 def test_list():
     """ Dumping and loading a list """
@@ -711,28 +720,31 @@ def test_nonstring_keys():
     """ Test that keys are reconstructed back to their original datatypes
     https://github.com/telegraphic/hickle/issues/36
     """
-    u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
+    if six.PY2:
+        u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
 
-    data = {u'test': 123,
-            'def': 456,
-            'hik' : np.array([1,2,3]),
-            u: u,
-            0: 0,
-            True: 'hi',
-            1.1 : 'hey',
-            #2L : 'omg',
-            1j: 'complex_hashable'
-            }
-    #data = {'0': 123, 'def': 456}
-    print(data)
-    dump(data, "test.hkl") 
-    data2 = load("test.hkl")
-    print(data2)
-    
-    for key in data.keys():
-        assert key in data2.keys()
+        data = {u'test': 123,
+                'def': 456,
+                'hik' : np.array([1,2,3]),
+                u: u,
+                0: 0,
+                True: 'hi',
+                1.1 : 'hey',
+                #2L : 'omg',
+                1j: 'complex_hashable'
+                }
+        #data = {'0': 123, 'def': 456}
+        print(data)
+        dump(data, "test.hkl")
+        data2 = load("test.hkl")
+        print(data2)
 
-    print(data2)
+        for key in data.keys():
+            assert key in data2.keys()
+
+        print(data2)
+    else:
+        pass
 
 def test_scalar_compression():
     """ Test bug where compression causes a crash on scalar datasets
@@ -751,21 +763,24 @@ def test_scalar_compression():
 
 def test_bytes():
     """ Dumping and loading a string. PYTHON3 ONLY """
-    filename, mode = 'test.h5', 'w'
-    string_obj = b"The quick brown fox jumps over the lazy dog"
-    dump(string_obj, filename, mode)
-    string_hkl = load(filename)
-    #print "Initial list:   %s"%list_obj
-    #print "Unhickled data: %s"%list_hkl
-    print(type(string_obj))
-    print(type(string_hkl))
-    try:
-        assert type(string_obj) == type(string_hkl) == bytes
-        assert string_obj == string_hkl
-        #os.remove(filename)
-    except AssertionError:
-        #os.remove(filename)
-        raise
+    if six.PY3:
+        filename, mode = 'test.h5', 'w'
+        string_obj = b"The quick brown fox jumps over the lazy dog"
+        dump(string_obj, filename, mode)
+        string_hkl = load(filename)
+        #print "Initial list:   %s"%list_obj
+        #print "Unhickled data: %s"%list_hkl
+        print(type(string_obj))
+        print(type(string_hkl))
+        try:
+            assert type(string_obj) == type(string_hkl) == bytes
+            assert string_obj == string_hkl
+            #os.remove(filename)
+        except AssertionError:
+            #os.remove(filename)
+            raise
+    else:
+        pass
 
 def test_np_scalar():
     """ Numpy scalar datatype
@@ -810,7 +825,6 @@ if __name__ == '__main__':
         test_unicode2()
         test_string()
         test_nonstring_keys()
-        test_legacy_hickles()
 
     if six.PY3:
         test_bytes()
@@ -828,10 +842,6 @@ if __name__ == '__main__':
     test_complex_dict()
     test_multi_hickle()
     test_dict_int_key()
-
-    #FAILING TESTS:
-    #test_nomatch()
-    #test_list_long_type()
 
     # Cleanup
     run_file_cleanup()

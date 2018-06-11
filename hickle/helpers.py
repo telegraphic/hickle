@@ -26,7 +26,7 @@ def sort_keys(key_list):
     #print(key_list)
 
     to_int = lambda x: int(re.search(r'\d+', x).group(0))
-    keys_by_int = sorted([(to_int(key), key) for key in key_list])
+    keys_by_int = sorted([(to_int(bytes(key)), bytes(key)) for key in key_list])
     return [ii[1] for ii in keys_by_int]
 
 
