@@ -698,30 +698,6 @@ def test_complex_dict():
     z = load('test.hkl')
     pprint(z)
 
-
-
-
-def test_legacy_hickles():
-
-    try:
-        a = load("hickle_1_1_0.hkl")
-        b = load("hickle_1_3_0.hkl")
-        
-        import h5py
-        d = h5py.File("hickle_1_1_0.hkl")["data"]["a"][:]
-        d2 = h5py.File("hickle_1_3_0.hkl")["data"]["a"][:]
-        assert np.allclose(d, a["a"])
-        assert np.allclose(d2, b["a"])
-        
-    except IOError:
-        # For travis-CI
-        a = load("tests/hickle_1_1_0.hkl")
-        b = load("tests/hickle_1_3_0.hkl")
-    
-    print(a)
-    print(b)
-
-
 def test_multi_hickle():
     import os
     a = {'a': 123, 'b': [1, 2, 4]}
