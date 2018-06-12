@@ -18,6 +18,7 @@ setup(name='hickle',
       keywords=['pickle', 'hdf5', 'data storage', 'data export'],
       #py_modules = ['hickle', 'hickle_legacy'],
       install_requires=['numpy', 'h5py'],
+      python_requires='>=2.7',
       packages=find_packages(),
       zip_safe=False,
-      )
+)
