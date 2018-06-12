@@ -29,12 +29,12 @@ def test_sparse_matrix():
     sm3 = bsr_matrix((data,indices,indptr), shape=(6, 6))
 
     try:
-        hickle.dump(sm1, 'test.h5')
-        sm1_h = hickle.load('test.h5')
-        hickle.dump(sm2, 'test2.h5')
-        sm2_h = hickle.load('test2.h5')
-        hickle.dump(sm3, 'test3.h5')
-        sm3_h = hickle.load('test3.h5')
+        hickle.dump(sm1, 'test_sp.h5')
+        sm1_h = hickle.load('test_sp.h5')
+        hickle.dump(sm2, 'test_sp2.h5')
+        sm2_h = hickle.load('test_sp2.h5')
+        hickle.dump(sm3, 'test_sp3.h5')
+        sm3_h = hickle.load('test_sp3.h5')
 
         assert isinstance(sm1_h, csr_matrix)
         assert isinstance(sm2_h, csc_matrix)
@@ -49,13 +49,11 @@ def test_sparse_matrix():
         assert sm3_h. shape == sm3.shape
 
     finally:
-        #os.remove('test.h5')
-        #os.remove('test2.h5')
-        #os.remove('test3.h5')
-        pass
-
-
-
+        for fn in ('test_sp.h5', 'test_sp2.h5', 'test_sp3.h5'):
+            try:
+                os.remove(fn)
+            except:
+                pass
 
 
 if __name__ == "__main__":

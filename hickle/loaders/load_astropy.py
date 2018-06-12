@@ -4,7 +4,7 @@ from astropy.constants import Constant, EMConstant
 from astropy.table import Table
 
 from hickle.helpers import get_type_and_data
-
+import six
 
 def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an astropy quantity
@@ -17,8 +17,12 @@ def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"] = ['astropy_quantity']
-    d.attrs['unit'] = [str(py_obj.unit)]
+    d.attrs["type"] = [b'astropy_quantity']
+    if six.PY3:
+        unit = bytes(str(py_obj.unit), 'ascii')
+    else:
+        unit = str(py_obj.unit)
+    d.attrs['unit'] = [unit]
 
 
 def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
@@ -32,7 +36,7 @@ def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"]   = ['astropy_constant']
+    d.attrs["type"]   = [b'astropy_constant']
     d.attrs["unit"]   = [str(py_obj.unit)]
     d.attrs["abbrev"] = [str(py_obj.abbrev)]
     d.attrs["name"]   = [str(py_obj.name)]
@@ -53,8 +57,13 @@ def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
     """
     data = py_obj.as_array()
     d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=data.dtype, **kwargs)
-    d.attrs['type']  = ['astropy_table']
-    d.attrs['colnames'] = py_obj.colnames
+    d.attrs['type']  = [b'astropy_table']
+
+    if six.PY3:
+        colnames = [bytes(cn, 'ascii') for cn in py_obj.colnames]
+    else:
+        colnames = py_obj.colnames
+    d.attrs['colnames'] = colnames
     for key, value in py_obj.meta.items():
      d.attrs[key] = value
 
@@ -86,7 +95,12 @@ def load_astropy_table(h_node):
     metadata.pop('type')
     metadata.pop('colnames')
 
-    t = Table(data, names=h_node.attrs["colnames"], meta=metadata)
+    if six.PY3:
+        colnames = [cn.decode('ascii') for cn in h_node.attrs["colnames"]]
+    else:
+        colnames = h_node.attrs["colnames"]
+
+    t = Table(data, names=colnames, meta=metadata)
     return t
 
 def check_is_astropy_table(py_obj):
@@ -103,8 +117,8 @@ types_dict = {
 }
 
 hkl_types_dict = {
-    'astropy_quantity' : load_astropy_quantity_dataset,
-    'astropy_constant' : load_astropy_constant_dataset,
-    'astropy_table'    : load_astropy_table
+    b'astropy_quantity' : load_astropy_quantity_dataset,
+    b'astropy_constant' : load_astropy_constant_dataset,
+    b'astropy_table'    : load_astropy_table
 }
 

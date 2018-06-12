@@ -31,8 +31,6 @@ def sort_keys(key_list):
             key_list2.append(key)
         key_list = key_list2
 
-    #print(key_list)
-
     to_int = lambda x: int(re.search(b'\d+', x).group(0))
     keys_by_int = sorted([(to_int(key), key) for key in key_list])
     return [ii[1] for ii in keys_by_int]

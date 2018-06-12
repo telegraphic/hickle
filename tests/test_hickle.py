@@ -95,9 +95,9 @@ def test_unicode2():
 
 def test_list():
     """ Dumping and loading a list """
-    filename, mode = 'test.h5', 'w'
+    filename, mode = 'test_list.h5', 'w'
     list_obj = [1, 2, 3, 4, 5]
-    dump(list_obj, filename, mode)
+    dump(list_obj, filename, mode=mode)
     list_hkl = load(filename)
     #print(f'Initial list: {list_obj}')
     #print(f'Unhickled data: {list_hkl}')
@@ -119,7 +119,7 @@ def test_list():
 
 def test_set():
     """ Dumping and loading a list """
-    filename, mode = 'test.h5', 'w'
+    filename, mode = 'test_set.h5', 'w'
     list_obj = set([1, 0, 3, 4.5, 11.2])
     dump(list_obj, filename, mode)
     list_hkl = load(filename)
@@ -515,7 +515,8 @@ def test_file_open_close():
 
 def run_file_cleanup():
     """ Clean up temp files """
-    for filename in ('test.hdf', 'test.hkl', 'test.h5'):
+    for filename in ('test.hdf', 'test.hkl', 'test.h5', 'nomatch.h5', 'test.h5py',
+                     'test2.h5', 'test3.h5', 'test_list.h5', 'test_set.h5'):
         try:
             os.remove(filename)
         except OSError:

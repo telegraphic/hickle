@@ -488,58 +488,57 @@ def load(fileobj, path='/', safe=True):
     """
 
     try:
-        h5f = file_opener(fileobj)
-
-        h_root_group = h5f.get(path)
-        try:
-            assert 'CLASS' in h5f.attrs.keys()
-            assert 'VERSION' in h5f.attrs.keys()
-            VER = h5f.attrs['VERSION']
+        with file_opener(fileobj) as h5f:
+            h_root_group = h5f.get(path)
             try:
-                VER_MAJOR = int(VER)
-            except ValueError:
-                VER_MAJOR = int(VER[0])
-            if VER_MAJOR == 1:
+                assert 'CLASS' in h5f.attrs.keys()
+                assert 'VERSION' in h5f.attrs.keys()
+                VER = h5f.attrs['VERSION']
+                try:
+                    VER_MAJOR = int(VER)
+                except ValueError:
+                    VER_MAJOR = int(VER[0])
+                if VER_MAJOR == 1:
+                    if six.PY2:
+                        warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
+                        import hickle_legacy
+                        return hickle_legacy.load(fileobj, safe)
+                    else:
+                        raise RuntimeError("Cannot open file. This file was likely"
+                                           " created with Python 2 and an old hickle version.")
+                elif VER_MAJOR == 2:
+                    if six.PY2:
+                        warnings.warn("Hickle file appears to be old version (v2), attempting legacy loading...")
+                        import hickle_legacy2
+                        return hickle_legacy2.load(fileobj, safe=safe)
+                    else:
+                        raise RuntimeError("Cannot open file. This file was likely"
+                                           " created with Python 2 and an old hickle version.")
+                # There is an unfortunate period of time where hickle 2.1.0 claims VERSION = int(3)
+                # For backward compatibility we really need to catch this.
+                # Actual hickle v3 files are versioned as A.B.C (e.g. 3.1.0)
+                elif VER_MAJOR == 3 and VER == VER_MAJOR:
+                    if six.PY2:
+                        warnings.warn("Hickle file appears to be old version (v2.1.0), attempting legacy loading...")
+                        import hickle_legacy2
+                        return hickle_legacy2.load(fileobj, safe=safe)
+                    else:
+                        raise RuntimeError("Cannot open file. This file was likely"
+                                           " created with Python 2 and an old hickle version.")
+                elif VER_MAJOR >= 3:
+                    py_container = PyContainer()
+                    py_container.container_type = 'hickle'
+                    py_container = _load(py_container, h_root_group)
+                    return py_container[0][0]
+
+            except AssertionError:
                 if six.PY2:
-                    warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
+                    warnings.warn("Hickle file is not versioned, attempting legacy loading...")
                     import hickle_legacy
                     return hickle_legacy.load(fileobj, safe)
                 else:
                     raise RuntimeError("Cannot open file. This file was likely"
                                        " created with Python 2 and an old hickle version.")
-            elif VER_MAJOR == 2:
-                if six.PY2:
-                    warnings.warn("Hickle file appears to be old version (v2), attempting legacy loading...")
-                    import hickle_legacy2
-                    return hickle_legacy2.load(fileobj, safe=safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            # There is an unfortunate period of time where hickle 2.1.0 claims VERSION = int(3)
-            # For backward compatibility we really need to catch this.
-            # Actual hickle v3 files are versioned as A.B.C (e.g. 3.1.0)
-            elif VER_MAJOR == 3 and VER == VER_MAJOR:
-                if six.PY2:
-                    warnings.warn("Hickle file appears to be old version (v2.1.0), attempting legacy loading...")
-                    import hickle_legacy2
-                    return hickle_legacy2.load(fileobj, safe=safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            elif VER_MAJOR >= 3:
-                py_container = PyContainer()
-                py_container.container_type = 'hickle'
-                py_container = _load(py_container, h_root_group)
-                return py_container[0][0]
-
-        except AssertionError:
-            if six.PY2:
-                warnings.warn("Hickle file is not versioned, attempting legacy loading...")
-                import hickle_legacy
-                return hickle_legacy.load(fileobj, safe)
-            else:
-                raise RuntimeError("Cannot open file. This file was likely"
-                                   " created with Python 2 and an old hickle version.")
     finally:
         if 'h5f' in locals():
             h5f.close()
@@ -554,6 +553,8 @@ def load_dataset(h_node):
         data: reconstructed python object from loaded data
     """
     py_type, data = get_type_and_data(h_node)
+
+    print(py_type, data)
 
     try:
         load_fn = load_dataset_lookup(py_type)
@@ -578,6 +579,7 @@ def _load(py_container, h_group):
 
     #either a file, group, or dataset
     if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
+
         py_subcontainer = PyContainer()
         try:
             py_subcontainer.container_type = bytes(h_group.attrs['type'][0])

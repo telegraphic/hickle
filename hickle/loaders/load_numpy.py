@@ -187,11 +187,11 @@ if _has_scipy:
         shape = h_sparsegroup.create_dataset('shape', data=py_obj.shape, **kwargs)
 
         if isinstance(py_obj, type(sparse.csr_matrix([0]))):
-            type_str = b'csr'
+            type_str = 'csr'
         elif isinstance(py_obj, type(sparse.csc_matrix([0]))):
-            type_str = b'csc'
+            type_str = 'csc'
         elif isinstance(py_obj, type(sparse.bsr_matrix([0]))):
-            type_str = b'bsr'
+            type_str = 'bsr'
 
         if six.PY2:
             h_sparsegroup.attrs["type"] = [b'%s_matrix' % type_str]
@@ -207,32 +207,35 @@ if _has_scipy:
             shape.attrs["type"]         = [bytes(str("%s_matrix_shape" % type_str), 'ascii')]
 
     def load_sparse_matrix_data(h_node):
+
         py_type, data = get_type_and_data(h_node)
         h_root  = h_node.parent
         indices = h_root.get('indices')[:]
         indptr  = h_root.get('indptr')[:]
         shape   = h_root.get('shape')[:]
 
-        if py_type == 'csc_matrix_data':
+        if py_type == b'csc_matrix_data':
             smat = sparse.csc_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
-        elif py_type == 'csr_matrix_data':
+        elif py_type == b'csr_matrix_data':
             smat = sparse.csr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
-        elif py_type == 'bsr_matrix_data':
+        elif py_type == b'bsr_matrix_data':
             smat = sparse.bsr_matrix((data, indices, indptr), dtype=data.dtype, shape=shape)
         return smat
+
+
 
     types_dict[scipy.sparse.csr_matrix] = create_sparse_dataset
     types_dict[scipy.sparse.csc_matrix] = create_sparse_dataset
     types_dict[scipy.sparse.bsr_matrix] = create_sparse_dataset
 
 
-    hkl_types_dict["csc_matrix_data"] = load_sparse_matrix_data
-    hkl_types_dict["csr_matrix_data"] = load_sparse_matrix_data
-    hkl_types_dict["bsr_matrix_data"] = load_sparse_matrix_data
+    hkl_types_dict[b"csc_matrix_data"] = load_sparse_matrix_data
+    hkl_types_dict[b"csr_matrix_data"] = load_sparse_matrix_data
+    hkl_types_dict[b"bsr_matrix_data"] = load_sparse_matrix_data
 
     # Need to ignore things like csc_matrix_indices which are loaded automatically
-    for mat_type in (b'csr', b'csc', b'bsr'):
-        for attrib in (b'indices', b'indptr', b'shape'):
+    for mat_type in ('csr', 'csc', 'bsr'):
+        for attrib in ('indices', 'indptr', 'shape'):
             if six.PY2:
                 hkl_types_dict["%s_matrix_%s" %(mat_type, attrib)] = load_nothing
             else:
