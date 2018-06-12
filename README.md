@@ -2,6 +2,8 @@
 
 **Note to dev branch users:** This development branch (dev) has some preliminary support for Python 3, but this still needs testing from the community (and bugfixes!). The code has been refactored pretty extensively to make it easier to add support for new classes and types from other packages. There is still some work to do on making sure that support from older hickle files is maintained (if possible), and to try and make hickle files created in Python 2 work as much as possible in Python 3 (pretty important IMO, but also a bit of a nightmare).
 
+**Note to contributors:** Please make any contributions to the [dev branch](https://github.com/telegraphic/hickle/tree/dev). The master branch is _frozen_ until the dev branch reaches maturity for a stable release. And thanks in advance for your input.
+
 Hickle
 ======
 
