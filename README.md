@@ -1,12 +1,13 @@
 [![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
 
-**Note to Python 3 users:** Some experimental Python 3 support has now been added, and needs input from Python 3 users (developers too!). You will need to use the [dev branch](https://github.com/telegraphic/hickle/tree/dev).
+**Note to dev branch users:** This development branch (dev) has some preliminary support for Python 3, but this still needs testing from the community (and bugfixes!). The code has been refactored pretty extensively to make it easier to add support for new classes and types from other packages. There is still some work to do on making sure that support from older hickle files is maintained (if possible), and to try and make hickle files created in Python 2 work as much as possible in Python 3 (pretty important IMO, but also a bit of a nightmare).
 
 Hickle
 ======
 
 Hickle is a HDF5 based clone of Pickle, with a twist. Instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file. It is designed to be a "drop-in" replacement for pickle (for common data objects). That is: it is a neat little way of dumping python variables to file. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).
+Hickle dumps to a HDF5 file. It is designed to be a "drop-in" replacement for pickle (for common data objects). 
+That is: it is a neat little way of dumping python variables to file. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).
 
 Why use Hickle?
 ---------------
@@ -27,6 +28,10 @@ The main reasons not to use hickle are:
 
 So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try. Hickle is particularly good at storing large numpy arrays, thanks to h5py running under the hood. 
 
+Recent changes
+--------------
+
+* Aug 2016: Added support for scipy sparse matrices `bsr_matrix`, `csr_matrix` and `csc_matrix`.
 
 Performance comparison
 ----------------------
