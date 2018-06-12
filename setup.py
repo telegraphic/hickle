@@ -4,7 +4,7 @@
 # python setup.py sdist upload
 from setuptools import setup, find_packages
 
-version = '3.2.0'
+version = '3.2.1'
 author  = 'Danny Price'
 
 setup(name='hickle',
