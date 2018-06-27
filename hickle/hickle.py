@@ -556,8 +556,6 @@ def load_dataset(h_node):
     """
     py_type, data = get_type_and_data(h_node)
 
-    print(py_type, data)
-
     try:
         load_fn = load_dataset_lookup(py_type)
         return load_fn(h_node)
