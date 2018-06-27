@@ -541,7 +541,9 @@ def load(fileobj, path='/', safe=True):
                                        " created with Python 2 and an old hickle version.")
     finally:
         if 'h5f' in locals():
-            h5f.close()
+            # Check if file is open, and if so, close it.
+            if h5f.fid.valid:
+                h5f.close()
 
 def load_dataset(h_node):
     """ Load a dataset, converting into its correct python type
