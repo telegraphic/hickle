@@ -1,10 +1,11 @@
 # To increment version
+# Check you have ~/.pypirc filled in
 # git tag x.y.z
 # git push --tags
 # python setup.py sdist upload
 from setuptools import setup, find_packages
 
-version = '3.2.1'
+version = '3.2.2'
 author  = 'Danny Price'
 
 setup(name='hickle',
