@@ -19,7 +19,7 @@ from hickle.helpers import check_is_hashable, check_is_iterable, check_iterable_
 
 from hickle.loaders.load_numpy import check_is_numpy_array 
 if _has_scipy:
-    from hickle.loaders.load_numpy import check_is_scipy_sparse_array
+    from hickle.loaders.load_scipy import check_is_scipy_sparse_array
 
 
 

@@ -3,7 +3,7 @@ from scipy.sparse import csr_matrix, csc_matrix, bsr_matrix
 import os
 
 import hickle
-from hickle.loaders.load_numpy import check_is_scipy_sparse_array
+from hickle.loaders.load_scipy import check_is_scipy_sparse_array
 
 
 def test_is_sparse():
