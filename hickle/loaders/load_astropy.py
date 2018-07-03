@@ -77,9 +77,20 @@ def create_astropy_time(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
+
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
-                               dtype=py_obj.value.dtype)     #, **kwargs)
+    data = py_obj.value
+    dtype = str(py_obj.value.dtype)
+
+    # Need to catch string times
+    if '<U' in dtype:
+        dtype = dtype.replace('<U', '|S')
+        print(dtype)
+        data = []
+        for item in py_obj.value:
+            data.append(str(item).encode('ascii'))
+
+    d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=dtype)     #, **kwargs)
     d.attrs["type"] = [b'astropy_time']
     if six.PY2:
         fmt   = str(py_obj.format)
@@ -141,8 +152,12 @@ def load_astropy_quantity_dataset(h_node):
 
 def load_astropy_time_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    fmt = h_node.attrs["format"][0]
-    scale = h_node.attrs["scale"][0]
+    if six.PY3:
+        fmt = h_node.attrs["format"][0].decode('ascii')
+        scale = h_node.attrs["scale"][0].decode('ascii')
+    else:
+        fmt = h_node.attrs["format"][0]
+        scale = h_node.attrs["scale"][0]
     q = Time(data, format=fmt, scale=scale)
     return q
 

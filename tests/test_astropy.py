@@ -58,7 +58,7 @@ def test_astropy_quantity_array():
     assert a.unit == b.unit
 
 def test_astropy_time_array():
-    times = ['1999-01-01T00:00:00.123456789', '2010-01-01T00:00:00']
+    times = [b'1999-01-01T00:00:00.123456789', b'2010-01-01T00:00:00']
     t1 = Time(times, format='isot', scale='utc')
     hkl.dump(t1, "test_ap2.h5")
     t2 = hkl.load("test_ap2.h5")
@@ -67,7 +67,7 @@ def test_astropy_time_array():
     print(t2)
     assert t1.value.shape == t2.value.shape
     for ii in range(len(t1)):
-        assert bytes(t1[ii]) == bytes(t2[ii])
+        assert t1.value[ii] == t2.value[ii]
     assert t1.format == t2.format
     assert t1.scale == t2.scale
 
