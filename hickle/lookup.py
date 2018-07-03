@@ -68,6 +68,8 @@ def return_first(x):
     """ Return first element of a list """
     return x[0]
 
+def load_nothing(h_hode):
+    pass
 
 types_dict = {}
 
@@ -139,32 +141,85 @@ def check_is_ndarray_like(py_obj):
             break
     return is_ndarray_like
 
-########################
-## Scipy sparse array ##
-########################
 
-try:
-    from .loaders.load_numpy import check_is_scipy_sparse_array
-    ndarray_like_check_fns.append(check_is_scipy_sparse_array)
-
-except ImportError:
-    pass
-except NameError:
-    pass
 
 
 #######################
 ## loading optional  ##
 #######################
 
+def register_class(myclass_type, hkl_str, dump_function, load_function,
+                   to_sort=True, ndarray_check_fn=None):
+    """ Register a new hickle class.
 
-# Add loaders for astropy
+    Args:
+        myclass_type type(class): type of class
+        dump_function (function def): function to write data to HDF5
+        load_function (function def): function to load data from HDF5
+        is_iterable (bool): Is the item iterable?
+        hkl_str (str): String to write to HDF5 file to describe class
+        to_sort (bool): If the item is iterable, does it require sorting?
+        ndarray_check_fn (function def): function to use to check if
+
+    """
+    types_dict.update({myclass_type: dump_function})
+    hkl_types_dict.update({hkl_str: load_function})
+    if to_sort == False:
+        types_not_to_sort.append(hkl_str)
+    if ndarray_check_fn is not None:
+        ndarray_like_check_fns.append(ndarray_check_fn)
+
+def register_class_list(class_list):
+    """ Register multiple classes in a list
+
+    Args:
+        class_list (list): A list, where each item is an argument to
+                           the register_class() function.
+
+    Notes: This just runs the code:
+            for item in mylist:
+                register_class(*item)
+    """
+    for class_item in class_list:
+        register_class(*class_item)
+
+def register_class_exclude(hkl_str_to_ignore):
+    """ Tell loading funciton to ignore any HDF5 dataset with attribute 'type=XYZ'
+
+    Args:
+        hkl_str_to_ignore (str): attribute type=string to ignore and exclude from loading.
+    """
+    hkl_types_dict[hkl_str_to_ignore] = load_nothing
+
+def register_exclude_list(exclude_list):
+    """ Ignore HDF5 datasets with attribute type='XYZ' from loading
+
+    ArgsL
+        exclude_list (list): List of strings, which correspond to hdf5/hickle
+                             type= attributes not to load.
+    """
+    for hkl_str in exclude_list:
+        register_class_exclude(hkl_str)
+
+########################
+## Scipy sparse array ##
+########################
+
 try:
-    from .loaders.load_astropy import types_dict as ap_types_dict
-    from .loaders.load_astropy import hkl_types_dict as ap_hkl_types_dict
-    from .loaders.load_astropy import check_is_astropy_table
-    types_dict.update(ap_types_dict)
-    hkl_types_dict.update(ap_hkl_types_dict)
-    ndarray_like_check_fns.append(check_is_astropy_table)
+    from .loaders.load_scipy import class_register, exclude_register
+    register_class_list(class_register)
+    register_exclude_list(exclude_register)
 except ImportError:
     pass
+except NameError:
+    pass
+
+####################
+## Astropy  stuff ##
+####################
+
+try:
+    from .loaders.load_astropy import class_register
+    register_class_list(class_register)
+except ImportError:
+    pass#
