@@ -233,7 +233,6 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
     # next, check if item is iterable
     elif check_is_iterable(py_obj):
         item_type = check_iterable_item_type(py_obj)
-        #print item_type
 
         # item_type == False implies multiple types. Create a dataset
         if item_type is False:
@@ -250,7 +249,6 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
             else:
                 h_subgroup = create_hkl_group(py_obj, h_group, call_id)
                 for ii, py_subobj in enumerate(py_obj):
-                    #print py_subobj, h_subgroup, ii
                     _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
     # item is not iterable, so create a dataset for it
@@ -384,7 +382,7 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         else:
             h_subgroup = h_dictgroup.create_group(str(key))
         h_subgroup.attrs["type"] = [b'dict_item']
-        #print(key, str(type(key)))
+
         if six.PY2:
             h_subgroup.attrs["key_type"] = [str(type(key))]
         else:
@@ -592,7 +590,6 @@ def _load(py_container, h_group):
             py_subcontainer.key_type = h_group.attrs['key_type']
 
         if py_subcontainer.container_type not in types_not_to_sort:
-            #print(h_group)
             h_keys = sort_keys(h_group.keys())
         else:
             h_keys = h_group.keys()
@@ -609,5 +606,4 @@ def _load(py_container, h_group):
         subdata = load_dataset(h_group)
         py_container.append(subdata)
 
-    #print h_group.name, py_container
     return py_container
