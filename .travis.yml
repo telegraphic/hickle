@@ -20,8 +20,10 @@ install:
 script:
   - cd tests; coverage run --source=hickle -m py.test
 
+# Run code coverage
 after_success: coveralls
 
+# Run on dev and master branches
 branches:
   only:
     - dev
