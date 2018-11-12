@@ -222,4 +222,14 @@ try:
     from .loaders.load_astropy import class_register
     register_class_list(class_register)
 except ImportError:
-    pass#
+    pass
+
+##################
+## Pandas stuff ##
+##################
+
+try:
+    from .loaders.load_pandas import class_register
+    register_class_list(class_register)
+except ImportError:
+    pass
