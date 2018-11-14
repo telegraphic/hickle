@@ -53,6 +53,7 @@ bibliography: paper.bib
 Python data structures are mapped into the HDF5 abstract data model in a logical fashion, using the ``h5py`` package [@collette:2014]. Metadata required to reconstruct the hierarchy of objects, and to allow conversion into Python objects, is stored in HDF5 attributes. Most commonly used Python iterables (dict, tuple, list, set), and data types (int, float, str) are supported, as are ``numpy``  N-dimensional arrays. Commonly-used ``astropy`` data structures and ``scipy`` sparse matrices are also supported.
 
 ``hickle`` has been used in many scientific research projects, including:
+
 * Visualization and machine learning on volumetric fluorescence microscopy datasets from histological tissue imaging [@Durant:2017].
 * Caching pre-computed features for MIDI and audio files for downstream machine learning tasks [@Raffel:2016].  
 * Storage and transmission of high volume of shot-gun proteomics data, such as mass spectra of proteins and peptide segments [@Zhang:2016].
