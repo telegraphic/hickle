@@ -9,13 +9,14 @@ NB: As these are for built-in types, they are critical to the functioning of hic
 
 from hickle.helpers import get_type_and_data
 
-
-
-try:
-    from exceptions import Exception
+import sys
+if sys.version_info.major == 3:
+    unicode = type(str)
+    str = type(bytes)
+    long = type(int)
+    NoneType = type(None)
+else:
     from types import NoneType
-except ImportError:
-    pass        # above imports will fail in python3
 
 import h5py as h5
 
