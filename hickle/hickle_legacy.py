@@ -16,10 +16,14 @@ If V2 reading fails, this will be called as a fail-over.
 """
 
 import os
-import exceptions
+import sys
 import numpy as np
 import h5py as h5
-from types import NoneType
+
+if sys.version_info.major == 3:
+    NoneType = type(None)
+else:
+    from types import NoneType
 
 __version__ = "1.3.0"
 __author__ = "Danny Price"
@@ -29,7 +33,7 @@ __author__ = "Danny Price"
 ####################
 
 
-class FileError(exceptions.Exception):
+class FileError(Exception):
     """ An exception raised if the file is fishy"""
 
     def __init__(self):
@@ -39,7 +43,7 @@ class FileError(exceptions.Exception):
         print("Error: cannot open file. Please pass either a filename string, a file object, or a h5py.File")
 
 
-class NoMatchError(exceptions.Exception):
+class NoMatchError(Exception):
     """ An exception raised if the object type is not understood (or supported)"""
 
     def __init__(self):
@@ -49,7 +53,7 @@ class NoMatchError(exceptions.Exception):
         print("Error: this type of python object cannot be converted into a hickle.")
 
 
-class ToDoError(exceptions.Exception):
+class ToDoError(Exception):
     """ An exception raised for non-implemented functionality"""
 
     def __init__(self):
