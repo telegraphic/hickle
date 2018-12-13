@@ -23,7 +23,6 @@ setup(name='hickle',
             'astropy': ['astropy'],
             'scipy': ['scipy'],
             'pandas': ['pandas'],
-            'color': ['django']
       },
       python_requires='>=2.7',
       packages=find_packages(),
