@@ -1,34 +1,41 @@
 [![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
+[![JOSS Status](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847)
+
 
 Hickle
 ======
 
-Hickle is a HDF5 based clone of Pickle, with a twist. Instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file. It is designed to be a "drop-in" replacement for pickle (for common data objects). 
-That is: it is a neat little way of dumping python variables to file. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).
+Hickle is a [HDF5](https://www.hdfgroup.org/solutions/hdf5/) based clone of `pickle`, with a twist: instead of serializing to a pickle file,
+Hickle dumps to a HDF5 file (Hierarchical Data Format). It is designed to be a "drop-in" replacement for pickle (for common data objects), but is
+really an amalgam of `h5py` and `dill`/`pickle` with extended functionality.
+
+That is: `hickle` is a neat little way of dumping python variables to HDF5 files that can be read in most programming 
+languages, not just Python. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP). 
 
 Why use Hickle?
 ---------------
 
-While hickle is designed to be a drop-in replacement for pickle (and json), it works very differently. 
-Instead of serializing / json-izing, it instead stores the data using the excellent h5py module.
+While `hickle` is designed to be a drop-in replacement for `pickle` (or something like `json`), it works very differently. 
+Instead of serializing / json-izing, it instead stores the data using the excellent [h5py](https://www.h5py.org/) module.
 
 The main reasons to use hickle are:
 
-  1. it's faster than pickle and cPickle
-  2. it stores data in HDF5
+  1. It's faster than pickle and cPickle.
+  2. It stores data in HDF5.
   3. You can easily compress your data.
 
 The main reasons not to use hickle are:
 
   1. You don't want to store your data in HDF5. While hickle can serialize arbitrary python objects, this functionality is provided only for convenience, and you're probably better off just using the pickle module.
-  2. You want to convert your data in JSON. For this, use a json or uJson.
+  2. You want to convert your data in human-readable JSON/YAML, in which case, you should do that instead.
 
-So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try. Hickle is particularly good at storing large numpy arrays, thanks to h5py running under the hood. 
+So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try. 
+Hickle is particularly good at storing large numpy arrays, thanks to `h5py` running under the hood. 
 
 Recent changes
 --------------
 
+* November 2018: Submitted to Journal of Open-Source Software (JOSS).
 * June 2018: Major refactor and support for Python 3. 
 * Aug 2016: Added support for scipy sparse matrices `bsr_matrix`, `csr_matrix` and `csc_matrix`.
 
@@ -79,7 +86,7 @@ For storing python dictionaries of lists, hickle beats the python json encoder, 
 It should be noted that these comparisons are of course not fair: storing in HDF5 will not help you convert something into JSON, nor will it help you serialize a string. But for quick storage of the contents of a python variable, it's a pretty good option.
 
 Installation guidelines (for Linux and Mac OS).
-----------------------------------------------------------------------------------------------------
+-----------------------------------------------
 
 ### Easy method
 Install with `pip` by running `pip install hickle` from the command line.
@@ -135,13 +142,72 @@ assert array_hkl.dtype == array_obj.dtype
 assert np.all((array_hkl, array_obj))
 ```
 
-Compression options
--------------------
+In short, `hickle` provides two methods: a `hickle.load` method, for loading hickle files, and a `hickle.dump` method,
+for dumping data into HDF5. 
 
-hickle passes keyword arguments on to h5py, so you can do things like:
+#### Dumping to file
+```
+Signature: hkl.dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs)
+Docstring:
+Write a pickled representation of obj to the open file object file.
+
+Args:
+Changing from hickle import * line in __init__.py for tidier import
+obj (object): python object o store in a Hickle
+file: file object, filename string, or h5py.File object
+        file in which to store the object. A h5py.File or a filename is also
+        acceptable.
+mode (str): optional argument, 'r' (read only), 'w' (write) or 'a' (append).
+        Ignored if file is a file object.
+compression (str): optional argument. Applies compression to dataset. Options: None, gzip,
+        lzf (+ szip, if installed)
+track_times (bool): optional argument. If set to False, repeated hickling will produce
+        identical files.
+path (str): path within hdf5 file to save data to. Defaults to root /
+```
+
+#### Loading from file
+
+```
+Signature: hkl.load(fileobj, path='/', safe=True)
+Docstring:
+Load a hickle file and reconstruct a python object
+
+Args:
+    fileobj: file object, h5py.File, or filename string
+        safe (bool): Disable automatic depickling of arbitrary python objects.
+        DO NOT set this to False unless the file is from a trusted source.
+        (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+
+    path (str): path within hdf5 file to save data to. Defaults to root /
+```
+
+
+#### HDF5 compression options
+
+A major benefit of `hickle` over `pickle` is that it allows fancy HDF5 features to 
+be applied, by passing on keyword arguments on to `h5py`. So, you can do things like:
   ```python
   hkl.dump(array_obj, 'test_lzf.hkl', mode='w', compression='lzf', scaleoffset=0, 
            chunks=(100, 100), shuffle=True, fletcher32=True)
   ```
-Have a look at http://docs.h5py.org/en/latest/high/dataset.html for an explanation
-of these keywords.
+A detailed explanation of these keywords is given at http://docs.h5py.org/en/latest/high/dataset.html,
+but we give a quick rundown below.
+
+In HDF5, datasets are stored as B-trees, a tree data structure that has speed benefits over contiguous
+blocks of data. In the B-tree, data are split into [chunks](http://docs.h5py.org/en/latest/high/dataset.html#chunked-storage),
+which is leveraged to allow [dataset resizing](http://docs.h5py.org/en/latest/high/dataset.html#resizable-datasets) and 
+compression via [filter pipelines](http://docs.h5py.org/en/latest/high/dataset.html#filter-pipeline). Filters such as
+`shuffle` and `scaleoffset` move your data around to improve compression ratios, and `fletcher32` computes a checksum.
+These file-level options are abstracted away from the data model. 
+
+## Bugs & contributing 
+
+Contributions and bugfixes are very welcome. Please check out our [contribution guidelines](https://github.com/telegraphic/hickle/blob/master/CONTRIBUTING.md)
+for more details on how to contribute to development.
+
+
+## Referencing hickle
+
+If you use `hickle` in academic research, we would be grateful if you could reference our paper ([Markdown](https://github.com/telegraphic/hickle/blob/master/paper.md) | PDF), 
+which is currently under review  in the [Journal of Open-Source Software (JOSS)](http://joss.theoj.org/about).
