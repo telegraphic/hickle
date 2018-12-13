@@ -4,6 +4,15 @@
 # git push --tags
 # python setup.py sdist upload
 from setuptools import setup, find_packages
+import sys
+
+if sys.version_info.major == 3:
+      if sys.version_info.minor < 5:
+            astro = "astropy<=3.0
+      else:
+            astro = "astropy>=3.2"
+else:
+      astro = "astropy<3.0"
 
 version = '3.3.2'
 author  = 'Danny Price'
@@ -20,7 +29,7 @@ setup(name='hickle',
       #py_modules = ['hickle', 'hickle_legacy'],
       install_requires=['numpy', 'h5py'],
       setup_requires = ['pytest-runner', 'pytest-cov'],
-      tests_require = ['pytest', 'astropy < 3.0 ; python_version < 3.0', 'astropy == 3.0 ; 2.7 < python_version < 3.5', 'astropy >= 3.1 ; python_version >= 3.5', 'scipy', 'pandas'],
+      tests_require = ['pytest', astro, 'scipy', 'pandas'],
       python_requires='>=2.7',
       packages=find_packages(),
       zip_safe=False,
