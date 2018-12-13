@@ -4,17 +4,19 @@
 # git push --tags
 # python setup.py sdist upload
 from setuptools import setup, find_packages
+import sys
+
+if sys.version_info.major == 3:
+      astro = "astropy"
+else:
+      astro = "astropy<3.0"
 
 version = '3.3.2'
 author  = 'Danny Price'
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
-
 setup(name='hickle',
       version=version,
       description='Hickle - a HDF5 based version of pickle',
-      long_description=long_description,
       author=author,
       author_email='dan@thetelegraphic.com',
       url='http://github.com/telegraphic/hickle',
@@ -23,11 +25,8 @@ setup(name='hickle',
       keywords=['pickle', 'hdf5', 'data storage', 'data export'],
       #py_modules = ['hickle', 'hickle_legacy'],
       install_requires=['numpy', 'h5py'],
-      extras_require={
-            'astropy': ['astropy'],
-            'scipy': ['scipy'],
-            'pandas': ['pandas'],
-      },
+      setup_requires = ['pytest-runner', 'pytest-cov'],
+      tests_require = ['pytest', astro, 'scipy', 'pandas'],
       python_requires='>=2.7',
       packages=find_packages(),
       zip_safe=False,
