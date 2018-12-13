@@ -5,7 +5,7 @@
 # python setup.py sdist upload
 from setuptools import setup, find_packages
 
-version = '3.3.1'
+version = '3.3.2'
 author  = 'Danny Price'
 
 with open("README.md", "r") as fh:
