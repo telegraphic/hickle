@@ -40,7 +40,8 @@ class FileError(Exception):
         return
 
     def __str__(self):
-        print("Error: cannot open file. Please pass either a filename string, a file object, or a h5py.File")
+        print("Error: cannot open file. Please pass either a filename string, a file object, "
+              "or a h5py.File")
 
 
 class NoMatchError(Exception):
@@ -93,14 +94,14 @@ def file_opener(f, mode='r', track_times=True):
   This can open files through a file object, a h5py file, or just the filename.
   """
     # Were we handed a file object or just a file name string?
-    if type(f) is file:
+    if isinstance(f, file):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
 
-    elif type(f) is h5._hl.files.File:
+    elif isinstance(f, h5._hl.files.File):
         h5f = f
-    elif type(f) is str:
+    elif isinstance(f, str):
         filename = f
         h5f = h5.File(filename, mode)
     else:
@@ -343,9 +344,11 @@ def dump(obj, file, mode='w', track_times=True, **kwargs):
   file: file object, filename string, or h5py.File object
     file in which to store the object. A h5py.File or a filename is also acceptable.
   mode: string
-    optional argument, 'r' (read only), 'w' (write) or 'a' (append). Ignored if file is a file object.
+    optional argument, 'r' (read only), 'w' (write) or 'a' (append). Ignored if file
+    is a file object.
   compression: str
-    optional argument. Applies compression to dataset. Options: None, gzip, lzf (+ szip, if installed)
+    optional argument. Applies compression to dataset. Options: None, gzip, lzf (+ szip,
+    if installed)
   track_times: bool
     optional argument. If set to False, repeated hickling will produce identical files.
   """
