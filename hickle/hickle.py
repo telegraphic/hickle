@@ -22,6 +22,7 @@ h5py installed.
 
 """
 
+from __future__ import absolute_import
 import sys
 import os
 from pkg_resources import get_distribution
@@ -31,7 +32,8 @@ import h5py as h5
 
 
 from .helpers import get_type_and_data, sort_keys, check_is_iterable, check_iterable_item_type
-from .lookup import types_dict, hkl_types_dict, types_not_to_sort, container_types_dict, container_key_types_dict
+from .lookup import types_dict, hkl_types_dict, types_not_to_sort, \
+    container_types_dict, container_key_types_dict
 from .lookup import check_is_ndarray_like
 
 
@@ -59,6 +61,12 @@ except ModuleNotFoundError:
     import pickle
 
 import warnings
+
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    __version__ = get_distribution('hickle').version
+except DistributionNotFound:
+    __version__ = '0.0.0 - please install via pip/setup.py'
 
 ##################
 # Error handling #
@@ -404,7 +412,8 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
     d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
     d.attrs["type"] = [b'pickle']
 
-    warnings.warn("%s type not understood, data have been serialized" % type(py_obj), SerializedWarning)
+    warnings.warn("%s type not understood, data have been serialized" % type(py_obj),
+                  SerializedWarning)
 
 
 
@@ -499,15 +508,16 @@ def load(fileobj, path='/', safe=True):
                 if VER_MAJOR == 1:
                     if six.PY2:
                         warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
-                        import hickle_legacy
+                        from . import hickle_legacy
                         return hickle_legacy.load(fileobj, safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
                                            " created with Python 2 and an old hickle version.")
                 elif VER_MAJOR == 2:
                     if six.PY2:
-                        warnings.warn("Hickle file appears to be old version (v2), attempting legacy loading...")
-                        import hickle_legacy2
+                        warnings.warn("Hickle file appears to be old version (v2), attempting "
+                                      "legacy loading...")
+                        from . import hickle_legacy2
                         return hickle_legacy2.load(fileobj, safe=safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
@@ -517,8 +527,9 @@ def load(fileobj, path='/', safe=True):
                 # Actual hickle v3 files are versioned as A.B.C (e.g. 3.1.0)
                 elif VER_MAJOR == 3 and VER == VER_MAJOR:
                     if six.PY2:
-                        warnings.warn("Hickle file appears to be old version (v2.1.0), attempting legacy loading...")
-                        import hickle_legacy2
+                        warnings.warn("Hickle file appears to be old version (v2.1.0), attempting "
+                                      "legacy loading...")
+                        from . import hickle_legacy2
                         return hickle_legacy2.load(fileobj, safe=safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
@@ -532,7 +543,7 @@ def load(fileobj, path='/', safe=True):
             except AssertionError:
                 if six.PY2:
                     warnings.warn("Hickle file is not versioned, attempting legacy loading...")
-                    import hickle_legacy
+                    from . import hickle_legacy
                     return hickle_legacy.load(fileobj, safe)
                 else:
                     raise RuntimeError("Cannot open file. This file was likely"

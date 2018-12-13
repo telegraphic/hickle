@@ -216,15 +216,22 @@ def check_is_astropy_quantity_array(py_obj):
     else:
         return False
 
-#######################
-## Lookup dictionary ##
-#######################
+
+#####################
+# Lookup dictionary #
+#####################
 
 class_register = [
-    [Quantity, b'astropy_quantity', create_astropy_quantity, load_astropy_quantity_dataset, True, check_is_astropy_quantity_array],
-    [Time,     b'astropy_time', create_astropy_time, load_astropy_time_dataset, True, check_is_astropy_quantity_array],
-    [Angle,    b'astropy_angle', create_astropy_angle, load_astropy_angle_dataset, True, check_is_astropy_quantity_array],
-    [SkyCoord, b'astropy_skycoord', create_astropy_skycoord, load_astropy_skycoord_dataset, True, check_is_astropy_quantity_array],
-    [Constant, b'astropy_constant', create_astropy_constant, load_astropy_constant_dataset, True, None],
-    [Table,    b'astropy_table',  create_astropy_table, load_astropy_table, True, check_is_astropy_table]
+    [Quantity, b'astropy_quantity', create_astropy_quantity, load_astropy_quantity_dataset,
+     True, check_is_astropy_quantity_array],
+    [Time,     b'astropy_time', create_astropy_time, load_astropy_time_dataset,
+     True, check_is_astropy_quantity_array],
+    [Angle,    b'astropy_angle', create_astropy_angle, load_astropy_angle_dataset,
+     True, check_is_astropy_quantity_array],
+    [SkyCoord, b'astropy_skycoord', create_astropy_skycoord, load_astropy_skycoord_dataset,
+     True, check_is_astropy_quantity_array],
+    [Constant, b'astropy_constant', create_astropy_constant, load_astropy_constant_dataset,
+     True, None],
+    [Table,    b'astropy_table',  create_astropy_table, load_astropy_table,
+     True, check_is_astropy_table]
 ]
