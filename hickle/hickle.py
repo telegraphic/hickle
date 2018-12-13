@@ -506,7 +506,7 @@ def load(fileobj, path='/', safe=True):
                 if VER_MAJOR == 1:
                     if six.PY2:
                         warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
-                        import hickle_legacy
+                        from . import hickle_legacy
                         return hickle_legacy.load(fileobj, safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
@@ -514,7 +514,7 @@ def load(fileobj, path='/', safe=True):
                 elif VER_MAJOR == 2:
                     if six.PY2:
                         warnings.warn("Hickle file appears to be old version (v2), attempting legacy loading...")
-                        import hickle_legacy2
+                        from . import hickle_legacy2
                         return hickle_legacy2.load(fileobj, safe=safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
@@ -525,7 +525,7 @@ def load(fileobj, path='/', safe=True):
                 elif VER_MAJOR == 3 and VER == VER_MAJOR:
                     if six.PY2:
                         warnings.warn("Hickle file appears to be old version (v2.1.0), attempting legacy loading...")
-                        import hickle_legacy2
+                        from . import hickle_legacy2
                         return hickle_legacy2.load(fileobj, safe=safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
@@ -539,7 +539,7 @@ def load(fileobj, path='/', safe=True):
             except AssertionError:
                 if six.PY2:
                     warnings.warn("Hickle file is not versioned, attempting legacy loading...")
-                    import hickle_legacy
+                    from . import hickle_legacy
                     return hickle_legacy.load(fileobj, safe)
                 else:
                     raise RuntimeError("Cannot open file. This file was likely"

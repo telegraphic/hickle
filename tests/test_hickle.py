@@ -16,7 +16,8 @@ import time
 from pprint import pprint
 
 import hickle
-from hickle import *
+from hickle.hickle import *
+
 
 NESTED_DICT = {
     "level1_1": {
@@ -505,7 +506,7 @@ def test_file_open_close():
         dump(a, f, mode='w')
         try:
             dump(a, f, mode='w')
-        except hickle.ClosedFileError:
+        except hickle.hickle.ClosedFileError:
             print("Tests: Closed file exception caught")
         
     finally:
