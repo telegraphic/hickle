@@ -63,18 +63,20 @@ The process to add new load/dump capabilities is as follows:
 """
 
 import six
+import pkg_resources
+
 
 def return_first(x):
     """ Return first element of a list """
     return x[0]
 
+
 def load_nothing(h_hode):
     pass
 
+
 types_dict = {}
-
 hkl_types_dict = {}
-
 types_not_to_sort = [b'dict', b'csr_matrix', b'csc_matrix', b'bsr_matrix']
 
 container_types_dict = {
@@ -119,19 +121,21 @@ types_dict.update(py_types_dict)
 hkl_types_dict.update(py_hkl_types_dict)
 
 # Add loaders for numpy types
-from .loaders.load_numpy import  types_dict as np_types_dict
-from .loaders.load_numpy import  hkl_types_dict as np_hkl_types_dict
+from .loaders.load_numpy import types_dict as np_types_dict
+from .loaders.load_numpy import hkl_types_dict as np_hkl_types_dict
 from .loaders.load_numpy import check_is_numpy_array
 types_dict.update(np_types_dict)
 hkl_types_dict.update(np_hkl_types_dict)
 
-#######################
-## ND-ARRAY checking ##
-#######################
+
+#####################
+# ND-ARRAY checking #
+#####################
 
 ndarray_like_check_fns = [
     check_is_numpy_array
 ]
+
 
 def check_is_ndarray_like(py_obj):
     is_ndarray_like = False
@@ -142,11 +146,9 @@ def check_is_ndarray_like(py_obj):
     return is_ndarray_like
 
 
-
-
-#######################
-## loading optional  ##
-#######################
+#####################
+# loading optional  #
+#####################
 
 def register_class(myclass_type, hkl_str, dump_function, load_function,
                    to_sort=True, ndarray_check_fn=None):
@@ -156,7 +158,6 @@ def register_class(myclass_type, hkl_str, dump_function, load_function,
         myclass_type type(class): type of class
         dump_function (function def): function to write data to HDF5
         load_function (function def): function to load data from HDF5
-        is_iterable (bool): Is the item iterable?
         hkl_str (str): String to write to HDF5 file to describe class
         to_sort (bool): If the item is iterable, does it require sorting?
         ndarray_check_fn (function def): function to use to check if
@@ -168,6 +169,7 @@ def register_class(myclass_type, hkl_str, dump_function, load_function,
         types_not_to_sort.append(hkl_str)
     if ndarray_check_fn is not None:
         ndarray_like_check_fns.append(ndarray_check_fn)
+
 
 def register_class_list(class_list):
     """ Register multiple classes in a list
@@ -183,6 +185,7 @@ def register_class_list(class_list):
     for class_item in class_list:
         register_class(*class_item)
 
+
 def register_class_exclude(hkl_str_to_ignore):
     """ Tell loading funciton to ignore any HDF5 dataset with attribute 'type=XYZ'
 
@@ -190,6 +193,7 @@ def register_class_exclude(hkl_str_to_ignore):
         hkl_str_to_ignore (str): attribute type=string to ignore and exclude from loading.
     """
     hkl_types_dict[hkl_str_to_ignore] = load_nothing
+
 
 def register_exclude_list(exclude_list):
     """ Ignore HDF5 datasets with attribute type='XYZ' from loading
@@ -201,35 +205,37 @@ def register_exclude_list(exclude_list):
     for hkl_str in exclude_list:
         register_class_exclude(hkl_str)
 
-########################
-## Scipy sparse array ##
-########################
+
+######################
+# Scipy sparse array #
+######################
 
 try:
+    pkg_resources.require('hickle[scipy]')
     from .loaders.load_scipy import class_register, exclude_register
     register_class_list(class_register)
     register_exclude_list(exclude_register)
-except ImportError:
-    pass
-except NameError:
+except pkg_resources.DistributionNotFound:
     pass
 
-####################
-## Astropy  stuff ##
-####################
+##################
+# Astropy  stuff #
+##################
 
 try:
+    pkg_resources.require('hickle[astropy]')
     from .loaders.load_astropy import class_register
     register_class_list(class_register)
-except ImportError:
+except pkg_resources.DistributionNotFound:
     pass
 
-##################
-## Pandas stuff ##
-##################
+################
+# Pandas stuff #
+################
 
 try:
+    pkg_resources.require('hickle[pandas]')
     from .loaders.load_pandas import class_register
     register_class_list(class_register)
-except ImportError:
+except pkg_resources.DistributionNotFound:
     pass
