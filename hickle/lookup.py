@@ -8,16 +8,16 @@ There are three dictionaries that are populated here:
 1) types_dict
 Mapping between python types and dataset and group creation functions, e.g.
     types_dict = {
-        list: (create_listlike_dataset, 'list'),
-        int: (create_python_dtype_dataset, 'int'),
-        np.ndarray: (create_np_array_dataset, 'ndarray'),
+        list:        create_listlike_dataset,
+        int:         create_python_dtype_dataset,
+        np.ndarray:  create_np_array_dataset
         }
 
 2) hkl_types_dict
-Mapping between hickle metadata and dataset loading functions, e.g.
+hkl_types_dict: mapping between hickle metadata and dataset loading functions, e.g.
     hkl_types_dict = {
-        'list': load_list_dataset,
-        'tuple': load_tuple_dataset
+        "<type 'list'>"  : load_list_dataset,
+        "<type 'tuple'>" : load_tuple_dataset
         }
 
 3) hkl_container_dict
@@ -28,16 +28,31 @@ Mapping between hickle metadata and group container classes, e.g.
         'dict': DictLikeContainer
     }
 
+5) types_not_to_sort
+type_not_to_sort is a list of hickle type attributes that may be hierarchical,
+but don't require sorting by integer index.
+
 ## Extending hickle to add support for other classes and types
 
 The process to add new load/dump capabilities is as follows:
 
 1) Create a file called load_[newstuff].py in loaders/
-2) In the load_[newstuff].py file, define your create_dataset and load_dataset
-   functions, along with the 'class_register' and 'exclude_register' lists.
-
+2) In the load_[newstuff].py file, define your create_dataset and load_dataset functions,
+   along with all required mapping dictionaries.
+3) Add an import call here, and populate the lookup dictionaries with update() calls:
+    # Add loaders for [newstuff]
+    try:
+        from .loaders.load_[newstuff[ import types_dict as ns_types_dict
+        from .loaders.load_[newstuff[ import hkl_types_dict as ns_hkl_types_dict
+        types_dict.update(ns_types_dict)
+        hkl_types_dict.update(ns_hkl_types_dict)
+        ... (Add container_types_dict etc if required)
+    except ImportError:
+        raise
 """
 
+import six
+import pkg_resources
 
 # %% IMPORTS
 # Built-in imports
@@ -60,10 +75,6 @@ from .helpers import PyContainer,not_dumpable,nobody_is_my_name
 from hickle.helpers import get_mro_list
 
 
-# %% GLOBALS
-# Define dict of all acceptable types
-types_dict = {}
-
 # Define dict of all acceptable hickle types
 hkl_types_dict = {}
 
@@ -73,6 +84,9 @@ hkl_container_dict = {}
 # Empty list (hashable) of loaded loader names
 loaded_loaders = set()
 
+if six.PY2:
+    container_key_types_dict[b"<type 'unicode'>"] = unicode
+    container_key_types_dict[b"<type 'long'>"] = long
 
 # %% FUNCTION DEFINITIONS
 def load_nothing(h_node,base_type,py_obj_type): # pragma: nocover
@@ -113,7 +127,6 @@ def register_class(myclass_type, hkl_str, dump_function=None, load_function=None
     Parameters:
     -----------
         myclass_type type(class): type of class
-        hkl_str (str): String to write to HDF5 file to describe class
         dump_function (function def): function to write data to HDF5
         load_function (function def): function to load data from HDF5
         container_class (class def): proxy class to load data from HDF5
@@ -170,12 +183,10 @@ def register_class(myclass_type, hkl_str, dump_function=None, load_function=None
 
 
 def register_class_exclude(hkl_str_to_ignore):
-    """ Tell loading funciton to ignore any HDF5 dataset with attribute
-    'type=XYZ'
+    """ Tell loading funciton to ignore any HDF5 dataset with attribute 'type=XYZ'
 
     Args:
-        hkl_str_to_ignore (str): attribute type=string to ignore and exclude
-            from loading.
+        hkl_str_to_ignore (str): attribute type=string to ignore and exclude from loading.
     """
 
     if hkl_str_to_ignore in {b'dict_item',b'pickle'}:
@@ -212,9 +223,6 @@ def load_loader(py_obj_type, type_mro = type.mro):
     -------
         RuntimeError:
             in case py object is defined by hickle core machinery.
-
-    """
-
     # any function or method object, any class object will be passed to pickle
     # ensure that in any case create_pickled_dataset is called.
 
