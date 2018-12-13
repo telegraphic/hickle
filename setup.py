@@ -5,7 +5,7 @@
 # python setup.py sdist upload
 from setuptools import setup, find_packages
 
-version = '3.2.2'
+version = '3.3.0'
 author  = 'Danny Price'
 
 setup(name='hickle',
@@ -19,6 +19,12 @@ setup(name='hickle',
       keywords=['pickle', 'hdf5', 'data storage', 'data export'],
       #py_modules = ['hickle', 'hickle_legacy'],
       install_requires=['numpy', 'h5py'],
+      extras_require={
+            'astropy': ['astropy'],
+            'scipy': ['scipy'],
+            'pandas': ['pandas'],
+            'color': ['django']
+      },
       python_requires='>=2.7',
       packages=find_packages(),
       zip_safe=False,
