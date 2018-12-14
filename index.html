@@ -150,6 +150,11 @@ You can adapt this file completely to your liking, but it should at least
 contain the root <code class="docutils literal notranslate"><span class="pre">toctree</span></code> directive.</p>
 <div class="section" id="welcome-to-hickle-s-documentation">
 <span id="welcome-to-hickle-s-documentation"></span><h1>Welcome to hickle’s documentation!<a class="headerlink" href="#welcome-to-hickle-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Hickle is a <a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a> based clone of <code class="docutils literal notranslate"><span class="pre">pickle</span></code>, with a twist: instead of serializing to a pickle file,
+Hickle dumps to a HDF5 file (Hierarchical Data Format). It is designed to be a “drop-in” replacement for pickle (for common data objects), but is
+really an amalgam of <code class="docutils literal notranslate"><span class="pre">h5py</span></code> and <code class="docutils literal notranslate"><span class="pre">dill</span></code>/<code class="docutils literal notranslate"><span class="pre">pickle</span></code> with extended functionality.</p>
+<p>That is: <code class="docutils literal notranslate"><span class="pre">hickle</span></code> is a neat little way of dumping python variables to HDF5 files that can be read in most programming
+languages, not just Python. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).</p>
 <p>.. toctree::
 :maxdepth: 2
 :caption: Contents:</p>
