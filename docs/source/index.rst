@@ -10,7 +10,7 @@ Welcome to hickle's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. automodule::
+.. automodule:: hickle
    :members: load, dump
 
 
