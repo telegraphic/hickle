@@ -4,5 +4,6 @@ cp ../hickle/README.md ./
 cp -r ../hickle/docs/build/html/* ./
 
 git add .
-git commit -m 'Update docs `date`'
+git commit -m "Updated documenation: $(date)"
+
 
