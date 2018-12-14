@@ -6,15 +6,15 @@
 Welcome to hickle's documentation!
 ==================================
 
-[![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
-[![JOSS Status](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847)
 
 Hickle is a [HDF5](https://www.hdfgroup.org/solutions/hdf5/) based clone of `pickle`, with a twist: instead of serializing to a pickle file,
 Hickle dumps to a HDF5 file (Hierarchical Data Format). It is designed to be a "drop-in" replacement for pickle (for common data objects), but is
 really an amalgam of `h5py` and `dill`/`pickle` with extended functionality.
 
-That is: `hickle` is a neat little way of dumping python variables to HDF5 files that can be read in most programming
-languages, not just Python. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).
+That is: `hickle` is a neat little way of dumping python variables to HDF5 files that can be read in most programming 
+languages, not just Python. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP). 
+
+
 
 .. toctree::
    :maxdepth: 2
