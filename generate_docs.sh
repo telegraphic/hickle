@@ -5,5 +5,5 @@ cp -r ../hickle/docs/build/html/* ./
 
 git add .
 git commit -m "Updated documenation: $(date)"
-
+git push origin gh-pages
 
