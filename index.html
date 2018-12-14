@@ -131,7 +131,7 @@
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -144,72 +144,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-hickle-s-documentation">
-<h1>Welcome to hickle’s documentation!<a class="headerlink" href="#welcome-to-hickle-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>[![Build Status](<a class="reference external" href="https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle">https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle</a>)
-[![JOSS Status](<a class="reference external" href="http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847">http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847</a>)</p>
-<p>Hickle is a [HDF5](<a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">https://www.hdfgroup.org/solutions/hdf5/</a>) based clone of <cite>pickle</cite>, with a twist: instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file (Hierarchical Data Format). It is designed to be a “drop-in” replacement for pickle (for common data objects), but is
-really an amalgam of <cite>h5py</cite> and <cite>dill</cite>/<cite>pickle</cite> with extended functionality.</p>
-<p>That is: <cite>hickle</cite> is a neat little way of dumping python variables to HDF5 files that can be read in most programming
-languages, not just Python. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).</p>
-<div class="toctree-wrapper compound">
-</div>
-<span class="target" id="module-hickle"></span><dl class="function">
-<dt id="hickle.load">
-<code class="descclassname">hickle.</code><code class="descname">load</code><span class="sig-paren">(</span><em>fileobj</em>, <em>path='/'</em>, <em>safe=True</em><span class="sig-paren">)</span><a class="headerlink" href="#hickle.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a hickle file and reconstruct a python object</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>fileobj</strong> – file object, h5py.File, or filename string
-safe (bool): Disable automatic depickling of arbitrary python objects.
-DO NOT set this to False unless the file is from a trusted source.
-(see <a class="reference external" href="http://www.cs.jhu.edu/~s/musings/pickle.html">http://www.cs.jhu.edu/~s/musings/pickle.html</a> for an explanation)</li>
-<li><strong>path</strong> (<em>str</em>) – path within hdf5 file to save data to. Defaults to root /</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hickle.dump">
-<code class="descclassname">hickle.</code><code class="descname">dump</code><span class="sig-paren">(</span><em>py_obj</em>, <em>file_obj</em>, <em>mode='w'</em>, <em>track_times=True</em>, <em>path='/'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#hickle.dump" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write a pickled representation of obj to the open file object file.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> (<em>object</em>) – python object o store in a Hickle</li>
-<li><strong>file</strong> – file object, filename string, or h5py.File object
-file in which to store the object. A h5py.File or a filename is also
-acceptable.</li>
-<li><strong>mode</strong> (<em>str</em>) – optional argument, ‘r’ (read only), ‘w’ (write) or ‘a’ (append).
-Ignored if file is a file object.</li>
-<li><strong>compression</strong> (<em>str</em>) – optional argument. Applies compression to dataset. Options: None, gzip,
-lzf (+ szip, if installed)</li>
-<li><strong>track_times</strong> (<em>bool</em>) – optional argument. If set to False, repeated hickling will produce
-identical files.</li>
-<li><strong>path</strong> (<em>str</em>) – path within hdf5 file to save data to. Defaults to root /</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
+  <p>.. hickle documentation master file, created by
+sphinx-quickstart on Fri Dec 14 15:39:45 2018.
+You can adapt this file completely to your liking, but it should at least
+contain the root <code class="docutils literal notranslate"><span class="pre">toctree</span></code> directive.</p>
+<div class="section" id="welcome-to-hickle-s-documentation">
+<span id="welcome-to-hickle-s-documentation"></span><h1>Welcome to hickle’s documentation!<a class="headerlink" href="#welcome-to-hickle-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>.. toctree::
+:maxdepth: 2
+:caption: Contents:</p>
+<p>.. automodule:: hickle
+:members: load, dump</p>
 </div>
 <div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<span id="indices-and-tables"></span><h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
-<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+<li>:ref:<code class="docutils literal notranslate"><span class="pre">genindex</span></code></li>
+<li>:ref:<code class="docutils literal notranslate"><span class="pre">modindex</span></code></li>
+<li>:ref:<code class="docutils literal notranslate"><span class="pre">search</span></code></li>
 </ul>
 </div>
 
