@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to hickle’s documentation! &mdash; hickle  documentation</title>
+  <title>Hickle &mdash; hickle  documentation</title>
   
 
   
@@ -78,8 +78,25 @@
             
               <!-- Local TOC -->
               <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Welcome to hickle’s documentation!</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#">Hickle</a><ul>
+<li><a class="reference internal" href="#why-use-hickle">Why use Hickle?</a></li>
+<li><a class="reference internal" href="#recent-changes">Recent changes</a></li>
+<li><a class="reference internal" href="#performance-comparison">Performance comparison</a></li>
+<li><a class="reference internal" href="#installation-guidelines-for-linux-and-mac-os">Installation guidelines (for Linux and Mac OS).</a><ul>
+<li><a class="reference internal" href="#easy-method">Easy method</a></li>
+<li><a class="reference internal" href="#manual-install">Manual install</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#usage-example">Usage example</a><ul>
+<li><a class="reference internal" href="#dumping-to-file">Dumping to file</a></li>
+<li><a class="reference internal" href="#loading-from-file">Loading from file</a></li>
+<li><a class="reference internal" href="#hdf5-compression-options">HDF5 compression options</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bugs-contributing">Bugs &amp; contributing</a></li>
+<li><a class="reference internal" href="#referencing-hickle">Referencing hickle</a></li>
+</ul>
+</li>
 </ul>
 </div>
             
@@ -125,13 +142,13 @@
     
       <li><a href="#">Docs</a> &raquo;</li>
         
-      <li>Welcome to hickle’s documentation!</li>
+      <li>Hickle</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -144,71 +161,200 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-hickle-s-documentation">
-<h1>Welcome to hickle’s documentation!<a class="headerlink" href="#welcome-to-hickle-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Hickle is a [HDF5](<a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">https://www.hdfgroup.org/solutions/hdf5/</a>) based clone of <cite>pickle</cite>, with a twist: instead of serializing to a pickle file,
+  <p><a class="reference external" href="https://travis-ci.org/telegraphic/hickle"><img alt="Build Status" src="https://travis-ci.org/telegraphic/hickle.svg?branch=master" /></a>
+<a class="reference external" href="http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847"><img alt="JOSS Status" src="http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg" /></a></p>
+<div class="section" id="hickle">
+<span id="hickle"></span><h1>Hickle<a class="headerlink" href="#hickle" title="Permalink to this headline">¶</a></h1>
+<p>Hickle is a <a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a> based clone of <code class="docutils literal notranslate"><span class="pre">pickle</span></code>, with a twist: instead of serializing to a pickle file,
 Hickle dumps to a HDF5 file (Hierarchical Data Format). It is designed to be a “drop-in” replacement for pickle (for common data objects), but is
-really an amalgam of <cite>h5py</cite> and <cite>dill</cite>/<cite>pickle</cite> with extended functionality.</p>
-<p>That is: <cite>hickle</cite> is a neat little way of dumping python variables to HDF5 files that can be read in most programming
+really an amalgam of <code class="docutils literal notranslate"><span class="pre">h5py</span></code> and <code class="docutils literal notranslate"><span class="pre">dill</span></code>/<code class="docutils literal notranslate"><span class="pre">pickle</span></code> with extended functionality.</p>
+<p>That is: <code class="docutils literal notranslate"><span class="pre">hickle</span></code> is a neat little way of dumping python variables to HDF5 files that can be read in most programming
 languages, not just Python. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).</p>
-<div class="toctree-wrapper compound">
+<div class="section" id="why-use-hickle">
+<span id="why-use-hickle"></span><h2>Why use Hickle?<a class="headerlink" href="#why-use-hickle" title="Permalink to this headline">¶</a></h2>
+<p>While <code class="docutils literal notranslate"><span class="pre">hickle</span></code> is designed to be a drop-in replacement for <code class="docutils literal notranslate"><span class="pre">pickle</span></code> (or something like <code class="docutils literal notranslate"><span class="pre">json</span></code>), it works very differently.
+Instead of serializing / json-izing, it instead stores the data using the excellent <a class="reference external" href="https://www.h5py.org/">h5py</a> module.</p>
+<p>The main reasons to use hickle are:</p>
+<ol class="simple">
+<li>It’s faster than pickle and cPickle.</li>
+<li>It stores data in HDF5.</li>
+<li>You can easily compress your data.</li>
+</ol>
+<p>The main reasons not to use hickle are:</p>
+<ol class="simple">
+<li>You don’t want to store your data in HDF5. While hickle can serialize arbitrary python objects, this functionality is provided only for convenience, and you’re probably better off just using the pickle module.</li>
+<li>You want to convert your data in human-readable JSON/YAML, in which case, you should do that instead.</li>
+</ol>
+<p>So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try.
+Hickle is particularly good at storing large numpy arrays, thanks to <code class="docutils literal notranslate"><span class="pre">h5py</span></code> running under the hood.</p>
 </div>
-<span class="target" id="module-hickle"></span><dl class="function">
-<dt id="hickle.load">
-<code class="descclassname">hickle.</code><code class="descname">load</code><span class="sig-paren">(</span><em>fileobj</em>, <em>path='/'</em>, <em>safe=True</em><span class="sig-paren">)</span><a class="headerlink" href="#hickle.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a hickle file and reconstruct a python object</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>fileobj</strong> – file object, h5py.File, or filename string
-safe (bool): Disable automatic depickling of arbitrary python objects.
-DO NOT set this to False unless the file is from a trusted source.
-(see <a class="reference external" href="http://www.cs.jhu.edu/~s/musings/pickle.html">http://www.cs.jhu.edu/~s/musings/pickle.html</a> for an explanation)</li>
-<li><strong>path</strong> (<em>str</em>) – path within hdf5 file to save data to. Defaults to root /</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hickle.dump">
-<code class="descclassname">hickle.</code><code class="descname">dump</code><span class="sig-paren">(</span><em>py_obj</em>, <em>file_obj</em>, <em>mode='w'</em>, <em>track_times=True</em>, <em>path='/'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#hickle.dump" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write a pickled representation of obj to the open file object file.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> (<em>object</em>) – python object o store in a Hickle</li>
-<li><strong>file</strong> – file object, filename string, or h5py.File object
-file in which to store the object. A h5py.File or a filename is also
-acceptable.</li>
-<li><strong>mode</strong> (<em>str</em>) – optional argument, ‘r’ (read only), ‘w’ (write) or ‘a’ (append).
-Ignored if file is a file object.</li>
-<li><strong>compression</strong> (<em>str</em>) – optional argument. Applies compression to dataset. Options: None, gzip,
-lzf (+ szip, if installed)</li>
-<li><strong>track_times</strong> (<em>bool</em>) – optional argument. If set to False, repeated hickling will produce
-identical files.</li>
-<li><strong>path</strong> (<em>str</em>) – path within hdf5 file to save data to. Defaults to root /</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="recent-changes">
+<span id="recent-changes"></span><h2>Recent changes<a class="headerlink" href="#recent-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
-<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
-<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+<li>November 2018: Submitted to Journal of Open-Source Software (JOSS).</li>
+<li>June 2018: Major refactor and support for Python 3.</li>
+<li>Aug 2016: Added support for scipy sparse matrices <code class="docutils literal notranslate"><span class="pre">bsr_matrix</span></code>, <code class="docutils literal notranslate"><span class="pre">csr_matrix</span></code> and <code class="docutils literal notranslate"><span class="pre">csc_matrix</span></code>.</li>
 </ul>
+</div>
+<div class="section" id="performance-comparison">
+<span id="performance-comparison"></span><h2>Performance comparison<a class="headerlink" href="#performance-comparison" title="Permalink to this headline">¶</a></h2>
+<p>Hickle runs a lot faster than pickle with its default settings, and a little faster than pickle with <code class="docutils literal notranslate"><span class="pre">protocol=2</span></code> set:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span>In [1]: import numpy as np
+
+In [2]: x = np.random.random((2000, 2000))
+
+In [3]: import pickle
+
+In [4]: f = open(&#39;foo.pkl&#39;, &#39;w&#39;)
+
+In [5]: %time pickle.dump(x, f)  # slow by default
+CPU times: user 2 s, sys: 274 ms, total: 2.27 s
+Wall time: 2.74 s
+
+In [6]: f = open(&#39;foo.pkl&#39;, &#39;w&#39;)
+
+In [7]: %time pickle.dump(x, f, protocol=2)  # actually very fast
+CPU times: user 18.8 ms, sys: 36 ms, total: 54.8 ms
+Wall time: 55.6 ms
+
+In [8]: import hickle
+
+In [9]: f = open(&#39;foo.hkl&#39;, &#39;w&#39;)
+
+In [10]: %time hickle.dump(x, f)  # a bit faster
+dumping &lt;type &#39;numpy.ndarray&#39;&gt; to file &lt;HDF5 file &quot;foo.hkl&quot; (mode r+)&gt;
+CPU times: user 764 µs, sys: 35.6 ms, total: 36.4 ms
+Wall time: 36.2 ms
+</pre></div>
+</div>
+<p>So if you do continue to use pickle, add the <code class="docutils literal notranslate"><span class="pre">protocol=2</span></code> keyword (thanks &#64;mrocklin for pointing this out).</p>
+<p>For storing python dictionaries of lists, hickle beats the python json encoder, but is slower than uJson. For a dictionary with 64 entries, each containing a 4096 length list of random numbers, the times are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">json</span> <span class="n">took</span> <span class="mf">2633.263</span> <span class="n">ms</span>
+<span class="n">uJson</span> <span class="n">took</span> <span class="mf">138.482</span> <span class="n">ms</span>
+<span class="n">hickle</span> <span class="n">took</span> <span class="mf">232.181</span> <span class="n">ms</span>
+</pre></div>
+</div>
+<p>It should be noted that these comparisons are of course not fair: storing in HDF5 will not help you convert something into JSON, nor will it help you serialize a string. But for quick storage of the contents of a python variable, it’s a pretty good option.</p>
+</div>
+<div class="section" id="installation-guidelines-for-linux-and-mac-os">
+<span id="installation-guidelines-for-linux-and-mac-os"></span><h2>Installation guidelines (for Linux and Mac OS).<a class="headerlink" href="#installation-guidelines-for-linux-and-mac-os" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="easy-method">
+<span id="easy-method"></span><h3>Easy method<a class="headerlink" href="#easy-method" title="Permalink to this headline">¶</a></h3>
+<p>Install with <code class="docutils literal notranslate"><span class="pre">pip</span></code> by running <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">hickle</span></code> from the command line.</p>
+</div>
+<div class="section" id="manual-install">
+<span id="manual-install"></span><h3>Manual install<a class="headerlink" href="#manual-install" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>You should have Python 2.7 and above installed</li>
+<li>Install h5py
+(Official page: http://docs.h5py.org/en/latest/build.html)</li>
+<li>Install hdf5
+(Official page: http://www.hdfgroup.org/ftp/HDF5/current/src/unpacked/release_docs/INSTALL)</li>
+<li>Download <code class="docutils literal notranslate"><span class="pre">hickle</span></code>:
+via terminal: git clone https://github.com/telegraphic/hickle.git
+via manual download: Go to https://github.com/telegraphic/hickle and on right hand side you will find <code class="docutils literal notranslate"><span class="pre">Download</span> <span class="pre">ZIP</span></code> file</li>
+<li>cd to your downloaded <code class="docutils literal notranslate"><span class="pre">hickle</span></code> directory</li>
+<li>Then run the following command in the <code class="docutils literal notranslate"><span class="pre">hickle</span></code> directory:
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></code></li>
+</ol>
+</div>
+</div>
+<div class="section" id="usage-example">
+<span id="usage-example"></span><h2>Usage example<a class="headerlink" href="#usage-example" title="Permalink to this headline">¶</a></h2>
+<p>Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">hickle</span> <span class="kn">as</span> <span class="nn">hkl</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+    
+<span class="c1"># Create a numpy array of data</span>
+<span class="n">array_obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">32768</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+    
+<span class="c1"># Dump to file</span>
+<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    
+<span class="c1"># Dump data, with compression</span>
+<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
+  
+<span class="c1"># Compare filesizes</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;uncompressed: </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test.hkl&#39;</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;compressed:   </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">))</span>
+    
+<span class="c1"># Load data</span>
+<span class="n">array_hkl</span> <span class="o">=</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">)</span>
+    
+<span class="c1"># Check the two are the same file</span>
+<span class="k">assert</span> <span class="n">array_hkl</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">array_obj</span><span class="o">.</span><span class="n">dtype</span>
+<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">array_hkl</span><span class="p">,</span> <span class="n">array_obj</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>In short, <code class="docutils literal notranslate"><span class="pre">hickle</span></code> provides two methods: a <code class="docutils literal notranslate"><span class="pre">hickle.load</span></code> method, for loading hickle files, and a <code class="docutils literal notranslate"><span class="pre">hickle.dump</span></code> method,
+for dumping data into HDF5.</p>
+<div class="section" id="dumping-to-file">
+<span id="dumping-to-file"></span><h3>Dumping to file<a class="headerlink" href="#dumping-to-file" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Signature</span><span class="p">:</span> <span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">py_obj</span><span class="p">,</span> <span class="n">file_obj</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">track_times</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+<span class="n">Docstring</span><span class="p">:</span>
+<span class="n">Write</span> <span class="n">a</span> <span class="n">pickled</span> <span class="n">representation</span> <span class="n">of</span> <span class="n">obj</span> <span class="n">to</span> <span class="n">the</span> <span class="nb">open</span> <span class="n">file</span> <span class="nb">object</span> <span class="n">file</span><span class="o">.</span>
+
+<span class="n">Args</span><span class="p">:</span>
+<span class="n">Changing</span> <span class="kn">from</span> <span class="nn">hickle</span> <span class="k">import</span> <span class="o">*</span> <span class="n">line</span> <span class="ow">in</span> <span class="fm">__init__</span><span class="o">.</span><span class="n">py</span> <span class="k">for</span> <span class="n">tidier</span> <span class="kn">import</span>
+<span class="nn">obj</span> <span class="p">(</span><span class="nb">object</span><span class="p">):</span> <span class="n">python</span> <span class="nb">object</span> <span class="n">o</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">a</span> <span class="n">Hickle</span>
+<span class="n">file</span><span class="p">:</span> <span class="n">file</span> <span class="nb">object</span><span class="p">,</span> <span class="n">filename</span> <span class="n">string</span><span class="p">,</span> <span class="ow">or</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span> <span class="nb">object</span>
+        <span class="n">file</span> <span class="ow">in</span> <span class="n">which</span> <span class="n">to</span> <span class="n">store</span> <span class="n">the</span> <span class="nb">object</span><span class="o">.</span> <span class="n">A</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">filename</span> <span class="ow">is</span> <span class="n">also</span>
+        <span class="n">acceptable</span><span class="o">.</span>
+<span class="n">mode</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">optional</span> <span class="n">argument</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span> <span class="p">(</span><span class="n">read</span> <span class="n">only</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span> <span class="p">(</span><span class="n">write</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;a&#39;</span> <span class="p">(</span><span class="n">append</span><span class="p">)</span><span class="o">.</span>
+        <span class="n">Ignored</span> <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">file</span> <span class="nb">object</span><span class="o">.</span>
+<span class="n">compression</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">optional</span> <span class="n">argument</span><span class="o">.</span> <span class="n">Applies</span> <span class="n">compression</span> <span class="n">to</span> <span class="n">dataset</span><span class="o">.</span> <span class="n">Options</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gzip</span><span class="p">,</span>
+        <span class="n">lzf</span> <span class="p">(</span><span class="o">+</span> <span class="n">szip</span><span class="p">,</span> <span class="k">if</span> <span class="n">installed</span><span class="p">)</span>
+<span class="n">track_times</span> <span class="p">(</span><span class="nb">bool</span><span class="p">):</span> <span class="n">optional</span> <span class="n">argument</span><span class="o">.</span> <span class="n">If</span> <span class="nb">set</span> <span class="n">to</span> <span class="kc">False</span><span class="p">,</span> <span class="n">repeated</span> <span class="n">hickling</span> <span class="n">will</span> <span class="n">produce</span>
+        <span class="n">identical</span> <span class="n">files</span><span class="o">.</span>
+<span class="n">path</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">path</span> <span class="n">within</span> <span class="n">hdf5</span> <span class="n">file</span> <span class="n">to</span> <span class="n">save</span> <span class="n">data</span> <span class="n">to</span><span class="o">.</span> <span class="n">Defaults</span> <span class="n">to</span> <span class="n">root</span> <span class="o">/</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="loading-from-file">
+<span id="loading-from-file"></span><h3>Loading from file<a class="headerlink" href="#loading-from-file" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Signature</span><span class="p">:</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">Docstring</span><span class="p">:</span>
+<span class="n">Load</span> <span class="n">a</span> <span class="n">hickle</span> <span class="n">file</span> <span class="ow">and</span> <span class="n">reconstruct</span> <span class="n">a</span> <span class="n">python</span> <span class="nb">object</span>
+
+<span class="n">Args</span><span class="p">:</span>
+    <span class="n">fileobj</span><span class="p">:</span> <span class="n">file</span> <span class="nb">object</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="ow">or</span> <span class="n">filename</span> <span class="n">string</span>
+        <span class="n">safe</span> <span class="p">(</span><span class="nb">bool</span><span class="p">):</span> <span class="n">Disable</span> <span class="n">automatic</span> <span class="n">depickling</span> <span class="n">of</span> <span class="n">arbitrary</span> <span class="n">python</span> <span class="n">objects</span><span class="o">.</span>
+        <span class="n">DO</span> <span class="n">NOT</span> <span class="nb">set</span> <span class="n">this</span> <span class="n">to</span> <span class="kc">False</span> <span class="n">unless</span> <span class="n">the</span> <span class="n">file</span> <span class="ow">is</span> <span class="kn">from</span> <span class="nn">a</span> <span class="n">trusted</span> <span class="n">source</span><span class="o">.</span>
+        <span class="p">(</span><span class="n">see</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">cs</span><span class="o">.</span><span class="n">jhu</span><span class="o">.</span><span class="n">edu</span><span class="o">/~</span><span class="n">s</span><span class="o">/</span><span class="n">musings</span><span class="o">/</span><span class="n">pickle</span><span class="o">.</span><span class="n">html</span> <span class="k">for</span> <span class="n">an</span> <span class="n">explanation</span><span class="p">)</span>
+
+    <span class="n">path</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">path</span> <span class="n">within</span> <span class="n">hdf5</span> <span class="n">file</span> <span class="n">to</span> <span class="n">save</span> <span class="n">data</span> <span class="n">to</span><span class="o">.</span> <span class="n">Defaults</span> <span class="n">to</span> <span class="n">root</span> <span class="o">/</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="hdf5-compression-options">
+<span id="hdf5-compression-options"></span><h3>HDF5 compression options<a class="headerlink" href="#hdf5-compression-options" title="Permalink to this headline">¶</a></h3>
+<p>A major benefit of <code class="docutils literal notranslate"><span class="pre">hickle</span></code> over <code class="docutils literal notranslate"><span class="pre">pickle</span></code> is that it allows fancy HDF5 features to
+be applied, by passing on keyword arguments on to <code class="docutils literal notranslate"><span class="pre">h5py</span></code>. So, you can do things like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_lzf.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;lzf&#39;</span><span class="p">,</span> <span class="n">scaleoffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
+         <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">fletcher32</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A detailed explanation of these keywords is given at http://docs.h5py.org/en/latest/high/dataset.html,
+but we give a quick rundown below.</p>
+<p>In HDF5, datasets are stored as B-trees, a tree data structure that has speed benefits over contiguous
+blocks of data. In the B-tree, data are split into <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#chunked-storage">chunks</a>,
+which is leveraged to allow <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#resizable-datasets">dataset resizing</a> and
+compression via <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#filter-pipeline">filter pipelines</a>. Filters such as
+<code class="docutils literal notranslate"><span class="pre">shuffle</span></code> and <code class="docutils literal notranslate"><span class="pre">scaleoffset</span></code> move your data around to improve compression ratios, and <code class="docutils literal notranslate"><span class="pre">fletcher32</span></code> computes a checksum.
+These file-level options are abstracted away from the data model.</p>
+</div>
+</div>
+<div class="section" id="bugs-contributing">
+<span id="bugs-contributing"></span><h2>Bugs &amp; contributing<a class="headerlink" href="#bugs-contributing" title="Permalink to this headline">¶</a></h2>
+<p>Contributions and bugfixes are very welcome. Please check out our <a class="reference external" href="https://github.com/telegraphic/hickle/blob/master/CONTRIBUTING.md">contribution guidelines</a>
+for more details on how to contribute to development.</p>
+</div>
+<div class="section" id="referencing-hickle">
+<span id="referencing-hickle"></span><h2>Referencing hickle<a class="headerlink" href="#referencing-hickle" title="Permalink to this headline">¶</a></h2>
+<p>If you use <code class="docutils literal notranslate"><span class="pre">hickle</span></code> in academic research, we would be grateful if you could reference our paper (<a class="reference external" href="https://github.com/telegraphic/hickle/blob/master/paper.md">Markdown</a> | PDF),
+which is currently under review  in the <a class="reference external" href="http://joss.theoj.org/about">Journal of Open-Source Software (JOSS)</a>.</p>
+</div>
 </div>
 
 
