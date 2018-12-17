@@ -110,11 +110,23 @@ via manual download: Go to https://github.com/telegraphic/hickle and on right ha
 6. Then run the following command in the `hickle` directory: 
      `python setup.py install`
      
+### Testing
+
+Once installed from source, run `python setup.py test` to check it's all working.
+
+Documentation
+-------------
+
+Documentation for hickle can be found at [telegraphic.github.io/hickle/](http://telegraphic.github.io/hickle/).
 
 Usage example
 -------------
 
-Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before:
+Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before.
+
+In short, `hickle` provides two methods: a [hickle.load](http://telegraphic.github.io/hickle/toc.html#hickle.load)
+method, for loading hickle files, and a [hickle.dump](http://telegraphic.github.io/hickle/toc.html#hickle.dump) 
+method, for dumping data into HDF5. Here's a complete example:
 
 ```python
 import os
@@ -142,48 +154,8 @@ assert array_hkl.dtype == array_obj.dtype
 assert np.all((array_hkl, array_obj))
 ```
 
-In short, `hickle` provides two methods: a `hickle.load` method, for loading hickle files, and a `hickle.dump` method,
-for dumping data into HDF5. 
 
-#### Dumping to file
-```
-Signature: hkl.dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs)
-Docstring:
-Write a pickled representation of obj to the open file object file.
-
-Args:
-Changing from hickle import * line in __init__.py for tidier import
-obj (object): python object o store in a Hickle
-file: file object, filename string, or h5py.File object
-        file in which to store the object. A h5py.File or a filename is also
-        acceptable.
-mode (str): optional argument, 'r' (read only), 'w' (write) or 'a' (append).
-        Ignored if file is a file object.
-compression (str): optional argument. Applies compression to dataset. Options: None, gzip,
-        lzf (+ szip, if installed)
-track_times (bool): optional argument. If set to False, repeated hickling will produce
-        identical files.
-path (str): path within hdf5 file to save data to. Defaults to root /
-```
-
-#### Loading from file
-
-```
-Signature: hkl.load(fileobj, path='/', safe=True)
-Docstring:
-Load a hickle file and reconstruct a python object
-
-Args:
-    fileobj: file object, h5py.File, or filename string
-        safe (bool): Disable automatic depickling of arbitrary python objects.
-        DO NOT set this to False unless the file is from a trusted source.
-        (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
-
-    path (str): path within hdf5 file to save data to. Defaults to root /
-```
-
-
-#### HDF5 compression options
+### HDF5 compression options
 
 A major benefit of `hickle` over `pickle` is that it allows fancy HDF5 features to 
 be applied, by passing on keyword arguments on to `h5py`. So, you can do things like:
@@ -201,13 +173,15 @@ compression via [filter pipelines](http://docs.h5py.org/en/latest/high/dataset.h
 `shuffle` and `scaleoffset` move your data around to improve compression ratios, and `fletcher32` computes a checksum.
 These file-level options are abstracted away from the data model. 
 
-## Bugs & contributing 
+Bugs & contributing 
+--------------------
 
 Contributions and bugfixes are very welcome. Please check out our [contribution guidelines](https://github.com/telegraphic/hickle/blob/master/CONTRIBUTING.md)
 for more details on how to contribute to development.
 
 
-## Referencing hickle
+Referencing hickle
+------------------
 
 If you use `hickle` in academic research, we would be grateful if you could reference our paper ([Markdown](https://github.com/telegraphic/hickle/blob/master/paper.md) | PDF), 
 which is currently under review  in the [Journal of Open-Source Software (JOSS)](http://joss.theoj.org/about).

@@ -85,11 +85,11 @@
 <li><a class="reference internal" href="#installation-guidelines-for-linux-and-mac-os">Installation guidelines (for Linux and Mac OS).</a><ul>
 <li><a class="reference internal" href="#easy-method">Easy method</a></li>
 <li><a class="reference internal" href="#manual-install">Manual install</a></li>
+<li><a class="reference internal" href="#testing">Testing</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
 <li><a class="reference internal" href="#usage-example">Usage example</a><ul>
-<li><a class="reference internal" href="#dumping-to-file">Dumping to file</a></li>
-<li><a class="reference internal" href="#loading-from-file">Loading from file</a></li>
 <li><a class="reference internal" href="#hdf5-compression-options">HDF5 compression options</a></li>
 </ul>
 </li>
@@ -258,10 +258,21 @@ via manual download: Go to https://github.com/telegraphic/hickle and on right ha
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></code></li>
 </ol>
 </div>
+<div class="section" id="testing">
+<span id="testing"></span><h3>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h3>
+<p>Once installed from source, run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">test</span></code> to check it’s all working.</p>
+</div>
+</div>
+<div class="section" id="documentation">
+<span id="documentation"></span><h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
+<p>Documentation for hickle can be found at <a class="reference external" href="http://telegraphic.github.io/hickle/">telegraphic.github.io/hickle/</a>.</p>
 </div>
 <div class="section" id="usage-example">
 <span id="usage-example"></span><h2>Usage example<a class="headerlink" href="#usage-example" title="Permalink to this headline">¶</a></h2>
-<p>Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before:</p>
+<p>Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before.</p>
+<p>In short, <code class="docutils literal notranslate"><span class="pre">hickle</span></code> provides two methods: a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.load">hickle.load</a>
+method, for loading hickle files, and a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.dump">hickle.dump</a>
+method, for dumping data into HDF5. Here’s a complete example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">hickle</span> <span class="kn">as</span> <span class="nn">hkl</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
@@ -286,46 +297,6 @@ via manual download: Go to https://github.com/telegraphic/hickle and on right ha
 <span class="k">assert</span> <span class="n">array_hkl</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">array_obj</span><span class="o">.</span><span class="n">dtype</span>
 <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">array_hkl</span><span class="p">,</span> <span class="n">array_obj</span><span class="p">))</span>
 </pre></div>
-</div>
-<p>In short, <code class="docutils literal notranslate"><span class="pre">hickle</span></code> provides two methods: a <code class="docutils literal notranslate"><span class="pre">hickle.load</span></code> method, for loading hickle files, and a <code class="docutils literal notranslate"><span class="pre">hickle.dump</span></code> method,
-for dumping data into HDF5.</p>
-<div class="section" id="dumping-to-file">
-<span id="dumping-to-file"></span><h3>Dumping to file<a class="headerlink" href="#dumping-to-file" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Signature</span><span class="p">:</span> <span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">py_obj</span><span class="p">,</span> <span class="n">file_obj</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">track_times</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<span class="n">Docstring</span><span class="p">:</span>
-<span class="n">Write</span> <span class="n">a</span> <span class="n">pickled</span> <span class="n">representation</span> <span class="n">of</span> <span class="n">obj</span> <span class="n">to</span> <span class="n">the</span> <span class="nb">open</span> <span class="n">file</span> <span class="nb">object</span> <span class="n">file</span><span class="o">.</span>
-
-<span class="n">Args</span><span class="p">:</span>
-<span class="n">Changing</span> <span class="kn">from</span> <span class="nn">hickle</span> <span class="k">import</span> <span class="o">*</span> <span class="n">line</span> <span class="ow">in</span> <span class="fm">__init__</span><span class="o">.</span><span class="n">py</span> <span class="k">for</span> <span class="n">tidier</span> <span class="kn">import</span>
-<span class="nn">obj</span> <span class="p">(</span><span class="nb">object</span><span class="p">):</span> <span class="n">python</span> <span class="nb">object</span> <span class="n">o</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">a</span> <span class="n">Hickle</span>
-<span class="n">file</span><span class="p">:</span> <span class="n">file</span> <span class="nb">object</span><span class="p">,</span> <span class="n">filename</span> <span class="n">string</span><span class="p">,</span> <span class="ow">or</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span> <span class="nb">object</span>
-        <span class="n">file</span> <span class="ow">in</span> <span class="n">which</span> <span class="n">to</span> <span class="n">store</span> <span class="n">the</span> <span class="nb">object</span><span class="o">.</span> <span class="n">A</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span> <span class="ow">or</span> <span class="n">a</span> <span class="n">filename</span> <span class="ow">is</span> <span class="n">also</span>
-        <span class="n">acceptable</span><span class="o">.</span>
-<span class="n">mode</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">optional</span> <span class="n">argument</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span> <span class="p">(</span><span class="n">read</span> <span class="n">only</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span> <span class="p">(</span><span class="n">write</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;a&#39;</span> <span class="p">(</span><span class="n">append</span><span class="p">)</span><span class="o">.</span>
-        <span class="n">Ignored</span> <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">file</span> <span class="nb">object</span><span class="o">.</span>
-<span class="n">compression</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">optional</span> <span class="n">argument</span><span class="o">.</span> <span class="n">Applies</span> <span class="n">compression</span> <span class="n">to</span> <span class="n">dataset</span><span class="o">.</span> <span class="n">Options</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gzip</span><span class="p">,</span>
-        <span class="n">lzf</span> <span class="p">(</span><span class="o">+</span> <span class="n">szip</span><span class="p">,</span> <span class="k">if</span> <span class="n">installed</span><span class="p">)</span>
-<span class="n">track_times</span> <span class="p">(</span><span class="nb">bool</span><span class="p">):</span> <span class="n">optional</span> <span class="n">argument</span><span class="o">.</span> <span class="n">If</span> <span class="nb">set</span> <span class="n">to</span> <span class="kc">False</span><span class="p">,</span> <span class="n">repeated</span> <span class="n">hickling</span> <span class="n">will</span> <span class="n">produce</span>
-        <span class="n">identical</span> <span class="n">files</span><span class="o">.</span>
-<span class="n">path</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">path</span> <span class="n">within</span> <span class="n">hdf5</span> <span class="n">file</span> <span class="n">to</span> <span class="n">save</span> <span class="n">data</span> <span class="n">to</span><span class="o">.</span> <span class="n">Defaults</span> <span class="n">to</span> <span class="n">root</span> <span class="o">/</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="loading-from-file">
-<span id="loading-from-file"></span><h3>Loading from file<a class="headerlink" href="#loading-from-file" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Signature</span><span class="p">:</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">Docstring</span><span class="p">:</span>
-<span class="n">Load</span> <span class="n">a</span> <span class="n">hickle</span> <span class="n">file</span> <span class="ow">and</span> <span class="n">reconstruct</span> <span class="n">a</span> <span class="n">python</span> <span class="nb">object</span>
-
-<span class="n">Args</span><span class="p">:</span>
-    <span class="n">fileobj</span><span class="p">:</span> <span class="n">file</span> <span class="nb">object</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="ow">or</span> <span class="n">filename</span> <span class="n">string</span>
-        <span class="n">safe</span> <span class="p">(</span><span class="nb">bool</span><span class="p">):</span> <span class="n">Disable</span> <span class="n">automatic</span> <span class="n">depickling</span> <span class="n">of</span> <span class="n">arbitrary</span> <span class="n">python</span> <span class="n">objects</span><span class="o">.</span>
-        <span class="n">DO</span> <span class="n">NOT</span> <span class="nb">set</span> <span class="n">this</span> <span class="n">to</span> <span class="kc">False</span> <span class="n">unless</span> <span class="n">the</span> <span class="n">file</span> <span class="ow">is</span> <span class="kn">from</span> <span class="nn">a</span> <span class="n">trusted</span> <span class="n">source</span><span class="o">.</span>
-        <span class="p">(</span><span class="n">see</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="o">.</span><span class="n">cs</span><span class="o">.</span><span class="n">jhu</span><span class="o">.</span><span class="n">edu</span><span class="o">/~</span><span class="n">s</span><span class="o">/</span><span class="n">musings</span><span class="o">/</span><span class="n">pickle</span><span class="o">.</span><span class="n">html</span> <span class="k">for</span> <span class="n">an</span> <span class="n">explanation</span><span class="p">)</span>
-
-    <span class="n">path</span> <span class="p">(</span><span class="nb">str</span><span class="p">):</span> <span class="n">path</span> <span class="n">within</span> <span class="n">hdf5</span> <span class="n">file</span> <span class="n">to</span> <span class="n">save</span> <span class="n">data</span> <span class="n">to</span><span class="o">.</span> <span class="n">Defaults</span> <span class="n">to</span> <span class="n">root</span> <span class="o">/</span>
-</pre></div>
-</div>
 </div>
 <div class="section" id="hdf5-compression-options">
 <span id="hdf5-compression-options"></span><h3>HDF5 compression options<a class="headerlink" href="#hdf5-compression-options" title="Permalink to this headline">¶</a></h3>
