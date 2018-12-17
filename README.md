@@ -32,10 +32,69 @@ The main reasons not to use hickle are:
 So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try. 
 Hickle is particularly good at storing large numpy arrays, thanks to `h5py` running under the hood. 
 
+Documentation
+-------------
+
+Documentation for hickle can be found at [telegraphic.github.io/hickle/](http://telegraphic.github.io/hickle/).
+
+
+Usage example
+-------------
+
+Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before.
+
+In short, `hickle` provides two methods: a [hickle.load](http://telegraphic.github.io/hickle/toc.html#hickle.load)
+method, for loading hickle files, and a [hickle.dump](http://telegraphic.github.io/hickle/toc.html#hickle.dump) 
+method, for dumping data into HDF5. Here's a complete example:
+
+```python
+import os
+import hickle as hkl
+import numpy as np
+    
+# Create a numpy array of data
+array_obj = np.ones(32768, dtype='float32')
+    
+# Dump to file
+hkl.dump(array_obj, 'test.hkl', mode='w')
+    
+# Dump data, with compression
+hkl.dump(array_obj, 'test_gzip.hkl', mode='w', compression='gzip')
+  
+# Compare filesizes
+print('uncompressed: %i bytes' % os.path.getsize('test.hkl'))
+print('compressed:   %i bytes' % os.path.getsize('test_gzip.hkl'))
+    
+# Load data
+array_hkl = hkl.load('test_gzip.hkl')
+    
+# Check the two are the same file
+assert array_hkl.dtype == array_obj.dtype
+assert np.all((array_hkl, array_obj))
+```
+
+### HDF5 compression options
+
+A major benefit of `hickle` over `pickle` is that it allows fancy HDF5 features to 
+be applied, by passing on keyword arguments on to `h5py`. So, you can do things like:
+  ```python
+  hkl.dump(array_obj, 'test_lzf.hkl', mode='w', compression='lzf', scaleoffset=0, 
+           chunks=(100, 100), shuffle=True, fletcher32=True)
+  ```
+A detailed explanation of these keywords is given at http://docs.h5py.org/en/latest/high/dataset.html,
+but we give a quick rundown below.
+
+In HDF5, datasets are stored as B-trees, a tree data structure that has speed benefits over contiguous
+blocks of data. In the B-tree, data are split into [chunks](http://docs.h5py.org/en/latest/high/dataset.html#chunked-storage),
+which is leveraged to allow [dataset resizing](http://docs.h5py.org/en/latest/high/dataset.html#resizable-datasets) and 
+compression via [filter pipelines](http://docs.h5py.org/en/latest/high/dataset.html#filter-pipeline). Filters such as
+`shuffle` and `scaleoffset` move your data around to improve compression ratios, and `fletcher32` computes a checksum.
+These file-level options are abstracted away from the data model. 
+
 Recent changes
 --------------
 
-* November 2018: Submitted to Journal of Open-Source Software (JOSS).
+* December 2018: Accepted to Journal of Open-Source Software (JOSS).
 * June 2018: Major refactor and support for Python 3. 
 * Aug 2016: Added support for scipy sparse matrices `bsr_matrix`, `csr_matrix` and `csc_matrix`.
 
@@ -114,64 +173,6 @@ via manual download: Go to https://github.com/telegraphic/hickle and on right ha
 
 Once installed from source, run `python setup.py test` to check it's all working.
 
-Documentation
--------------
-
-Documentation for hickle can be found at [telegraphic.github.io/hickle/](http://telegraphic.github.io/hickle/).
-
-Usage example
--------------
-
-Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before.
-
-In short, `hickle` provides two methods: a [hickle.load](http://telegraphic.github.io/hickle/toc.html#hickle.load)
-method, for loading hickle files, and a [hickle.dump](http://telegraphic.github.io/hickle/toc.html#hickle.dump) 
-method, for dumping data into HDF5. Here's a complete example:
-
-```python
-import os
-import hickle as hkl
-import numpy as np
-    
-# Create a numpy array of data
-array_obj = np.ones(32768, dtype='float32')
-    
-# Dump to file
-hkl.dump(array_obj, 'test.hkl', mode='w')
-    
-# Dump data, with compression
-hkl.dump(array_obj, 'test_gzip.hkl', mode='w', compression='gzip')
-  
-# Compare filesizes
-print('uncompressed: %i bytes' % os.path.getsize('test.hkl'))
-print('compressed:   %i bytes' % os.path.getsize('test_gzip.hkl'))
-    
-# Load data
-array_hkl = hkl.load('test_gzip.hkl')
-    
-# Check the two are the same file
-assert array_hkl.dtype == array_obj.dtype
-assert np.all((array_hkl, array_obj))
-```
-
-
-### HDF5 compression options
-
-A major benefit of `hickle` over `pickle` is that it allows fancy HDF5 features to 
-be applied, by passing on keyword arguments on to `h5py`. So, you can do things like:
-  ```python
-  hkl.dump(array_obj, 'test_lzf.hkl', mode='w', compression='lzf', scaleoffset=0, 
-           chunks=(100, 100), shuffle=True, fletcher32=True)
-  ```
-A detailed explanation of these keywords is given at http://docs.h5py.org/en/latest/high/dataset.html,
-but we give a quick rundown below.
-
-In HDF5, datasets are stored as B-trees, a tree data structure that has speed benefits over contiguous
-blocks of data. In the B-tree, data are split into [chunks](http://docs.h5py.org/en/latest/high/dataset.html#chunked-storage),
-which is leveraged to allow [dataset resizing](http://docs.h5py.org/en/latest/high/dataset.html#resizable-datasets) and 
-compression via [filter pipelines](http://docs.h5py.org/en/latest/high/dataset.html#filter-pipeline). Filters such as
-`shuffle` and `scaleoffset` move your data around to improve compression ratios, and `fletcher32` computes a checksum.
-These file-level options are abstracted away from the data model. 
 
 Bugs & contributing 
 --------------------
