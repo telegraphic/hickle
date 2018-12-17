@@ -80,17 +80,17 @@
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Hickle</a><ul>
 <li><a class="reference internal" href="#why-use-hickle">Why use Hickle?</a></li>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
+<li><a class="reference internal" href="#usage-example">Usage example</a><ul>
+<li><a class="reference internal" href="#hdf5-compression-options">HDF5 compression options</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#recent-changes">Recent changes</a></li>
 <li><a class="reference internal" href="#performance-comparison">Performance comparison</a></li>
 <li><a class="reference internal" href="#installation-guidelines-for-linux-and-mac-os">Installation guidelines (for Linux and Mac OS).</a><ul>
 <li><a class="reference internal" href="#easy-method">Easy method</a></li>
 <li><a class="reference internal" href="#manual-install">Manual install</a></li>
 <li><a class="reference internal" href="#testing">Testing</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#documentation">Documentation</a></li>
-<li><a class="reference internal" href="#usage-example">Usage example</a><ul>
-<li><a class="reference internal" href="#hdf5-compression-options">HDF5 compression options</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#bugs-contributing">Bugs &amp; contributing</a></li>
@@ -188,10 +188,63 @@ Instead of serializing / json-izing, it instead stores the data using the excell
 <p>So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try.
 Hickle is particularly good at storing large numpy arrays, thanks to <code class="docutils literal notranslate"><span class="pre">h5py</span></code> running under the hood.</p>
 </div>
+<div class="section" id="documentation">
+<span id="documentation"></span><h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
+<p>Documentation for hickle can be found at <a class="reference external" href="http://telegraphic.github.io/hickle/">telegraphic.github.io/hickle/</a>.</p>
+</div>
+<div class="section" id="usage-example">
+<span id="usage-example"></span><h2>Usage example<a class="headerlink" href="#usage-example" title="Permalink to this headline">¶</a></h2>
+<p>Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before.</p>
+<p>In short, <code class="docutils literal notranslate"><span class="pre">hickle</span></code> provides two methods: a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.load">hickle.load</a>
+method, for loading hickle files, and a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.dump">hickle.dump</a>
+method, for dumping data into HDF5. Here’s a complete example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">hickle</span> <span class="kn">as</span> <span class="nn">hkl</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+    
+<span class="c1"># Create a numpy array of data</span>
+<span class="n">array_obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">32768</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+    
+<span class="c1"># Dump to file</span>
+<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    
+<span class="c1"># Dump data, with compression</span>
+<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
+  
+<span class="c1"># Compare filesizes</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;uncompressed: </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test.hkl&#39;</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s1">&#39;compressed:   </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">))</span>
+    
+<span class="c1"># Load data</span>
+<span class="n">array_hkl</span> <span class="o">=</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">)</span>
+    
+<span class="c1"># Check the two are the same file</span>
+<span class="k">assert</span> <span class="n">array_hkl</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">array_obj</span><span class="o">.</span><span class="n">dtype</span>
+<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">array_hkl</span><span class="p">,</span> <span class="n">array_obj</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="section" id="hdf5-compression-options">
+<span id="hdf5-compression-options"></span><h3>HDF5 compression options<a class="headerlink" href="#hdf5-compression-options" title="Permalink to this headline">¶</a></h3>
+<p>A major benefit of <code class="docutils literal notranslate"><span class="pre">hickle</span></code> over <code class="docutils literal notranslate"><span class="pre">pickle</span></code> is that it allows fancy HDF5 features to
+be applied, by passing on keyword arguments on to <code class="docutils literal notranslate"><span class="pre">h5py</span></code>. So, you can do things like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_lzf.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;lzf&#39;</span><span class="p">,</span> <span class="n">scaleoffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
+         <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">fletcher32</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A detailed explanation of these keywords is given at http://docs.h5py.org/en/latest/high/dataset.html,
+but we give a quick rundown below.</p>
+<p>In HDF5, datasets are stored as B-trees, a tree data structure that has speed benefits over contiguous
+blocks of data. In the B-tree, data are split into <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#chunked-storage">chunks</a>,
+which is leveraged to allow <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#resizable-datasets">dataset resizing</a> and
+compression via <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#filter-pipeline">filter pipelines</a>. Filters such as
+<code class="docutils literal notranslate"><span class="pre">shuffle</span></code> and <code class="docutils literal notranslate"><span class="pre">scaleoffset</span></code> move your data around to improve compression ratios, and <code class="docutils literal notranslate"><span class="pre">fletcher32</span></code> computes a checksum.
+These file-level options are abstracted away from the data model.</p>
+</div>
+</div>
 <div class="section" id="recent-changes">
 <span id="recent-changes"></span><h2>Recent changes<a class="headerlink" href="#recent-changes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>November 2018: Submitted to Journal of Open-Source Software (JOSS).</li>
+<li>December 2018: Accepted to Journal of Open-Source Software (JOSS).</li>
 <li>June 2018: Major refactor and support for Python 3.</li>
 <li>Aug 2016: Added support for scipy sparse matrices <code class="docutils literal notranslate"><span class="pre">bsr_matrix</span></code>, <code class="docutils literal notranslate"><span class="pre">csr_matrix</span></code> and <code class="docutils literal notranslate"><span class="pre">csc_matrix</span></code>.</li>
 </ul>
@@ -263,59 +316,6 @@ via manual download: Go to https://github.com/telegraphic/hickle and on right ha
 <p>Once installed from source, run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">test</span></code> to check it’s all working.</p>
 </div>
 </div>
-<div class="section" id="documentation">
-<span id="documentation"></span><h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
-<p>Documentation for hickle can be found at <a class="reference external" href="http://telegraphic.github.io/hickle/">telegraphic.github.io/hickle/</a>.</p>
-</div>
-<div class="section" id="usage-example">
-<span id="usage-example"></span><h2>Usage example<a class="headerlink" href="#usage-example" title="Permalink to this headline">¶</a></h2>
-<p>Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before.</p>
-<p>In short, <code class="docutils literal notranslate"><span class="pre">hickle</span></code> provides two methods: a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.load">hickle.load</a>
-method, for loading hickle files, and a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.dump">hickle.dump</a>
-method, for dumping data into HDF5. Here’s a complete example:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">hickle</span> <span class="kn">as</span> <span class="nn">hkl</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-    
-<span class="c1"># Create a numpy array of data</span>
-<span class="n">array_obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">32768</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
-    
-<span class="c1"># Dump to file</span>
-<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
-    
-<span class="c1"># Dump data, with compression</span>
-<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
-  
-<span class="c1"># Compare filesizes</span>
-<span class="k">print</span><span class="p">(</span><span class="s1">&#39;uncompressed: </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test.hkl&#39;</span><span class="p">))</span>
-<span class="k">print</span><span class="p">(</span><span class="s1">&#39;compressed:   </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">))</span>
-    
-<span class="c1"># Load data</span>
-<span class="n">array_hkl</span> <span class="o">=</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">)</span>
-    
-<span class="c1"># Check the two are the same file</span>
-<span class="k">assert</span> <span class="n">array_hkl</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">array_obj</span><span class="o">.</span><span class="n">dtype</span>
-<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">array_hkl</span><span class="p">,</span> <span class="n">array_obj</span><span class="p">))</span>
-</pre></div>
-</div>
-<div class="section" id="hdf5-compression-options">
-<span id="hdf5-compression-options"></span><h3>HDF5 compression options<a class="headerlink" href="#hdf5-compression-options" title="Permalink to this headline">¶</a></h3>
-<p>A major benefit of <code class="docutils literal notranslate"><span class="pre">hickle</span></code> over <code class="docutils literal notranslate"><span class="pre">pickle</span></code> is that it allows fancy HDF5 features to
-be applied, by passing on keyword arguments on to <code class="docutils literal notranslate"><span class="pre">h5py</span></code>. So, you can do things like:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_lzf.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;lzf&#39;</span><span class="p">,</span> <span class="n">scaleoffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
-         <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">fletcher32</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>A detailed explanation of these keywords is given at http://docs.h5py.org/en/latest/high/dataset.html,
-but we give a quick rundown below.</p>
-<p>In HDF5, datasets are stored as B-trees, a tree data structure that has speed benefits over contiguous
-blocks of data. In the B-tree, data are split into <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#chunked-storage">chunks</a>,
-which is leveraged to allow <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#resizable-datasets">dataset resizing</a> and
-compression via <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#filter-pipeline">filter pipelines</a>. Filters such as
-<code class="docutils literal notranslate"><span class="pre">shuffle</span></code> and <code class="docutils literal notranslate"><span class="pre">scaleoffset</span></code> move your data around to improve compression ratios, and <code class="docutils literal notranslate"><span class="pre">fletcher32</span></code> computes a checksum.
-These file-level options are abstracted away from the data model.</p>
-</div>
-</div>
 <div class="section" id="bugs-contributing">
 <span id="bugs-contributing"></span><h2>Bugs &amp; contributing<a class="headerlink" href="#bugs-contributing" title="Permalink to this headline">¶</a></h2>
 <p>Contributions and bugfixes are very welcome. Please check out our <a class="reference external" href="https://github.com/telegraphic/hickle/blob/master/CONTRIBUTING.md">contribution guidelines</a>
@@ -323,8 +323,10 @@ for more details on how to contribute to development.</p>
 </div>
 <div class="section" id="referencing-hickle">
 <span id="referencing-hickle"></span><h2>Referencing hickle<a class="headerlink" href="#referencing-hickle" title="Permalink to this headline">¶</a></h2>
-<p>If you use <code class="docutils literal notranslate"><span class="pre">hickle</span></code> in academic research, we would be grateful if you could reference our paper (<a class="reference external" href="https://github.com/telegraphic/hickle/blob/master/paper.md">Markdown</a> | PDF),
-which is currently under review  in the <a class="reference external" href="http://joss.theoj.org/about">Journal of Open-Source Software (JOSS)</a>.</p>
+<p>If you use <code class="docutils literal notranslate"><span class="pre">hickle</span></code> in academic research, we would be grateful if you could reference <a class="reference external" href="http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847">our paper</a> in the <a class="reference external" href="http://joss.theoj.org/about">Journal of Open-Source Software (JOSS)</a>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Price</span> <span class="n">et</span> <span class="n">al</span><span class="o">.</span><span class="p">,</span> <span class="p">(</span><span class="mi">2018</span><span class="p">)</span><span class="o">.</span> <span class="n">Hickle</span><span class="p">:</span> <span class="n">A</span> <span class="n">HDF5</span><span class="o">-</span><span class="n">based</span> <span class="n">python</span> <span class="n">pickle</span> <span class="n">replacement</span><span class="o">.</span> <span class="n">Journal</span> <span class="n">of</span> <span class="n">Open</span> <span class="n">Source</span> <span class="n">Software</span><span class="p">,</span> <span class="mi">3</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span> <span class="mi">1115</span><span class="p">,</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">doi</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="mf">10.21105</span><span class="o">/</span><span class="n">joss</span><span class="o">.</span><span class="mi">01115</span>
+</pre></div>
+</div>
 </div>
 </div>
 
