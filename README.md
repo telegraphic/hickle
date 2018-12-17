@@ -183,5 +183,8 @@ for more details on how to contribute to development.
 Referencing hickle
 ------------------
 
-If you use `hickle` in academic research, we would be grateful if you could reference our paper ([Markdown](https://github.com/telegraphic/hickle/blob/master/paper.md) | PDF), 
-which is currently under review  in the [Journal of Open-Source Software (JOSS)](http://joss.theoj.org/about).
+If you use `hickle` in academic research, we would be grateful if you could reference [our paper](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847) in the [Journal of Open-Source Software (JOSS)](http://joss.theoj.org/about).
+
+```
+Price et al., (2018). Hickle: A HDF5-based python pickle replacement. Journal of Open Source Software, 3(32), 1115, https://doi.org/10.21105/joss.01115
+```
