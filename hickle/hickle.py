@@ -518,7 +518,7 @@ def load(fileobj, path='/', safe=True):
                         warnings.warn("Hickle file appears to be old version (v2), attempting "
                                       "legacy loading...")
                         from . import hickle_legacy2
-                        return hickle_legacy2.load(fileobj, safe=safe)
+                        return hickle_legacy2.load(fileobj, path=path, safe=safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
                                            " created with Python 2 and an old hickle version.")
@@ -530,7 +530,7 @@ def load(fileobj, path='/', safe=True):
                         warnings.warn("Hickle file appears to be old version (v2.1.0), attempting "
                                       "legacy loading...")
                         from . import hickle_legacy2
-                        return hickle_legacy2.load(fileobj, safe=safe)
+                        return hickle_legacy2.load(fileobj, path=path, safe=safe)
                     else:
                         raise RuntimeError("Cannot open file. This file was likely"
                                            " created with Python 2 and an old hickle version.")
