@@ -11,12 +11,16 @@ if sys.version_info.major == 3:
 else:
       astro = "astropy<3.0"
 
-version = '3.3.2'
+version = '3.3.3'
 author  = 'Danny Price'
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(name='hickle',
       version=version,
       description='Hickle - a HDF5 based version of pickle',
+      long_description=long_description,
       author=author,
       author_email='dan@thetelegraphic.com',
       url='http://github.com/telegraphic/hickle',
