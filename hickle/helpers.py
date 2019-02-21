@@ -57,7 +57,7 @@ def check_is_iterable(py_obj):
         string_types = (str, unicode)
     else:
         string_types = (str, bytes, bytearray)
-    if type(py_obj) in string_types:
+    if isinstance(py_obj, string_types):
         return False
     try:
         iter(py_obj)
@@ -104,8 +104,5 @@ def check_iterable_item_type(iter_obj):
         return False
     except Exception as ex:
         return False
-
-    if isinstance(iter_obj, dict):
-        return first_type
     else:
         return first_type if all((type(x) is first_type) for x in iseq) else False

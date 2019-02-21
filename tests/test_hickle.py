@@ -707,7 +707,10 @@ def test_nonstring_keys():
                 True: 'hi',
                 1.1 : 'hey',
                 #2L : 'omg',
-                1j: 'complex_hashable'
+                1j: 'complex_hashable',
+                (1, 2): 'boo',
+                ('A', 17.4, 42): [1, 7, 'A'],
+                (): '1313e was here'
                 }
         #data = {'0': 123, 'def': 456}
         print(data)

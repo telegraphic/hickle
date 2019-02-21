@@ -220,7 +220,11 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
     if check_is_ndarray_like(py_obj):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
-    # next, check if item is iterable
+    # Next, check if item is a dict
+    elif isinstance(py_obj, dict):
+        create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
+
+    # If not, check if item is iterable
     elif check_is_iterable(py_obj):
         item_type = check_iterable_item_type(py_obj)
 

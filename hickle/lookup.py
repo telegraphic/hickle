@@ -96,11 +96,13 @@ container_key_types_dict = {
     b"<type 'bool'>": bool,
     b"<type 'int'>": int,
     b"<type 'complex'>": complex,
+    b"<type 'tuple'>": eval,
     b"<class 'str'>": str,
     b"<class 'float'>": float,
     b"<class 'bool'>": bool,
     b"<class 'int'>": int,
-    b"<class 'complex'>": complex
+    b"<class 'complex'>": complex,
+    b"<class 'tuple'>": eval
     }
 
 if six.PY2:
