@@ -22,10 +22,10 @@ h5py installed.
 
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 import sys
 import os
-from pkg_resources import get_distribution
+from pkg_resources import get_distribution, DistributionNotFound
 
 import numpy as np
 import h5py as h5
@@ -55,14 +55,9 @@ except ImportError:
         import cPickle as pickle
     except ImportError:
         import pickle
-    except ModuleNotFoundError:
-        import pickle
-except ModuleNotFoundError:
-    import pickle
 
 import warnings
 
-from pkg_resources import get_distribution, DistributionNotFound
 try:
     __version__ = get_distribution('hickle').version
 except DistributionNotFound:
