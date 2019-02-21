@@ -201,6 +201,14 @@ def test_dict():
             raise
 
 
+def test_empty_dict():
+    """ Test empty dictionary dumping and loading """
+    filename, mode = 'test.h5', 'w'
+
+    dump({}, filename, mode)
+    assert load(filename) == {}
+
+
 def test_compression():
     """ Test compression on datasets"""
 
@@ -773,6 +781,7 @@ if __name__ == '__main__':
     test_set()
     test_numpy()
     test_dict()
+    test_empty_dict()
     test_compression()
     test_masked()
     test_dict_nested()

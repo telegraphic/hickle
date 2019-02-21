@@ -361,7 +361,7 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     h_dictgroup = h_group.create_group('data_%i' % call_id)
-    h_dictgroup.attrs["type"] = [b'dict']
+    h_dictgroup.attrs['type'] = [str(type(py_obj)).encode('ascii', 'ignore')]
 
     for key, py_subobj in py_obj.items():
         if isinstance(key, string_types):
@@ -420,7 +420,7 @@ class PyContainer(list):
         if self.container_type in container_types_dict.keys():
             convert_fn = container_types_dict[self.container_type]
             return convert_fn(self)
-        if self.container_type == b"dict":
+        if self.container_type == str(dict).encode('ascii', 'ignore'):
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
@@ -561,7 +561,7 @@ def _load(py_container, h_group):
     dataset_dtype = h5._hl.dataset.Dataset
 
     #either a file, group, or dataset
-    if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
+    if isinstance(h_group, (H5FileWrapper, group_dtype)):
 
         py_subcontainer = PyContainer()
         try:

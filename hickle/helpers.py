@@ -31,9 +31,15 @@ def sort_keys(key_list):
             key_list2.append(key)
         key_list = key_list2
 
-    to_int = lambda x: int(re.search(b'\d+', x).group(0))
-    keys_by_int = sorted([(to_int(key), key) for key in key_list])
-    return [ii[1] for ii in keys_by_int]
+    # Check which keys contain a number
+    numbered_keys = [re.search(b'\d+', key) for key in key_list]
+
+    # Sort the keys on number if they have it, or normally if not
+    if(len(key_list) and not numbered_keys.count(None)):
+        to_int = lambda x: int(re.search(b'\d+', x).group(0))
+        return(sorted(key_list, key=to_int))
+    else:
+        return(sorted(key_list))
 
 
 def check_is_iterable(py_obj):
