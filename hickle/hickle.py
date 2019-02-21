@@ -170,6 +170,7 @@ def file_opener(f, mode='r', track_times=True):
     """
 
     # Were we handed a file object or just a file name string?
+    close_flag = True
     if isinstance(f, (file, io.TextIOWrapper)):
         filename, mode = f.name, f.mode
         f.close()
@@ -183,6 +184,7 @@ def file_opener(f, mode='r', track_times=True):
         except ValueError:
             raise ClosedFileError
         h5f = f
+        close_flag = False
     else:
         print(f.__class__)
         raise FileError
@@ -190,7 +192,7 @@ def file_opener(f, mode='r', track_times=True):
 
     h5f.__class__ = H5FileWrapper
     h5f.track_times = track_times
-    return h5f
+    return(h5f, close_flag)
 
 
 ###########
@@ -261,33 +263,37 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
-    with file_opener(file_obj, mode, track_times) as h5f:
+    close_flag = False
+    try:
+        # Open the file
+        h5f, close_flag = file_opener(file_obj, mode, track_times)
+        h5f.attrs["CLASS"] = b'hickle'
+        h5f.attrs["VERSION"] = get_distribution('hickle').version
+        h5f.attrs["type"] = [b'hickle']
+        # Log which version of python was used to generate the hickle file
+        pv = sys.version_info
+        py_ver = "%i.%i.%i" % (pv[0], pv[1], pv[2])
+        h5f.attrs["PYTHON_VERSION"] = py_ver
+
+        h_root_group = h5f.get(path)
+
+        if h_root_group is None:
+            h_root_group = h5f.create_group(path)
+            h_root_group.attrs["type"] = [b'hickle']
+
+        _dump(py_obj, h_root_group, **kwargs)
+    except NoMatchError:
+        fname = h5f.filename
+        h5f.close()
         try:
-            # Open the file
-            h5f.attrs["CLASS"] = b'hickle'
-            h5f.attrs["VERSION"] = get_distribution('hickle').version
-            h5f.attrs["type"] = [b'hickle']
-            # Log which version of python was used to generate the hickle file
-            pv = sys.version_info
-            py_ver = "%i.%i.%i" % (pv[0], pv[1], pv[2])
-            h5f.attrs["PYTHON_VERSION"] = py_ver
-
-            h_root_group = h5f.get(path)
-
-            if h_root_group is None:
-                h_root_group = h5f.create_group(path)
-                h_root_group.attrs["type"] = [b'hickle']
-
-            _dump(py_obj, h_root_group, **kwargs)
-        except NoMatchError:
-            fname = h5f.filename
+            os.remove(fname)
+        except OSError:
+            warnings.warn("Dump failed. Could not remove %s" % fname)
+        finally:
+            raise NoMatchError
+    finally:
+        if close_flag:
             h5f.close()
-            try:
-                os.remove(fname)
-            except OSError:
-                warnings.warn("Dump failed. Could not remove %s" % fname)
-            finally:
-                raise NoMatchError
 
 
 def create_dataset_lookup(py_obj):
@@ -463,7 +469,9 @@ def load(fileobj, path='/', safe=True):
         path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
-    with file_opener(fileobj) as h5f:
+    close_flag = False
+    try:
+        h5f, close_flag = file_opener(fileobj)
         h_root_group = h5f.get(path)
         try:
             assert 'CLASS' in h5f.attrs.keys()
@@ -516,6 +524,9 @@ def load(fileobj, path='/', safe=True):
             else:
                 raise RuntimeError("Cannot open file. This file was likely"
                                    " created with Python 2 and an old hickle version.")
+    finally:
+        if close_flag:
+            h5f.close()
 
 def load_dataset(h_node):
     """ Load a dataset, converting into its correct python type
