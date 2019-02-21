@@ -5,20 +5,25 @@ python:
   - "3.5"
   - "3.6"
 
+# Add Python 3.7 support
+matrix:
+  include:
+    - python: 3.7
+      dist: xenial
+      sudo: true
+
 # command to install dependencies
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libhdf5-serial-dev
-  - pip install pytest coverage coveralls
-  - pip install --only-binary=numpy,scipy numpy scipy
-  - pip install unittest2
+  - pip install pytest coveralls
+  - pip install --only-binary=numpy numpy
   - pip install -r requirements.txt
-  - pip install scipy astropy
   - pip install .
 
 # command to install dependencies
 script:
-  - cd tests; coverage run --source=hickle -m py.test
+  - python setup.py test
 
 # Run code coverage
 after_success: coveralls
