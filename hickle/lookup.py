@@ -90,6 +90,7 @@ container_types_dict = {
     }
 
 # Technically, any hashable object can be used, for now sticking with built-in types
+# 1313e: This dict is theoretically speaking no longer needed.
 container_key_types_dict = {
     b"<type 'str'>": str,
     b"<type 'float'>": float,

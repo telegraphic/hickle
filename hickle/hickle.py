@@ -169,8 +169,10 @@ def file_opener(f, mode='r', track_times=True):
 
     """
 
-    # Were we handed a file object or just a file name string?
+    # Assume that we will have to close the file after dump or load
     close_flag = True
+
+    # Were we handed a file object or just a file name string?
     if isinstance(f, (file, io.TextIOWrapper)):
         filename, mode = f.name, f.mode
         f.close()
@@ -184,11 +186,11 @@ def file_opener(f, mode='r', track_times=True):
         except ValueError:
             raise ClosedFileError
         h5f = f
+        # Since this file was already open, do not close the file afterward
         close_flag = False
     else:
         print(f.__class__)
         raise FileError
-
 
     h5f.__class__ = H5FileWrapper
     h5f.track_times = track_times
@@ -267,7 +269,10 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
+    # Make sure that file is not closed unless modified
+    # This is to avoid trying to close a file that was never opened
     close_flag = False
+
     try:
         # Open the file
         h5f, close_flag = file_opener(file_obj, mode, track_times)
@@ -296,6 +301,8 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
         finally:
             raise NoMatchError
     finally:
+        # Close the file if requested.
+        # Closing a file twice will not cause any problems
         if close_flag:
             h5f.close()
 
@@ -369,7 +376,7 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
 
     for key, py_subobj in py_obj.items():
         if isinstance(key, string_types):
-            h_subgroup = h_dictgroup.create_group(key)
+            h_subgroup = h_dictgroup.create_group("%r" % (key))
         else:
             h_subgroup = h_dictgroup.create_group(str(key))
         h_subgroup.attrs["type"] = [b'dict_item']
@@ -428,11 +435,12 @@ class PyContainer(list):
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
-                key_type = item.key_type[0]
-                if key_type in container_key_types_dict.keys():
-                    to_type_fn = container_key_types_dict[key_type]
-                    key = to_type_fn(key)
-                keys.append(key)
+#                key_type = item.key_type[0]
+#                if key_type in container_key_types_dict.keys():
+#                    to_type_fn = container_key_types_dict[key_type]
+#                    key = to_type_fn(key)
+#                keys.append(key)
+                keys.append(eval(key))
 
             items = [item[0] for item in self]
             return dict(zip(keys, items))
@@ -473,7 +481,10 @@ def load(fileobj, path='/', safe=True):
         path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
+    # Make sure that the file is not closed unless modified
+    # This is to avoid trying to close a file that was never opened
     close_flag = False
+
     try:
         h5f, close_flag = file_opener(fileobj)
         h_root_group = h5f.get(path)
@@ -529,6 +540,8 @@ def load(fileobj, path='/', safe=True):
                 raise RuntimeError("Cannot open file. This file was likely"
                                    " created with Python 2 and an old hickle version.")
     finally:
+        # Close the file if requested.
+        # Closing a file twice will not cause any problems
         if close_flag:
             h5f.close()
 
