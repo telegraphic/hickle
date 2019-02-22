@@ -92,13 +92,13 @@ container_types_dict = {
 
 # Technically, any hashable object can be used, for now sticking with built-in types
 container_key_types_dict = {
-    b"<type 'str'>": lambda x: x[1:-1],
+    b"<type 'str'>": literal_eval,
     b"<type 'float'>": float,
     b"<type 'bool'>": bool,
     b"<type 'int'>": int,
     b"<type 'complex'>": complex,
     b"<type 'tuple'>": literal_eval,
-    b"<class 'str'>": lambda x: x[1:-1],
+    b"<class 'str'>": literal_eval,
     b"<class 'float'>": float,
     b"<class 'bool'>": bool,
     b"<class 'int'>": int,
@@ -107,7 +107,7 @@ container_key_types_dict = {
     }
 
 if six.PY2:
-    container_key_types_dict[b"<type 'unicode'>"] = unicode
+    container_key_types_dict[b"<type 'unicode'>"] = literal_eval
     container_key_types_dict[b"<type 'long'>"] = long
 
 # Add loaders for built-in python types
