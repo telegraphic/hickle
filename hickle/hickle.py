@@ -26,6 +26,7 @@ from __future__ import absolute_import, division, print_function
 import sys
 import os
 from pkg_resources import get_distribution, DistributionNotFound
+from ast import literal_eval
 
 import numpy as np
 import h5py as h5
@@ -435,12 +436,11 @@ class PyContainer(list):
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
-#                key_type = item.key_type[0]
-#                if key_type in container_key_types_dict.keys():
-#                    to_type_fn = container_key_types_dict[key_type]
-#                    key = to_type_fn(key)
-#                keys.append(key)
-                keys.append(eval(key))
+                key_type = item.key_type[0]
+                if key_type in container_key_types_dict.keys():
+                    to_type_fn = container_key_types_dict[key_type]
+                    key = to_type_fn(key)
+                keys.append(key)
 
             items = [item[0] for item in self]
             return dict(zip(keys, items))

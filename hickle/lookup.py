@@ -63,6 +63,7 @@ The process to add new load/dump capabilities is as follows:
 """
 
 import six
+from ast import literal_eval
 
 def return_first(x):
     """ Return first element of a list """
@@ -90,20 +91,19 @@ container_types_dict = {
     }
 
 # Technically, any hashable object can be used, for now sticking with built-in types
-# 1313e: This dict is theoretically speaking no longer needed.
 container_key_types_dict = {
-    b"<type 'str'>": str,
+    b"<type 'str'>": lambda x: x[1:-1],
     b"<type 'float'>": float,
     b"<type 'bool'>": bool,
     b"<type 'int'>": int,
     b"<type 'complex'>": complex,
-    b"<type 'tuple'>": eval,
-    b"<class 'str'>": str,
+    b"<type 'tuple'>": literal_eval,
+    b"<class 'str'>": lambda x: x[1:-1],
     b"<class 'float'>": float,
     b"<class 'bool'>": bool,
     b"<class 'int'>": int,
     b"<class 'complex'>": complex,
-    b"<class 'tuple'>": eval
+    b"<class 'tuple'>": literal_eval
     }
 
 if six.PY2:
