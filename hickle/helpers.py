@@ -4,10 +4,11 @@ import six
 def get_type_and_data(h_node):
     """ Helper function to return the py_type and data block for a HDF node """
     py_type = h_node.attrs["type"][0]
-    if h_node.shape == ():
-        data = h_node.value
-    else:
-        data  = h_node[:]
+    data = h_node[()]
+#    if h_node.shape == ():
+#        data = h_node.value
+#    else:
+#        data  = h_node[:]
     return py_type, data
 
 
