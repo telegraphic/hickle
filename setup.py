@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 import sys
 
 if sys.version_info.major == 3:
-      astro = "astropy"
+      astro = "astropy<3.1"
 else:
       astro = "astropy<3.0"
 
