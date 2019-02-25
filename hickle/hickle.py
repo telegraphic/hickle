@@ -22,10 +22,11 @@ h5py installed.
 
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 import sys
 import os
-from pkg_resources import get_distribution
+from pkg_resources import get_distribution, DistributionNotFound
+from ast import literal_eval
 
 import numpy as np
 import h5py as h5
@@ -43,8 +44,12 @@ try:
 except ImportError:
     pass        # above imports will fail in python3
 
-import six
+from six import PY2, PY3, string_types, integer_types
 import io
+
+# Make several aliases for Python2/Python3 compatibility
+if PY3:
+    file = io.TextIOWrapper
 
 # Import a default 'pickler'
 # Not the nicest import code, but should work on Py2/Py3
@@ -55,14 +60,9 @@ except ImportError:
         import cPickle as pickle
     except ImportError:
         import pickle
-    except ModuleNotFoundError:
-        import pickle
-except ModuleNotFoundError:
-    import pickle
 
 import warnings
 
-from pkg_resources import get_distribution, DistributionNotFound
 try:
     __version__ = get_distribution('hickle').version
 except DistributionNotFound:
@@ -170,47 +170,32 @@ def file_opener(f, mode='r', track_times=True):
 
     """
 
+    # Assume that we will have to close the file after dump or load
+    close_flag = True
+
     # Were we handed a file object or just a file name string?
-    if six.PY2:
-        if isinstance(f, file):
-            filename, mode = f.name, f.mode
-            f.close()
-            h5f = h5.File(filename, mode)
-        elif isinstance(f, str) or isinstance(f, unicode):
-            filename = f
-            h5f = h5.File(filename, mode)
-        elif isinstance(f, H5FileWrapper) or isinstance(f, h5._hl.files.File):
-            try:
-                filename = f.filename
-            except ValueError:
-                raise ClosedFileError()
-            h5f = f
-        else:
-            print(type(f))
-            raise FileError
-
+    if isinstance(f, (file, io.TextIOWrapper)):
+        filename, mode = f.name, f.mode
+        f.close()
+        h5f = h5.File(filename, mode)
+    elif isinstance(f, string_types):
+        filename = f
+        h5f = h5.File(filename, mode)
+    elif isinstance(f, (H5FileWrapper, h5._hl.files.File)):
+        try:
+            filename = f.filename
+        except ValueError:
+            raise ClosedFileError
+        h5f = f
+        # Since this file was already open, do not close the file afterward
+        close_flag = False
     else:
-        if isinstance(f, io.TextIOWrapper):
-            filename, mode = f.name, f.mode
-            f.close()
-            h5f = h5.File(filename, mode)
-        elif isinstance(f, str) or isinstance(f, bytes):
-            filename = f
-            h5f = h5.File(filename, mode)
-        elif isinstance(f, H5FileWrapper) or isinstance(f, h5._hl.files.File):
-            try:
-                filename = f.filename
-            except ValueError:
-                raise ClosedFileError()
-            h5f = f
-        else:
-            print(type(f))
-            raise FileError
-
+        print(f.__class__)
+        raise FileError
 
     h5f.__class__ = H5FileWrapper
     h5f.track_times = track_times
-    return h5f
+    return(h5f, close_flag)
 
 
 ###########
@@ -229,16 +214,20 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
 
-    if six.PY2:
-        dumpable_dtypes = (bool, int, float, long, complex, str, unicode)
-    else:
-        dumpable_dtypes = (bool, int, float, complex, bytes, str)
+    # Get list of dumpable dtypes
+    dumpable_dtypes = []
+    for lst in [[bool, complex, bytes, float], string_types, integer_types]:
+        dumpable_dtypes.extend(lst)
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_ndarray_like(py_obj):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
-    # next, check if item is iterable
+    # Next, check if item is a dict
+    elif isinstance(py_obj, dict):
+        create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
+
+    # If not, check if item is iterable
     elif check_is_iterable(py_obj):
         item_type = check_iterable_item_type(py_obj)
 
@@ -281,25 +270,28 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
+    # Make sure that file is not closed unless modified
+    # This is to avoid trying to close a file that was never opened
+    close_flag = False
+
     try:
         # Open the file
-        h5f = file_opener(file_obj, mode, track_times)
-        h5f.attrs[b"CLASS"] = b'hickle'
-        h5f.attrs[b"VERSION"] = get_distribution('hickle').version
-        h5f.attrs[b"type"] = [b'hickle']
+        h5f, close_flag = file_opener(file_obj, mode, track_times)
+        h5f.attrs["CLASS"] = b'hickle'
+        h5f.attrs["VERSION"] = get_distribution('hickle').version
+        h5f.attrs["type"] = [b'hickle']
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
         py_ver = "%i.%i.%i" % (pv[0], pv[1], pv[2])
-        h5f.attrs[b"PYTHON_VERSION"] = py_ver
+        h5f.attrs["PYTHON_VERSION"] = py_ver
 
         h_root_group = h5f.get(path)
 
         if h_root_group is None:
             h_root_group = h5f.create_group(path)
-            h_root_group.attrs[b"type"] = [b'hickle']
+            h_root_group.attrs["type"] = [b'hickle']
 
         _dump(py_obj, h_root_group, **kwargs)
-        h5f.close()
     except NoMatchError:
         fname = h5f.filename
         h5f.close()
@@ -309,6 +301,11 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
             warnings.warn("Dump failed. Could not remove %s" % fname)
         finally:
             raise NoMatchError
+    finally:
+        # Close the file if requested.
+        # Closing a file twice will not cause any problems
+        if close_flag:
+            h5f.close()
 
 
 def create_dataset_lookup(py_obj):
@@ -357,10 +354,7 @@ def create_hkl_group(py_obj, h_group, call_id=0):
 
     """
     h_subgroup = h_group.create_group('data_%i' % call_id)
-    if six.PY2:
-        h_subgroup.attrs["type"] = [str(type(py_obj))]
-    else:
-        h_subgroup.attrs["type"] = [bytes(str(type(py_obj)), 'ascii')]
+    h_subgroup.attrs['type'] = [str(type(py_obj)).encode('ascii', 'ignore')]
     return h_subgroup
 
 
@@ -379,23 +373,16 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     h_dictgroup = h_group.create_group('data_%i' % call_id)
-    h_dictgroup.attrs["type"] = [b'dict']
+    h_dictgroup.attrs['type'] = [str(type(py_obj)).encode('ascii', 'ignore')]
 
     for key, py_subobj in py_obj.items():
-        if six.PY2:
-            if type(key) in (unicode, str):
-                h_subgroup = h_dictgroup.create_group(key)
-            else:
-                h_subgroup = h_dictgroup.create_group(str(key))
+        if isinstance(key, string_types):
+            h_subgroup = h_dictgroup.create_group("%r" % (key))
         else:
             h_subgroup = h_dictgroup.create_group(str(key))
         h_subgroup.attrs["type"] = [b'dict_item']
 
-        if six.PY2:
-            h_subgroup.attrs["key_type"] = [str(type(key))]
-        else:
-            tk = str(type(key)).encode('utf-8')
-            h_subgroup.attrs["key_type"] = [tk]
+        h_subgroup.attrs["key_type"] = [str(type(key)).encode('ascii', 'ignore')]
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
 
@@ -445,7 +432,7 @@ class PyContainer(list):
         if self.container_type in container_types_dict.keys():
             convert_fn = container_types_dict[self.container_type]
             return convert_fn(self)
-        if self.container_type == b"dict":
+        if self.container_type == str(dict).encode('ascii', 'ignore'):
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
@@ -494,65 +481,69 @@ def load(fileobj, path='/', safe=True):
         path (str): path within hdf5 file to save data to. Defaults to root /
     """
 
-    try:
-        with file_opener(fileobj) as h5f:
-            h_root_group = h5f.get(path)
-            try:
-                assert 'CLASS' in h5f.attrs.keys()
-                assert 'VERSION' in h5f.attrs.keys()
-                VER = h5f.attrs['VERSION']
-                try:
-                    VER_MAJOR = int(VER)
-                except ValueError:
-                    VER_MAJOR = int(VER[0])
-                if VER_MAJOR == 1:
-                    if six.PY2:
-                        warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
-                        from . import hickle_legacy
-                        return hickle_legacy.load(fileobj, safe)
-                    else:
-                        raise RuntimeError("Cannot open file. This file was likely"
-                                           " created with Python 2 and an old hickle version.")
-                elif VER_MAJOR == 2:
-                    if six.PY2:
-                        warnings.warn("Hickle file appears to be old version (v2), attempting "
-                                      "legacy loading...")
-                        from . import hickle_legacy2
-                        return hickle_legacy2.load(fileobj, path=path, safe=safe)
-                    else:
-                        raise RuntimeError("Cannot open file. This file was likely"
-                                           " created with Python 2 and an old hickle version.")
-                # There is an unfortunate period of time where hickle 2.1.0 claims VERSION = int(3)
-                # For backward compatibility we really need to catch this.
-                # Actual hickle v3 files are versioned as A.B.C (e.g. 3.1.0)
-                elif VER_MAJOR == 3 and VER == VER_MAJOR:
-                    if six.PY2:
-                        warnings.warn("Hickle file appears to be old version (v2.1.0), attempting "
-                                      "legacy loading...")
-                        from . import hickle_legacy2
-                        return hickle_legacy2.load(fileobj, path=path, safe=safe)
-                    else:
-                        raise RuntimeError("Cannot open file. This file was likely"
-                                           " created with Python 2 and an old hickle version.")
-                elif VER_MAJOR >= 3:
-                    py_container = PyContainer()
-                    py_container.container_type = 'hickle'
-                    py_container = _load(py_container, h_root_group)
-                    return py_container[0][0]
+    # Make sure that the file is not closed unless modified
+    # This is to avoid trying to close a file that was never opened
+    close_flag = False
 
-            except AssertionError:
-                if six.PY2:
-                    warnings.warn("Hickle file is not versioned, attempting legacy loading...")
+    try:
+        h5f, close_flag = file_opener(fileobj)
+        h_root_group = h5f.get(path)
+        try:
+            assert 'CLASS' in h5f.attrs.keys()
+            assert 'VERSION' in h5f.attrs.keys()
+            VER = h5f.attrs['VERSION']
+            try:
+                VER_MAJOR = int(VER)
+            except ValueError:
+                VER_MAJOR = int(VER[0])
+            if VER_MAJOR == 1:
+                if PY2:
+                    warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
                     from . import hickle_legacy
                     return hickle_legacy.load(fileobj, safe)
                 else:
                     raise RuntimeError("Cannot open file. This file was likely"
                                        " created with Python 2 and an old hickle version.")
+            elif VER_MAJOR == 2:
+                if PY2:
+                    warnings.warn("Hickle file appears to be old version (v2), attempting "
+                                  "legacy loading...")
+                    from . import hickle_legacy2
+                    return hickle_legacy2.load(fileobj, path=path, safe=safe)
+                else:
+                    raise RuntimeError("Cannot open file. This file was likely"
+                                       " created with Python 2 and an old hickle version.")
+            # There is an unfortunate period of time where hickle 2.1.0 claims VERSION = int(3)
+            # For backward compatibility we really need to catch this.
+            # Actual hickle v3 files are versioned as A.B.C (e.g. 3.1.0)
+            elif VER_MAJOR == 3 and VER == VER_MAJOR:
+                if PY2:
+                    warnings.warn("Hickle file appears to be old version (v2.1.0), attempting "
+                                  "legacy loading...")
+                    from . import hickle_legacy2
+                    return hickle_legacy2.load(fileobj, path=path, safe=safe)
+                else:
+                    raise RuntimeError("Cannot open file. This file was likely"
+                                       " created with Python 2 and an old hickle version.")
+            elif VER_MAJOR >= 3:
+                py_container = PyContainer()
+                py_container.container_type = 'hickle'
+                py_container = _load(py_container, h_root_group)
+                return py_container[0][0]
+
+        except AssertionError:
+            if PY2:
+                warnings.warn("Hickle file is not versioned, attempting legacy loading...")
+                from . import hickle_legacy
+                return hickle_legacy.load(fileobj, safe)
+            else:
+                raise RuntimeError("Cannot open file. This file was likely"
+                                   " created with Python 2 and an old hickle version.")
     finally:
-        if 'h5f' in locals():
-            # Check if file is open, and if so, close it.
-            if h5f.fid.valid:
-                h5f.close()
+        # Close the file if requested.
+        # Closing a file twice will not cause any problems
+        if close_flag:
+            h5f.close()
 
 def load_dataset(h_node):
     """ Load a dataset, converting into its correct python type
@@ -587,7 +578,7 @@ def _load(py_container, h_group):
     dataset_dtype = h5._hl.dataset.Dataset
 
     #either a file, group, or dataset
-    if isinstance(h_group, H5FileWrapper) or isinstance(h_group, group_dtype):
+    if isinstance(h_group, (H5FileWrapper, group_dtype)):
 
         py_subcontainer = PyContainer()
         try:
