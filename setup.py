@@ -1,8 +1,11 @@
 # To increment version
 # Check you have ~/.pypirc filled in
 # git tag x.y.z
-# git push --tags
-# python setup.py sdist upload
+# git push && git push --tags
+# rm -rf dist; python setup.py sdist bdist_wheel
+# TEST: twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+# twine upload dist/*
+
 from setuptools import setup, find_packages
 import sys
 
@@ -11,7 +14,7 @@ if sys.version_info.major == 3:
 else:
       astro = "astropy<3.0"
 
-version = '3.4.1'
+version = '3.4.2'
 author  = 'Danny Price'
 
 with open("README.md", "r") as fh:
