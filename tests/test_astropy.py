@@ -5,6 +5,10 @@ from astropy.coordinates import Angle, SkyCoord
 from astropy.constants import Constant, EMConstant, G
 from astropy.table import Table
 import numpy as np
+from py.path import local
+
+# Set the current working directory to the temporary directory
+local.get_temproot().chdir()
 
 def test_astropy_quantity():
 

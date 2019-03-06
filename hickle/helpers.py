@@ -4,10 +4,11 @@ import six
 def get_type_and_data(h_node):
     """ Helper function to return the py_type and data block for a HDF node """
     py_type = h_node.attrs["type"][0]
-    if h_node.shape == ():
-        data = h_node.value
-    else:
-        data  = h_node[:]
+    data = h_node[()]
+#    if h_node.shape == ():
+#        data = h_node.value
+#    else:
+#        data  = h_node[:]
     return py_type, data
 
 
@@ -31,9 +32,15 @@ def sort_keys(key_list):
             key_list2.append(key)
         key_list = key_list2
 
-    to_int = lambda x: int(re.search(b'\d+', x).group(0))
-    keys_by_int = sorted([(to_int(key), key) for key in key_list])
-    return [ii[1] for ii in keys_by_int]
+    # Check which keys contain a number
+    numbered_keys = [re.search(b'\d+', key) for key in key_list]
+
+    # Sort the keys on number if they have it, or normally if not
+    if(len(key_list) and not numbered_keys.count(None)):
+        to_int = lambda x: int(re.search(b'\d+', x).group(0))
+        return(sorted(key_list, key=to_int))
+    else:
+        return(sorted(key_list))
 
 
 def check_is_iterable(py_obj):
@@ -51,7 +58,7 @@ def check_is_iterable(py_obj):
         string_types = (str, unicode)
     else:
         string_types = (str, bytes, bytearray)
-    if type(py_obj) in string_types:
+    if isinstance(py_obj, string_types):
         return False
     try:
         iter(py_obj)
@@ -98,8 +105,5 @@ def check_iterable_item_type(iter_obj):
         return False
     except Exception as ex:
         return False
-
-    if isinstance(iter_obj, dict):
-        return first_type
     else:
         return first_type if all((type(x) is first_type) for x in iseq) else False
