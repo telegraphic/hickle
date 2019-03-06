@@ -115,7 +115,7 @@ def load_np_scalar_dataset(h_node):
 
 def load_ndarray_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    return np.array(data)
+    return np.array(data, copy=False)
 
 def load_ndarray_masked_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
