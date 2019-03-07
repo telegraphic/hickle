@@ -32,7 +32,7 @@ import numpy as np
 import h5py as h5
 
 
-from .helpers import get_type_and_data, sort_keys, check_is_iterable, check_iterable_item_type
+from .helpers import get_type, sort_keys, check_is_iterable, check_iterable_item_type
 from .lookup import types_dict, hkl_types_dict, types_not_to_sort, \
     container_types_dict, container_key_types_dict
 from .lookup import check_is_ndarray_like
@@ -554,7 +554,7 @@ def load_dataset(h_node):
     Returns:
         data: reconstructed python object from loaded data
     """
-    py_type, data = get_type_and_data(h_node)
+    py_type = get_type(h_node)
 
     try:
         load_fn = load_dataset_lookup(py_type)
