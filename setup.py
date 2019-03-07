@@ -14,7 +14,7 @@ if sys.version_info.major == 3:
 else:
       astro = "astropy<3.0"
 
-version = '3.4.2'
+version = '3.4.3'
 author  = 'Danny Price'
 
 with open("README.md", "r") as fh:
