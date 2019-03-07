@@ -11,6 +11,10 @@ def get_type_and_data(h_node):
 #        data  = h_node[:]
     return py_type, data
 
+def get_type(h_node):
+    """ Helper function to return the py_type for a HDF node """
+    py_type = h_node.attrs["type"][0]
+    return py_type
 
 def sort_keys(key_list):
     """ Take a list of strings and sort it by integer value within string
