@@ -37,11 +37,11 @@ def sort_keys(key_list):
         key_list = key_list2
 
     # Check which keys contain a number
-    numbered_keys = [re.search(b'\d+', key) for key in key_list]
+    numbered_keys = [re.search(br'\d+', key) for key in key_list]
 
     # Sort the keys on number if they have it, or normally if not
     if(len(key_list) and not numbered_keys.count(None)):
-        to_int = lambda x: int(re.search(b'\d+', x).group(0))
+        to_int = lambda x: int(re.search(br'\d+', x).group(0))
         return(sorted(key_list, key=to_int))
     else:
         return(sorted(key_list))
