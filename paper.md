@@ -8,7 +8,6 @@ authors:
     orcid: 0000-0003-2783-1608
     affiliation: "1, 2" # (Multiple affiliations must be quoted)
   - name: Ellert van der Velden
-    orcid:0000-0002-1559-9832
     affiliation: 2
   - name: Sébastien Celles
     orcid: 0000-0001-9987-4338
