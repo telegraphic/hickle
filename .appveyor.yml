@@ -55,8 +55,3 @@ test_script:
 
 on_success:
     - "coveralls"
-
-branches:
-  only:
-    - dev
-    - master

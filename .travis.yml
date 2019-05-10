@@ -20,9 +20,3 @@ script:
 
 # Run code coverage
 after_success: coveralls
-
-# Run on dev and master branches
-branches:
-  only:
-    - dev
-    - master
