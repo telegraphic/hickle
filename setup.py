@@ -18,6 +18,9 @@ with open("README.md", "r") as fh:
 with open("requirements.txt", 'r') as fh:
     requirements = fh.read().splitlines()
 
+with open("requirements_test.txt", 'r') as fh:
+    test_requirements = fh.read().splitlines()
+
 setup(name='hickle',
       version=version,
       description='Hickle - a HDF5 based version of pickle',
@@ -31,6 +34,7 @@ setup(name='hickle',
       keywords=['pickle', 'hdf5', 'data storage', 'data export'],
       #py_modules = ['hickle', 'hickle_legacy'],
       install_requires=requirements,
+      tests_require=test_requirements,
 #      setup_requires = ['pytest-runner', 'pytest-cov'],
       python_requires='>=2.7',
       packages=find_packages(),

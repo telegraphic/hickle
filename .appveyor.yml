@@ -43,6 +43,7 @@ install:
 
     # Install testing requirements and hickle
     - "pip install -r requirements_test.txt"
+    - "pip install ."
 
 build: false
 
