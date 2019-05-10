@@ -41,17 +41,10 @@ install:
     # Upgrade pip
     - "python -m pip install --user --upgrade pip setuptools wheel"
 
-    # Install testing requirements
-    - "pip install pytest coveralls"
-
-    # Install hickle
-    - "pip install -r requirements.txt"
-    - "pip install ."
+    # Install testing requirements and hickle
+    - "pip install -r requirements_test.txt"
 
 build: false
 
 test_script:
     - "python setup.py test"
-
-on_success:
-    - "coveralls"
