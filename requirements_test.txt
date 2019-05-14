@@ -1,0 +1,8 @@
+pytest
+pytest-cov
+pytest-runner
+astropy<3.1;python_version>="3"
+astropy<3.0;python_version=="2.7.*"
+scipy
+pandas
+coveralls
