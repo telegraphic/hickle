@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
+[![Build status](https://ci.appveyor.com/api/projects/status/8cwrkjpwxet5jmgp?svg=true)](https://ci.appveyor.com/project/telegraphic/hickle)
 [![JOSS Status](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847)
 
 
