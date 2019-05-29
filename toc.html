@@ -178,27 +178,21 @@ DO NOT set this to False unless the file is from a trusted source.
 <dt id="hickle.dump">
 <code class="descclassname">hickle.</code><code class="descname">dump</code><span class="sig-paren">(</span><em>py_obj</em>, <em>file_obj</em>, <em>mode='w'</em>, <em>track_times=True</em>, <em>path='/'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#hickle.dump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write a pickled representation of obj to the open file object file.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> (<em>object</em>) – python object o store in a Hickle</li>
-<li><strong>file</strong> – file object, filename string, or h5py.File object
-file in which to store the object. A h5py.File or a filename is also
-acceptable.</li>
-<li><strong>mode</strong> (<em>str</em>) – optional argument, ‘r’ (read only), ‘w’ (write) or ‘a’ (append).
-Ignored if file is a file object.</li>
-<li><strong>compression</strong> (<em>str</em>) – optional argument. Applies compression to dataset. Options: None, gzip,
-lzf (+ szip, if installed)</li>
-<li><strong>track_times</strong> (<em>bool</em>) – optional argument. If set to False, repeated hickling will produce
-identical files.</li>
-<li><strong>path</strong> (<em>str</em>) – path within hdf5 file to save data to. Defaults to root /</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<p>Args:
+obj (object): python object o store in a Hickle
+file: file object, filename string, or h5py.File object</p>
+<blockquote>
+<div>file in which to store the object. A h5py.File or a filename is also
+acceptable.</div></blockquote>
+<dl class="docutils">
+<dt>mode (str): optional argument, ‘r’ (read only), ‘w’ (write) or ‘a’ (append).</dt>
+<dd>Ignored if file is a file object.</dd>
+<dt>compression (str): optional argument. Applies compression to dataset. Options: None, gzip,</dt>
+<dd>lzf (+ szip, if installed)</dd>
+<dt>track_times (bool): optional argument. If set to False, repeated hickling will produce</dt>
+<dd>identical files.</dd>
+</dl>
+<p>path (str): path within hdf5 file to save data to. Defaults to root /</p>
 </dd></dl>
 
 </div>
