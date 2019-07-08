@@ -147,7 +147,7 @@ def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
 def load_astropy_quantity_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     unit = h_node.attrs["unit"][0]
-    q = Quantity(data, unit)
+    q = Quantity(data, unit, copy=False)
     return q
 
 def load_astropy_time_dataset(h_node):
