@@ -6,3 +6,4 @@ astropy<3.0;python_version=="2.7.*"
 scipy
 pandas
 coveralls
+check-manifest
