@@ -9,7 +9,7 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '3.4.4'
+version = '3.4.5'
 author  = 'Danny Price'
 
 with open("README.md", "r") as fh:
