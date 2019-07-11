@@ -1,3 +1,15 @@
 include LICENSE
-include requirements.txt
-include requirements_test.txt
+include *.md
+include MANIFEST.in
+include requirements*.txt
+include tests
+recursive-include tests *
+
+exclude docs
+recursive-exclude docs *
+exclude *.yml
+exclude .nojekyll
+exclude .pylintrc
+exclude paper*
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]

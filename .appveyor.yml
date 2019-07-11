@@ -41,11 +41,14 @@ install:
     # Upgrade pip
     - "python -m pip install --user --upgrade pip setuptools wheel"
 
-    # Install testing requirements and hickle
+    # Install testing requirements
     - "pip install -r requirements_test.txt"
-    - "pip install ."
 
 build: false
 
 test_script:
+    - "check-manifest"
+    - "python setup.py sdist bdist_wheel"
+    - "twine check dist/*"
+    - "pip install ."
     - "python setup.py test"

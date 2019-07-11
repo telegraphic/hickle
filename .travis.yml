@@ -13,9 +13,12 @@ install:
   - sudo apt-get install -qq libhdf5-serial-dev
   - python -m pip install --upgrade pip setuptools wheel
   - pip install -r requirements_test.txt
-  - pip install .
 
 script:
+  - check-manifest
+  - python setup.py sdist bdist_wheel
+  - twine check dist/*
+  - pip install .
   - python setup.py test
 
 # Run code coverage
