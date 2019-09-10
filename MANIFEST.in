@@ -2,8 +2,7 @@ include LICENSE
 include *.md
 include MANIFEST.in
 include requirements*.txt
-include tests
-recursive-include tests *
+recursive-include hickle tests *
 
 exclude docs
 recursive-exclude docs *
