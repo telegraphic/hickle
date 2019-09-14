@@ -145,13 +145,13 @@ def create_astropy_table(py_obj, base_type, h_group, call_id=0, **kwargs):
 
 
 def load_astropy_quantity_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     unit = h_node.attrs["unit"]
     q = Quantity(data, unit, copy=False)
     return q
 
 def load_astropy_time_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     if six.PY3:
         fmt = h_node.attrs["format"].decode('ascii')
         scale = h_node.attrs["scale"].decode('ascii')
@@ -162,20 +162,20 @@ def load_astropy_time_dataset(h_node):
     return q
 
 def load_astropy_angle_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     unit = h_node.attrs["unit"]
     q = Angle(data, unit)
     return q
 
 def load_astropy_skycoord_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     lon_unit = h_node.attrs["lon_unit"]
     lat_unit = h_node.attrs["lat_unit"]
     q = SkyCoord(data[:,0], data[:, 1], unit=(lon_unit, lat_unit))
     return q
 
 def load_astropy_constant_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     unit   = h_node.attrs["unit"]
     abbrev = h_node.attrs["abbrev"]
     name   = h_node.attrs["name"]
@@ -190,7 +190,7 @@ def load_astropy_constant_dataset(h_node):
     return c
 
 def load_astropy_table(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     metadata = dict(h_node.attrs.items())
     metadata.pop('type')
     metadata.pop('base_type')

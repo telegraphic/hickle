@@ -72,30 +72,30 @@ def create_none_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
 
 
 def load_list_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return list(data)
 
 def load_tuple_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return tuple(data)
 
 def load_set_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return set(data)
 
 def load_string_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return str(data)
 
 def load_unicode_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return unicode(data)
 
 def load_none_dataset(h_node):
     return None
 
 def load_python_dtype_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     subtype = h_node.attrs["python_subdtype"]
     type_dict = {
         "<type 'int'>": int,

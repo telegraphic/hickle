@@ -403,7 +403,7 @@ def create_dict_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
 types_dict[dict] = (create_dict_dataset, b"<class 'dict'>")
 
 
-def no_match(py_obj, h_group, call_id=0, **kwargs):
+def no_match(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ If no match is made, raise an exception
 
     Args:
@@ -435,6 +435,7 @@ class PyContainer(list):
     def __init__(self):
         super(PyContainer, self).__init__()
         self.container_type = None
+        self.container_base_type = None
         self.name = None
         self.key_type = None
 
@@ -445,21 +446,21 @@ class PyContainer(list):
                  (or other type specified in lookup.py)
         """
 
-        if self.container_type in container_types_dict.keys():
-            convert_fn = container_types_dict[self.container_type]
+        if self.container_base_type in container_types_dict.keys():
+            convert_fn = container_types_dict[self.container_base_type]
             return convert_fn(self)
-        if self.container_type == b"<class 'dict'>":
+        if self.container_base_type == b"<class 'dict'>":
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
-                key_type = item.key_type
-                if key_type in container_key_types_dict.keys():
-                    to_type_fn = container_key_types_dict[key_type]
+                base_key_type = item.base_key_type
+                if base_key_type in container_key_types_dict.keys():
+                    to_type_fn = container_key_types_dict[base_key_type]
                     key = to_type_fn(key)
                 keys.append(key)
 
             items = [item[0] for item in self]
-            return dict(zip(keys, items))
+            return self.container_type(zip(keys, items))
         else:
             return self
 
@@ -543,7 +544,7 @@ def load(fileobj, path='/', safe=True):
                                        " created with Python 2 and an old hickle version.")
             elif VER_MAJOR >= 3:
                 py_container = PyContainer()
-                py_container.container_type = 'hickle'
+                py_container.container_base_type = 'hickle'
                 py_container = _load(py_container, h_root_group)
                 return py_container[0][0]
 
@@ -570,11 +571,16 @@ def load_dataset(h_node):
     Returns:
         data: reconstructed python object from loaded data
     """
-    py_type = get_type(h_node)
+    py_type, base_type = get_type(h_node)
 
     try:
-        load_fn = load_dataset_lookup(py_type)
-        return load_fn(h_node)
+        load_fn = load_dataset_lookup(base_type)
+        data = load_fn(h_node)
+
+        # If data is not py_type yet, convert to it (unless it is pickle)
+        if base_type != b'pickle' and type(data) != py_type:
+            data = py_type(data)
+        return data
     except:
         raise
         #raise RuntimeError("Hickle type %s not understood." % py_type)
@@ -598,16 +604,18 @@ def _load(py_container, h_group):
 
         py_subcontainer = PyContainer()
         try:
-            py_subcontainer.container_type = bytes(h_group.attrs['base_type'])
+            py_subcontainer.container_base_type = bytes(h_group.attrs['base_type'])
         except KeyError:
             raise
             #py_subcontainer.container_type = ''
         py_subcontainer.name = h_group.name
 
-        if py_subcontainer.container_type == b'dict_item':
-            py_subcontainer.key_type = h_group.attrs['base_key_type']
+        if py_subcontainer.container_base_type == b"<class 'dict'>":
+            py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
+        if py_subcontainer.container_base_type == b'dict_item':
+            py_subcontainer.base_key_type = h_group.attrs['base_key_type']
 
-        if py_subcontainer.container_type not in types_not_to_sort:
+        if py_subcontainer.container_base_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())
         else:
             h_keys = h_group.keys()

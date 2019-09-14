@@ -110,7 +110,7 @@ def create_none_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
 
 
 def load_list_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     py3_str_type = get_py3_string_type(h_node)
 
     if py3_str_type == b"<class 'bytes'>":
@@ -130,22 +130,22 @@ def load_set_dataset(h_node):
     return set(data)
 
 def load_bytes_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return bytes(data)
 
 def load_string_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return str(data)
 
 def load_unicode_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return unicode(data)
 
 def load_none_dataset(h_node):
     return None
 
 def load_pickled_data(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     try:
         import cPickle as pickle
     except ModuleNotFoundError:
@@ -154,7 +154,7 @@ def load_pickled_data(h_node):
 
 
 def load_python_dtype_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     subtype = h_node.attrs["python_subdtype"]
     type_dict = {
         b"<class 'int'>": int,

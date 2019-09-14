@@ -8,6 +8,13 @@ Utilities and dump / load handlers for handling numpy and scipy arrays
 import six
 import numpy as np
 
+try:
+    import dill as pickle
+except ImportError:
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
 
 from hickle.helpers import get_type_and_data
 
@@ -22,7 +29,7 @@ def check_is_numpy_array(py_obj):
         is_numpy (bool): Returns True if it is a numpy array, else False if it isn't
     """
 
-    is_numpy = type(py_obj) in (type(np.array([1])), type(np.ma.array([1])))
+    is_numpy = type(py_obj) in (np.ndarray, np.ma.core.MaskedArray)
 
     return is_numpy
 
@@ -66,11 +73,12 @@ def create_np_array_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    if isinstance(py_obj, type(np.ma.array([1]))):
+    if isinstance(py_obj, np.ma.core.MaskedArray):
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
         #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
         m = h_group.create_dataset('data_%i_mask' % call_id, data=py_obj.mask, **kwargs)
         d.attrs['base_type'] = b'ndarray_masked_data'
+        m.attrs['type'] = np.array(pickle.dumps(py_obj.mask.__class__))
         m.attrs['base_type'] = b'ndarray_masked_mask'
     else:
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
@@ -103,22 +111,22 @@ types_dict = {
 }
 
 def load_np_dtype_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     data = np.dtype(data)
     return data
 
 def load_np_scalar_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     subtype = h_node.attrs["np_dtype"].decode('utf-8')
     data = getattr(np, subtype)(data)
     return data
 
 def load_ndarray_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return np.array(data, copy=False)
 
 def load_ndarray_masked_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     try:
         mask_path = h_node.name + "_mask"
         h_root = h_node.parent
