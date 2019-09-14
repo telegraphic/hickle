@@ -278,7 +278,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
         h5f, close_flag = file_opener(file_obj, mode, track_times)
         h5f.attrs["CLASS"] = b'hickle'
         h5f.attrs["VERSION"] = get_distribution('hickle').version
-        h5f.attrs["type"] = b'hickle'
+        h5f.attrs['base_type'] = b'hickle'
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
         py_ver = "%i.%i.%i" % (pv[0], pv[1], pv[2])
@@ -288,7 +288,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
 
         if h_root_group is None:
             h_root_group = h5f.create_group(path)
-            h_root_group.attrs["type"] = b'hickle'
+            h_root_group.attrs['base_type'] = b'hickle'
 
         _dump(py_obj, h_root_group, **kwargs)
     except NoMatchError:
@@ -362,7 +362,7 @@ def create_hkl_group(py_obj, h_group, call_id=0):
 
     """
     h_subgroup = h_group.create_group('data_%i' % call_id)
-    h_subgroup.attrs['type'] = str(type(py_obj)).encode('ascii', 'ignore')
+    h_subgroup.attrs['base_type'] = str(type(py_obj)).encode('ascii', 'ignore')
     return h_subgroup
 
 
@@ -381,14 +381,14 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     h_dictgroup = h_group.create_group('data_%i' % call_id)
-    h_dictgroup.attrs['type'] = str(type(py_obj)).encode('ascii', 'ignore')
+    h_dictgroup.attrs['base_type'] = str(type(py_obj)).encode('ascii', 'ignore')
 
     for key, py_subobj in py_obj.items():
         if isinstance(key, string_types):
             h_subgroup = h_dictgroup.create_group("%r" % (key))
         else:
             h_subgroup = h_dictgroup.create_group(str(key))
-        h_subgroup.attrs["type"] = b'dict_item'
+        h_subgroup.attrs['base_type'] = b'dict_item'
 
         h_subgroup.attrs["key_type"] = str(type(key)).encode('ascii', 'ignore')
 
@@ -408,7 +408,7 @@ def no_match(py_obj, h_group, call_id=0, **kwargs):
     """
     pickled_obj = pickle.dumps(py_obj)
     d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
-    d.attrs["type"] = b'pickle'
+    d.attrs['base_type'] = b'pickle'
 
     warnings.warn("%s type not understood, data have been serialized" % type(py_obj),
                   SerializedWarning)
@@ -593,7 +593,7 @@ def _load(py_container, h_group):
 
         py_subcontainer = PyContainer()
         try:
-            py_subcontainer.container_type = bytes(h_group.attrs['type'])
+            py_subcontainer.container_type = bytes(h_group.attrs['base_type'])
         except KeyError:
             raise
             #py_subcontainer.container_type = ''

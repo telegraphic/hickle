@@ -19,7 +19,7 @@ def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"] = b'astropy_quantity'
+    d.attrs['base_type'] = b'astropy_quantity'
     if six.PY3:
         unit = bytes(str(py_obj.unit), 'ascii')
     else:
@@ -37,7 +37,7 @@ def create_astropy_angle(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"] = b'astropy_angle'
+    d.attrs['base_type'] = b'astropy_angle'
     if six.PY3:
         unit = str(py_obj.unit).encode('ascii')
     else:
@@ -59,7 +59,7 @@ def create_astropy_skycoord(py_obj, h_group, call_id=0, **kwargs):
 
     d = h_group.create_dataset('data_%i' % call_id, data=dd,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"] = b'astropy_skycoord'
+    d.attrs['base_type'] = b'astropy_skycoord'
     if six.PY3:
         lon_unit = str(py_obj.data.lon.unit).encode('ascii')
         lat_unit = str(py_obj.data.lat.unit).encode('ascii')
@@ -91,7 +91,7 @@ def create_astropy_time(py_obj, h_group, call_id=0, **kwargs):
             data.append(str(item).encode('ascii'))
 
     d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=dtype)     #, **kwargs)
-    d.attrs["type"] = b'astropy_time'
+    d.attrs['base_type'] = b'astropy_time'
     if six.PY2:
         fmt   = str(py_obj.format)
         scale = str(py_obj.scale)
@@ -112,7 +112,7 @@ def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"]   = b'astropy_constant'
+    d.attrs['base_type']   = b'astropy_constant'
     d.attrs["unit"]   = str(py_obj.unit)
     d.attrs["abbrev"] = str(py_obj.abbrev)
     d.attrs["name"]   = str(py_obj.name)
@@ -133,7 +133,7 @@ def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
     """
     data = py_obj.as_array()
     d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=data.dtype, **kwargs)
-    d.attrs['type']  = b'astropy_table'
+    d.attrs['base_type']  = b'astropy_table'
 
     if six.PY3:
         colnames = [bytes(cn, 'ascii') for cn in py_obj.colnames]
@@ -192,7 +192,7 @@ def load_astropy_constant_dataset(h_node):
 def load_astropy_table(h_node):
     py_type, data = get_type_and_data(h_node)
     metadata = dict(h_node.attrs.items())
-    metadata.pop('type')
+    metadata.pop('base_type')
     metadata.pop('colnames')
 
     if six.PY3:

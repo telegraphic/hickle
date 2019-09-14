@@ -3,7 +3,7 @@ import six
 
 def get_type_and_data(h_node):
     """ Helper function to return the py_type and data block for a HDF node """
-    py_type = h_node.attrs["type"]
+    py_type = h_node.attrs['base_type']
     data = h_node[()]
 #    if h_node.shape == ():
 #        data = h_node.value
@@ -13,7 +13,7 @@ def get_type_and_data(h_node):
 
 def get_type(h_node):
     """ Helper function to return the py_type for a HDF node """
-    py_type = h_node.attrs["type"]
+    py_type = h_node.attrs['base_type']
     return py_type
 
 def sort_keys(key_list):

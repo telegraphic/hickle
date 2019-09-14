@@ -64,7 +64,7 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
 
 
     d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
-    d.attrs["type"] = bytes(dtype, 'ascii')
+    d.attrs['base_type'] = bytes(dtype, 'ascii')
 
     # Need to add some metadata to aid in unpickling if it's a string type
     if py3_str_type is not None:
@@ -83,7 +83,7 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
                                dtype=type(py_obj))     #, **kwargs)
-    d.attrs["type"] = b'python_dtype'
+    d.attrs['base_type'] = b'python_dtype'
     d.attrs['python_subdtype'] = bytes(str(type(py_obj)), 'ascii')
 
 
@@ -97,12 +97,12 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     """
     if isinstance(py_obj, bytes):
         d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs["type"] = b'bytes'
+        d.attrs['base_type'] = b'bytes'
     elif isinstance(py_obj, str):
         dt = h5.special_dtype(vlen=str)
         dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
         dset[0] = py_obj
-        dset.attrs['type'] = b'string'
+        dset.attrs['base_type'] = b'string'
 
 def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dump None type to file
@@ -113,7 +113,7 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
-    d.attrs["type"] = b'none'
+    d.attrs['base_type'] = b'none'
 
 
 def load_list_dataset(h_node):

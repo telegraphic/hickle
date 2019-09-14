@@ -43,17 +43,17 @@ def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
         type_str = 'bsr'
 
     if six.PY2:
-        h_sparsegroup.attrs["type"] = b'%s_matrix' % type_str
-        data.attrs["type"]          = b"%s_matrix_data" % type_str
-        indices.attrs["type"]       = b"%s_matrix_indices" % type_str
-        indptr.attrs["type"]        = b"%s_matrix_indptr" % type_str
-        shape.attrs["type"]         = b"%s_matrix_shape" % type_str
+        h_sparsegroup.attrs['base_type'] = b'%s_matrix' % type_str
+        data.attrs['base_type']          = b"%s_matrix_data" % type_str
+        indices.attrs['base_type']       = b"%s_matrix_indices" % type_str
+        indptr.attrs['base_type']        = b"%s_matrix_indptr" % type_str
+        shape.attrs['base_type']         = b"%s_matrix_shape" % type_str
     else:
-        h_sparsegroup.attrs["type"] = bytes(str('%s_matrix' % type_str), 'ascii')
-        data.attrs["type"]          = bytes(str("%s_matrix_data" % type_str), 'ascii')
-        indices.attrs["type"]       = bytes(str("%s_matrix_indices" % type_str), 'ascii')
-        indptr.attrs["type"]        = bytes(str("%s_matrix_indptr" % type_str), 'ascii')
-        shape.attrs["type"]         = bytes(str("%s_matrix_shape" % type_str), 'ascii')
+        h_sparsegroup.attrs['base_type'] = bytes(str('%s_matrix' % type_str), 'ascii')
+        data.attrs['base_type']          = bytes(str("%s_matrix_data" % type_str), 'ascii')
+        indices.attrs['base_type']       = bytes(str("%s_matrix_indices" % type_str), 'ascii')
+        indptr.attrs['base_type']        = bytes(str("%s_matrix_indptr" % type_str), 'ascii')
+        shape.attrs['base_type']         = bytes(str("%s_matrix_shape" % type_str), 'ascii')
 
 def load_sparse_matrix_data(h_node):
 
