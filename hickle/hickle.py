@@ -319,12 +319,22 @@ def create_dataset_lookup(py_obj):
         match: function that should be used to dump data to a new dataset
     """
 
-    t = type(py_obj)
+    # Obtain the MRO of this object
+    mro_list = py_obj.__class__.mro()
 
-    match = types_dict.get(t, no_match)
+    # Create a match_map
+    match_map = map(types_dict.get, mro_list)
 
-    return match
+    # Loop over the entire match_map until something else than None is found
+    for match in match_map:
+        if match is not None:
+            break
+    # If that did not happen, then match is no_match
+    else:
+        match = no_match
 
+    # Return found match
+    return(match)
 
 
 def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
