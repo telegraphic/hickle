@@ -34,8 +34,7 @@ import h5py as h5
 
 from .helpers import get_type, sort_keys, check_is_iterable, check_iterable_item_type
 from .lookup import types_dict, hkl_types_dict, types_not_to_sort, \
-    container_types_dict, container_key_types_dict
-from .lookup import check_is_ndarray_like
+    container_types_dict, container_key_types_dict, check_is_ndarray_like
 
 
 try:
@@ -46,10 +45,6 @@ except ImportError:
 
 from six import PY2, PY3, string_types, integer_types
 import io
-
-# Make several aliases for Python2/Python3 compatibility
-if PY3:
-    file = io.TextIOWrapper
 
 # Import a default 'pickler'
 # Not the nicest import code, but should work on Py2/Py3
@@ -62,6 +57,10 @@ except ImportError:
         import pickle
 
 import warnings
+
+# Make several aliases for Python2/Python3 compatibility
+if PY3:
+    file = io.TextIOWrapper
 
 try:
     __version__ = get_distribution('hickle').version
@@ -319,11 +318,10 @@ def create_dataset_lookup(py_obj):
     Returns:
         match: function that should be used to dump data to a new dataset
     """
-    t = type(py_obj)
-    types_lookup = {dict: create_dict_dataset}
-    types_lookup.update(types_dict)
 
-    match = types_lookup.get(t, no_match)
+    t = type(py_obj)
+
+    match = types_dict.get(t, no_match)
 
     return match
 
@@ -385,6 +383,9 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_subgroup.attrs["key_type"] = [str(type(key)).encode('ascii', 'ignore')]
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
+
+# Add create_dict_dataset to types_dict
+types_dict[dict] = create_dict_dataset
 
 
 def no_match(py_obj, h_group, call_id=0, **kwargs):

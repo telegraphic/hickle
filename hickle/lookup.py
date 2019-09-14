@@ -62,7 +62,7 @@ The process to add new load/dump capabilities is as follows:
         raise
 """
 
-import six
+from six import PY2
 from ast import literal_eval
 
 def return_first(x):
@@ -106,12 +106,12 @@ container_key_types_dict = {
     b"<class 'tuple'>": literal_eval
     }
 
-if six.PY2:
+if PY2:
     container_key_types_dict[b"<type 'unicode'>"] = literal_eval
     container_key_types_dict[b"<type 'long'>"] = long
 
 # Add loaders for built-in python types
-if six.PY2:
+if PY2:
     from .loaders.load_python import types_dict as py_types_dict
     from .loaders.load_python import hkl_types_dict as py_hkl_types_dict
 else:
