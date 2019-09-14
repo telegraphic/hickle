@@ -192,6 +192,7 @@ def load_astropy_constant_dataset(h_node):
 def load_astropy_table(h_node):
     py_type, data = get_type_and_data(h_node)
     metadata = dict(h_node.attrs.items())
+    metadata.pop('type')
     metadata.pop('base_type')
     metadata.pop('colnames')
 

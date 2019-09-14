@@ -354,6 +354,7 @@ def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
 
     # do the creation
     create_dataset(py_obj, base_type, h_group, call_id, **kwargs)
+    h_group['data_%i' % (call_id)].attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
 
 
 def create_hkl_group(py_obj, h_group, call_id=0):
@@ -365,6 +366,7 @@ def create_hkl_group(py_obj, h_group, call_id=0):
 
     """
     h_subgroup = h_group.create_group('data_%i' % call_id)
+    h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
     h_subgroup.attrs['base_type'] = create_dataset_lookup(py_obj)[1]
     return h_subgroup
 
