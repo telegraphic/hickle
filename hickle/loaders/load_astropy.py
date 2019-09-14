@@ -19,12 +19,12 @@ def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"] = [b'astropy_quantity']
+    d.attrs["type"] = b'astropy_quantity'
     if six.PY3:
         unit = bytes(str(py_obj.unit), 'ascii')
     else:
         unit = str(py_obj.unit)
-    d.attrs['unit'] = [unit]
+    d.attrs['unit'] = unit
 
 def create_astropy_angle(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an astropy quantity
@@ -37,12 +37,12 @@ def create_astropy_angle(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"] = [b'astropy_angle']
+    d.attrs["type"] = b'astropy_angle'
     if six.PY3:
         unit = str(py_obj.unit).encode('ascii')
     else:
         unit = str(py_obj.unit)
-    d.attrs['unit'] = [unit]
+    d.attrs['unit'] = unit
 
 def create_astropy_skycoord(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an astropy quantity
@@ -59,15 +59,15 @@ def create_astropy_skycoord(py_obj, h_group, call_id=0, **kwargs):
 
     d = h_group.create_dataset('data_%i' % call_id, data=dd,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"] = [b'astropy_skycoord']
+    d.attrs["type"] = b'astropy_skycoord'
     if six.PY3:
         lon_unit = str(py_obj.data.lon.unit).encode('ascii')
         lat_unit = str(py_obj.data.lat.unit).encode('ascii')
     else:
         lon_unit = str(py_obj.data.lon.unit)
         lat_unit = str(py_obj.data.lat.unit)
-    d.attrs['lon_unit'] = [lon_unit]
-    d.attrs['lat_unit'] = [lat_unit]
+    d.attrs['lon_unit'] = lon_unit
+    d.attrs['lat_unit'] = lat_unit
 
 def create_astropy_time(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an astropy Time object
@@ -91,15 +91,15 @@ def create_astropy_time(py_obj, h_group, call_id=0, **kwargs):
             data.append(str(item).encode('ascii'))
 
     d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=dtype)     #, **kwargs)
-    d.attrs["type"] = [b'astropy_time']
+    d.attrs["type"] = b'astropy_time'
     if six.PY2:
         fmt   = str(py_obj.format)
         scale = str(py_obj.scale)
     else:
         fmt   = str(py_obj.format).encode('ascii')
         scale = str(py_obj.scale).encode('ascii')
-    d.attrs['format'] = [fmt]
-    d.attrs['scale']  = [scale]
+    d.attrs['format'] = fmt
+    d.attrs['scale']  = scale
 
 def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
     """ dumps an astropy constant
@@ -112,15 +112,15 @@ def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs["type"]   = [b'astropy_constant']
-    d.attrs["unit"]   = [str(py_obj.unit)]
-    d.attrs["abbrev"] = [str(py_obj.abbrev)]
-    d.attrs["name"]   = [str(py_obj.name)]
-    d.attrs["reference"] = [str(py_obj.reference)]
-    d.attrs["uncertainty"] = [py_obj.uncertainty]
+    d.attrs["type"]   = b'astropy_constant'
+    d.attrs["unit"]   = str(py_obj.unit)
+    d.attrs["abbrev"] = str(py_obj.abbrev)
+    d.attrs["name"]   = str(py_obj.name)
+    d.attrs["reference"] = str(py_obj.reference)
+    d.attrs["uncertainty"] = py_obj.uncertainty
 
     if py_obj.system:
-        d.attrs["system"] = [py_obj.system]
+        d.attrs["system"] = py_obj.system
 
 
 def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
@@ -133,7 +133,7 @@ def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
     """
     data = py_obj.as_array()
     d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=data.dtype, **kwargs)
-    d.attrs['type']  = [b'astropy_table']
+    d.attrs['type']  = b'astropy_table'
 
     if six.PY3:
         colnames = [bytes(cn, 'ascii') for cn in py_obj.colnames]
@@ -146,45 +146,45 @@ def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
 
 def load_astropy_quantity_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    unit = h_node.attrs["unit"][0]
+    unit = h_node.attrs["unit"]
     q = Quantity(data, unit, copy=False)
     return q
 
 def load_astropy_time_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     if six.PY3:
-        fmt = h_node.attrs["format"][0].decode('ascii')
-        scale = h_node.attrs["scale"][0].decode('ascii')
+        fmt = h_node.attrs["format"].decode('ascii')
+        scale = h_node.attrs["scale"].decode('ascii')
     else:
-        fmt = h_node.attrs["format"][0]
-        scale = h_node.attrs["scale"][0]
+        fmt = h_node.attrs["format"]
+        scale = h_node.attrs["scale"]
     q = Time(data, format=fmt, scale=scale)
     return q
 
 def load_astropy_angle_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    unit = h_node.attrs["unit"][0]
+    unit = h_node.attrs["unit"]
     q = Angle(data, unit)
     return q
 
 def load_astropy_skycoord_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    lon_unit = h_node.attrs["lon_unit"][0]
-    lat_unit = h_node.attrs["lat_unit"][0]
+    lon_unit = h_node.attrs["lon_unit"]
+    lat_unit = h_node.attrs["lat_unit"]
     q = SkyCoord(data[:,0], data[:, 1], unit=(lon_unit, lat_unit))
     return q
 
 def load_astropy_constant_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    unit   = h_node.attrs["unit"][0]
-    abbrev = h_node.attrs["abbrev"][0]
-    name   = h_node.attrs["name"][0]
-    ref    = h_node.attrs["reference"][0]
-    unc    = h_node.attrs["uncertainty"][0]
+    unit   = h_node.attrs["unit"]
+    abbrev = h_node.attrs["abbrev"]
+    name   = h_node.attrs["name"]
+    ref    = h_node.attrs["reference"]
+    unc    = h_node.attrs["uncertainty"]
 
     system = None
     if "system" in h_node.attrs.keys():
-        system = h_node.attrs["system"][0]
+        system = h_node.attrs["system"]
 
     c = Constant(abbrev, name, data, unit, unc, ref, system)
     return c

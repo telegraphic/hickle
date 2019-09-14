@@ -7,13 +7,11 @@ NB: As these are for built-in types, they are critical to the functioning of hic
 
 """
 
+from six import integer_types, string_types
 from hickle.helpers import get_type_and_data
 
 import sys
 if sys.version_info.major == 3:
-    unicode = type(str)
-    str = type(bytes)
-    long = type(int)
     NoneType = type(None)
 else:
     from types import NoneType
@@ -31,7 +29,7 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     dtype = str(type(py_obj))
     obj = list(py_obj)
     d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
-    d.attrs["type"] = [dtype]
+    d.attrs["type"] = dtype
 
 
 def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -45,7 +43,7 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
                                dtype=type(py_obj))     #, **kwargs)
-    d.attrs["type"] = ['python_dtype']
+    d.attrs["type"] = 'python_dtype'
     d.attrs['python_subdtype'] = str(type(py_obj))
 
 
@@ -59,12 +57,12 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     """
     if isinstance(py_obj, str):
         d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs["type"] = ['string']
+        d.attrs["type"] = 'string'
     else:
         dt = h5.special_dtype(vlen=unicode)
         dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
         dset[0] = py_obj
-        dset.attrs['type'] = ['unicode']
+        dset.attrs['type'] = 'unicode'
 
 
 def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -76,7 +74,7 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
-    d.attrs["type"] = ['none']
+    d.attrs["type"] = 'none'
 
 
 def load_list_dataset(h_node):
@@ -93,11 +91,11 @@ def load_set_dataset(h_node):
 
 def load_string_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    return str(data[0])
+    return str(data)
 
 def load_unicode_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    return unicode(data[0])
+    return unicode(data)
 
 def load_none_dataset(h_node):
     return None

@@ -38,7 +38,7 @@ def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
 
     # DO NOT PASS KWARGS TO SCALAR DATASETS!
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
-    d.attrs["type"] = [b'np_scalar']
+    d.attrs["type"] = b'np_scalar'
 
     if six.PY2:
         d.attrs["np_dtype"] = str(d.dtype)
@@ -55,7 +55,7 @@ def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     d = h_group.create_dataset('data_%i' % call_id, data=[str(py_obj)])
-    d.attrs["type"] = [b'np_dtype']
+    d.attrs["type"] = b'np_dtype'
 
 
 def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -70,11 +70,11 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
         #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
         m = h_group.create_dataset('data_%i_mask' % call_id, data=py_obj.mask, **kwargs)
-        d.attrs["type"] = [b'ndarray_masked_data']
-        m.attrs["type"] = [b'ndarray_masked_mask']
+        d.attrs["type"] = b'ndarray_masked_data'
+        m.attrs["type"] = b'ndarray_masked_mask'
     else:
         d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-        d.attrs["type"] = [b'ndarray']
+        d.attrs["type"] = b'ndarray'
 
 
 
@@ -104,13 +104,13 @@ types_dict = {
 
 def load_np_dtype_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    data = np.dtype(data[0])
+    data = np.dtype(data)
     return data
 
 def load_np_scalar_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    subtype = h_node.attrs["np_dtype"]
-    data = np.array([data], dtype=subtype)[0]
+    subtype = h_node.attrs["np_dtype"].decode('utf-8')
+    data = getattr(np, subtype)(data)
     return data
 
 def load_ndarray_dataset(h_node):

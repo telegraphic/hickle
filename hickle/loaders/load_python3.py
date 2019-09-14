@@ -33,7 +33,7 @@ def get_py3_string_type(h_node):
 
     """
     try:
-        py_type = h_node.attrs["py3_string_type"][0]
+        py_type = h_node.attrs["py3_string_type"]
         return py_type
     except:
         return None
@@ -64,11 +64,11 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
 
 
     d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
-    d.attrs["type"] = [bytes(dtype, 'ascii')]
+    d.attrs["type"] = bytes(dtype, 'ascii')
 
     # Need to add some metadata to aid in unpickling if it's a string type
     if py3_str_type is not None:
-        d.attrs["py3_string_type"] = [py3_str_type]
+        d.attrs["py3_string_type"] = py3_str_type
 
 
 
@@ -83,7 +83,7 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
                                dtype=type(py_obj))     #, **kwargs)
-    d.attrs["type"] = [b'python_dtype']
+    d.attrs["type"] = b'python_dtype'
     d.attrs['python_subdtype'] = bytes(str(type(py_obj)), 'ascii')
 
 
@@ -97,12 +97,12 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     """
     if isinstance(py_obj, bytes):
         d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs["type"] = [b'bytes']
+        d.attrs["type"] = b'bytes'
     elif isinstance(py_obj, str):
         dt = h5.special_dtype(vlen=str)
         dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
         dset[0] = py_obj
-        dset.attrs['type'] = [b'string']
+        dset.attrs['type'] = b'string'
 
 def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dump None type to file
@@ -113,7 +113,7 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
-    d.attrs["type"] = [b'none']
+    d.attrs["type"] = b'none'
 
 
 def load_list_dataset(h_node):
@@ -138,15 +138,15 @@ def load_set_dataset(h_node):
 
 def load_bytes_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    return bytes(data[0])
+    return bytes(data)
 
 def load_string_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    return str(data[0])
+    return str(data)
 
 def load_unicode_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
-    return unicode(data[0])
+    return unicode(data)
 
 def load_none_dataset(h_node):
     return None
@@ -157,7 +157,7 @@ def load_pickled_data(h_node):
         import cPickle as pickle
     except ModuleNotFoundError:
         import pickle
-    return pickle.loads(data[0])
+    return pickle.loads(data)
 
 
 def load_python_dtype_dataset(h_node):
