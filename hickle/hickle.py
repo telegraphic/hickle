@@ -365,7 +365,7 @@ def create_hkl_group(py_obj, h_group, call_id=0):
 
     """
     h_subgroup = h_group.create_group('data_%i' % call_id)
-    h_subgroup.attrs['base_type'] = str(type(py_obj)).encode('ascii', 'ignore')
+    h_subgroup.attrs['base_type'] = create_dataset_lookup(py_obj)[1]
     return h_subgroup
 
 
