@@ -108,17 +108,17 @@ def load_python_dtype_dataset(h_node):
     return tcast(data)
 
 types_dict = {
-    list:        create_listlike_dataset,
-    tuple:       create_listlike_dataset,
-    set:         create_listlike_dataset,
-    str:         create_stringlike_dataset,
-    unicode:     create_stringlike_dataset,
-    int:         create_python_dtype_dataset,
-    float:       create_python_dtype_dataset,
-    long:        create_python_dtype_dataset,
-    bool:        create_python_dtype_dataset,
-    complex:     create_python_dtype_dataset,
-    NoneType:    create_none_dataset,
+    list:        (create_listlike_dataset, "<type 'list'>"),
+    tuple:       (create_listlike_dataset, "<type 'tuple'>"),
+    set:         (create_listlike_dataset, "<type 'set'>"),
+    str:         (create_stringlike_dataset, "string"),
+    unicode:     (create_stringlike_dataset, "unicode"),
+    int:         (create_python_dtype_dataset, "python_dtype"),
+    float:       (create_python_dtype_dataset, "python_dtype"),
+    long:        (create_python_dtype_dataset, "python_dtype"),
+    bool:        (create_python_dtype_dataset, "python_dtype"),
+    complex:     (create_python_dtype_dataset, "python_dtype"),
+    NoneType:    (create_none_dataset, "none"),
 }
 
 hkl_types_dict = {

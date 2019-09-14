@@ -317,6 +317,7 @@ def create_dataset_lookup(py_obj):
 
     Returns:
         match: function that should be used to dump data to a new dataset
+        base_type: the base type of the data that will be dumped
     """
 
     # Obtain the MRO of this object
@@ -326,15 +327,18 @@ def create_dataset_lookup(py_obj):
     match_map = map(types_dict.get, mro_list)
 
     # Loop over the entire match_map until something else than None is found
-    for match in match_map:
+    for i, match in enumerate(match_map):
         if match is not None:
+            match = match[0]
+            base_type = str(mro_list[i])
             break
     # If that did not happen, then match is no_match
     else:
         match = no_match
+        base_type = b'pickle'
 
-    # Return found match
-    return(match)
+    # Return found match and base_type
+    return(match, base_type)
 
 
 def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
@@ -347,7 +351,7 @@ def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
 
     """
     #lookup dataset creator type based on python object type
-    create_dataset = create_dataset_lookup(py_obj)
+    create_dataset, base_type = create_dataset_lookup(py_obj)
 
     # do the creation
     create_dataset(py_obj, h_group, call_id, **kwargs)
@@ -381,7 +385,7 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     h_dictgroup = h_group.create_group('data_%i' % call_id)
-    h_dictgroup.attrs['base_type'] = str(type(py_obj)).encode('ascii', 'ignore')
+    h_dictgroup.attrs['base_type'] = b"<class 'dict'>"
 
     for key, py_subobj in py_obj.items():
         if isinstance(key, string_types):
@@ -390,12 +394,12 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
             h_subgroup = h_dictgroup.create_group(str(key))
         h_subgroup.attrs['base_type'] = b'dict_item'
 
-        h_subgroup.attrs["key_type"] = str(type(key)).encode('ascii', 'ignore')
+        h_subgroup.attrs['base_key_type'] = str(type(key)).encode('ascii', 'ignore')
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
 
 # Add create_dict_dataset to types_dict
-types_dict[dict] = create_dict_dataset
+types_dict[dict] = (create_dict_dataset, b"<class 'dict'>")
 
 
 def no_match(py_obj, h_group, call_id=0, **kwargs):
@@ -443,7 +447,7 @@ class PyContainer(list):
         if self.container_type in container_types_dict.keys():
             convert_fn = container_types_dict[self.container_type]
             return convert_fn(self)
-        if self.container_type == str(dict).encode('ascii', 'ignore'):
+        if self.container_type == b"<class 'dict'>":
             keys = []
             for item in self:
                 key = item.name.split('/')[-1]
@@ -600,7 +604,7 @@ def _load(py_container, h_group):
         py_subcontainer.name = h_group.name
 
         if py_subcontainer.container_type == b'dict_item':
-            py_subcontainer.key_type = h_group.attrs['key_type']
+            py_subcontainer.key_type = h_group.attrs['base_key_type']
 
         if py_subcontainer.container_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())

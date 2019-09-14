@@ -84,22 +84,22 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
 #######################
 
 types_dict = {
-    np.ndarray:  create_np_array_dataset,
-    np.ma.core.MaskedArray: create_np_array_dataset,
-    np.float16:    create_np_scalar_dataset,
-    np.float32:    create_np_scalar_dataset,
-    np.float64:    create_np_scalar_dataset,
-    np.int8:       create_np_scalar_dataset,
-    np.int16:      create_np_scalar_dataset,
-    np.int32:      create_np_scalar_dataset,
-    np.int64:      create_np_scalar_dataset,
-    np.uint8:      create_np_scalar_dataset,
-    np.uint16:     create_np_scalar_dataset,
-    np.uint32:     create_np_scalar_dataset,
-    np.uint64:     create_np_scalar_dataset,
-    np.complex64:  create_np_scalar_dataset,
-    np.complex128: create_np_scalar_dataset,
-    np.dtype:      create_np_dtype
+    np.ndarray:  (create_np_array_dataset, b'ndarray'),
+    np.ma.core.MaskedArray: (create_np_array_dataset, b"ndarray_masked_data"),
+    np.float16:    (create_np_scalar_dataset, b'np_scalar'),
+    np.float32:    (create_np_scalar_dataset, b'np_scalar'),
+    np.float64:    (create_np_scalar_dataset, b'np_scalar'),
+    np.int8:       (create_np_scalar_dataset, b'np_scalar'),
+    np.int16:      (create_np_scalar_dataset, b'np_scalar'),
+    np.int32:      (create_np_scalar_dataset, b'np_scalar'),
+    np.int64:      (create_np_scalar_dataset, b'np_scalar'),
+    np.uint8:      (create_np_scalar_dataset, b'np_scalar'),
+    np.uint16:     (create_np_scalar_dataset, b'np_scalar'),
+    np.uint32:     (create_np_scalar_dataset, b'np_scalar'),
+    np.uint64:     (create_np_scalar_dataset, b'np_scalar'),
+    np.complex64:  (create_np_scalar_dataset, b'np_scalar'),
+    np.complex128: (create_np_scalar_dataset, b'np_scalar'),
+    np.dtype:      (create_np_dtype, b'np_dtype')
 }
 
 def load_np_dtype_dataset(h_node):

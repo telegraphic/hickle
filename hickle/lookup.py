@@ -165,7 +165,7 @@ def register_class(myclass_type, hkl_str, dump_function, load_function,
         ndarray_check_fn (function def): function to use to check if
 
     """
-    types_dict.update({myclass_type: dump_function})
+    types_dict.update({myclass_type: (dump_function, hkl_str)})
     hkl_types_dict.update({hkl_str: load_function})
     if to_sort == False:
         types_not_to_sort.append(hkl_str)
