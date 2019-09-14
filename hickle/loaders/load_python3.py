@@ -95,14 +95,8 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    if isinstance(py_obj, bytes):
-        d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs['base_type'] = b'bytes'
-    elif isinstance(py_obj, str):
-        dt = h5.special_dtype(vlen=str)
-        dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
-        dset[0] = py_obj
-        dset.attrs['base_type'] = b'string'
+    d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
+    d.attrs['base_type'] = b'bytes' if isinstance(py_obj, bytes) else b'string'
 
 def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
     """ Dump None type to file
