@@ -21,7 +21,7 @@ def check_is_scipy_sparse_array(py_obj):
     return is_sparse
 
 
-def create_sparse_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_sparse_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an sparse array to h5py file
 
     Args:

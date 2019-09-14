@@ -323,14 +323,13 @@ def create_dataset_lookup(py_obj):
     # Obtain the MRO of this object
     mro_list = py_obj.__class__.mro()
 
-    # Create a match_map
-    match_map = map(types_dict.get, mro_list)
+    # Create a type_map
+    type_map = map(types_dict.get, mro_list)
 
-    # Loop over the entire match_map until something else than None is found
-    for i, match in enumerate(match_map):
-        if match is not None:
-            match = match[0]
-            base_type = str(mro_list[i])
+    # Loop over the entire type_map until something else than None is found
+    for i, type_item in enumerate(type_map):
+        if type_item is not None:
+            match, base_type = type_item
             break
     # If that did not happen, then match is no_match
     else:
@@ -354,7 +353,7 @@ def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
     create_dataset, base_type = create_dataset_lookup(py_obj)
 
     # do the creation
-    create_dataset(py_obj, h_group, call_id, **kwargs)
+    create_dataset(py_obj, base_type, h_group, call_id, **kwargs)
 
 
 def create_hkl_group(py_obj, h_group, call_id=0):
@@ -370,7 +369,7 @@ def create_hkl_group(py_obj, h_group, call_id=0):
     return h_subgroup
 
 
-def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_dict_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ Creates a data group for each key in dictionary
 
     Notes:

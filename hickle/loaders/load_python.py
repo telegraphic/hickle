@@ -18,7 +18,7 @@ else:
 
 import h5py as h5
 
-def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_listlike_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ Dumper for list, set, tuple
 
     Args:
@@ -26,13 +26,13 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    dtype = str(type(py_obj))
+
     obj = list(py_obj)
     d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
-    d.attrs['base_type'] = dtype
+    d.attrs['base_type'] = base_type
 
 
-def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_python_dtype_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps a python dtype object to h5py file
 
     Args:
@@ -47,7 +47,7 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
     d.attrs['python_subdtype'] = str(type(py_obj))
 
 
-def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_stringlike_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps a list object to h5py file
 
     Args:
@@ -59,7 +59,7 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
     d.attrs['base_type'] = 'string' if isinstance(py_obj, str) else 'unicode'
 
 
-def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_none_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ Dump None type to file
 
     Args:

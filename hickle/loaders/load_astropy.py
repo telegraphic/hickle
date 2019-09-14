@@ -8,7 +8,7 @@ from astropy.time import Time
 from hickle.helpers import get_type_and_data
 import six
 
-def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
+def create_astropy_quantity(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an astropy quantity
 
     Args:
@@ -26,7 +26,7 @@ def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
         unit = str(py_obj.unit)
     d.attrs['unit'] = unit
 
-def create_astropy_angle(py_obj, h_group, call_id=0, **kwargs):
+def create_astropy_angle(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an astropy quantity
 
     Args:
@@ -44,7 +44,7 @@ def create_astropy_angle(py_obj, h_group, call_id=0, **kwargs):
         unit = str(py_obj.unit)
     d.attrs['unit'] = unit
 
-def create_astropy_skycoord(py_obj, h_group, call_id=0, **kwargs):
+def create_astropy_skycoord(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an astropy quantity
 
     Args:
@@ -69,7 +69,7 @@ def create_astropy_skycoord(py_obj, h_group, call_id=0, **kwargs):
     d.attrs['lon_unit'] = lon_unit
     d.attrs['lat_unit'] = lat_unit
 
-def create_astropy_time(py_obj, h_group, call_id=0, **kwargs):
+def create_astropy_time(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an astropy Time object
 
     Args:
@@ -101,7 +101,7 @@ def create_astropy_time(py_obj, h_group, call_id=0, **kwargs):
     d.attrs['format'] = fmt
     d.attrs['scale']  = scale
 
-def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
+def create_astropy_constant(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an astropy constant
 
     Args:
@@ -123,7 +123,7 @@ def create_astropy_constant(py_obj, h_group, call_id=0, **kwargs):
         d.attrs["system"] = py_obj.system
 
 
-def create_astropy_table(py_obj, h_group, call_id=0, **kwargs):
+def create_astropy_table(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ Dump an astropy Table
 
     Args:

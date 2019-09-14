@@ -27,7 +27,7 @@ def check_is_numpy_array(py_obj):
     return is_numpy
 
 
-def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_np_scalar_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
@@ -46,7 +46,7 @@ def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
         d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
 
 
-def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
+def create_np_dtype(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
@@ -58,7 +58,7 @@ def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
     d.attrs['base_type'] = b'np_dtype'
 
 
-def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_np_array_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """ dumps an ndarray object to h5py file
 
     Args:
