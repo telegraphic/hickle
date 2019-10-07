@@ -256,7 +256,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     """ Write a pickled representation of obj to the open file object file.
 
     Args:
-    obj (object): python object o store in a Hickle
+    obj (object): python object to store in a Hickle
     file: file object, filename string, or h5py.File object
             file in which to store the object. A h5py.File or a filename is also
             acceptable.
@@ -276,19 +276,25 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     try:
         # Open the file
         h5f, close_flag = file_opener(file_obj, mode, track_times)
-        h5f.attrs["CLASS"] = b'hickle'
-        h5f.attrs["VERSION"] = get_distribution('hickle').version
-        h5f.attrs['base_type'] = b'hickle'
+
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
         py_ver = "%i.%i.%i" % (pv[0], pv[1], pv[2])
-        h5f.attrs["PYTHON_VERSION"] = py_ver
 
-        h_root_group = h5f.get(path)
-
-        if h_root_group is None:
+        # Try to create the root group
+        try:
             h_root_group = h5f.create_group(path)
-            h_root_group.attrs['base_type'] = b'hickle'
+        # If that is not possible, raise an error about it if path is not '/'
+        except ValueError as error:
+            if path == '/':
+                h_root_group = h5f['/']
+            else:
+                raise error
+
+        h_root_group.attrs["CLASS"] = b'hickle'
+        h_root_group.attrs["VERSION"] = __version__
+        h_root_group.attrs["PYTHON_VERSION"] = py_ver
+        h_root_group.attrs['base_type'] = b'hickle'
 
         _dump(py_obj, h_root_group, **kwargs)
     except NoMatchError:
@@ -506,7 +512,7 @@ def load(fileobj, path='/', safe=True):
             DO NOT set this to False unless the file is from a trusted source.
             (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
 
-        path (str): path within hdf5 file to save data to. Defaults to root /
+        path (str): path within hdf5 file to load data from. Defaults to root /
     """
 
     # Make sure that the file is not closed unless modified
@@ -517,9 +523,9 @@ def load(fileobj, path='/', safe=True):
         h5f, close_flag = file_opener(fileobj)
         h_root_group = h5f.get(path)
         try:
-            assert 'CLASS' in h5f.attrs.keys()
-            assert 'VERSION' in h5f.attrs.keys()
-            VER = h5f.attrs['VERSION']
+            assert 'CLASS' in h_root_group.attrs.keys()
+            assert 'VERSION' in h_root_group.attrs.keys()
+            VER = h_root_group.attrs['VERSION']
             try:
                 VER_MAJOR = int(VER)
             except ValueError:
@@ -618,7 +624,7 @@ def _load(py_container, h_group):
             py_subcontainer.container_base_type = bytes(h_group.attrs['base_type'])
         except KeyError:
             raise
-            #py_subcontainer.container_type = ''
+
         py_subcontainer.name = h_group.name
 
         if py_subcontainer.container_base_type == b"<class 'dict'>":
