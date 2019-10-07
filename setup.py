@@ -9,7 +9,7 @@
 from setuptools import setup, find_packages
 import sys
 
-version = '3.4.5'
+version = '3.4.6'
 author  = 'Danny Price'
 
 with open("README.md", "r") as fh:
@@ -32,10 +32,8 @@ setup(name='hickle',
       download_url='https://github.com/telegraphic/hickle/archive/%s.tar.gz' % version,
       platforms='Cross platform (Linux, Mac OSX, Windows)',
       keywords=['pickle', 'hdf5', 'data storage', 'data export'],
-      #py_modules = ['hickle', 'hickle_legacy'],
       install_requires=requirements,
       tests_require=test_requirements,
-#      setup_requires = ['pytest-runner', 'pytest-cov'],
       python_requires='>=2.7',
       packages=find_packages(),
       zip_safe=False,

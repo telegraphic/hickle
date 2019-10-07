@@ -5,6 +5,6 @@ astropy<3.1;python_version>="3"
 astropy<3.0;python_version=="2.7.*"
 scipy
 pandas
-coveralls
+codecov
 check-manifest
 twine>=1.13.0

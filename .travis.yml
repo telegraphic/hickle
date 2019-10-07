@@ -22,4 +22,4 @@ script:
   - python setup.py test
 
 # Run code coverage
-after_success: coveralls
+after_success: codecov
