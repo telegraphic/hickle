@@ -388,7 +388,7 @@ def create_dict_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     h_dictgroup = h_group.create_group('data_%i' % call_id)
     h_dictgroup.attrs['base_type'] = b"<class 'dict'>"
 
-    for key, py_subobj in py_obj.items():
+    for idx, (key, py_subobj) in enumerate(py_obj.items()):
         if isinstance(key, string_types):
             h_subgroup = h_dictgroup.create_group("%r" % (key))
         else:
@@ -396,6 +396,8 @@ def create_dict_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
         h_subgroup.attrs['base_type'] = b'dict_item'
 
         h_subgroup.attrs['base_key_type'] = str(type(key)).encode('ascii', 'ignore')
+
+        h_subgroup.attrs['key_idx'] = idx
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
 
@@ -450,17 +452,26 @@ class PyContainer(list):
             convert_fn = container_types_dict[self.container_base_type]
             return convert_fn(self)
         if self.container_base_type == b"<class 'dict'>":
-            keys = []
+            items = [[]]*len(self)
             for item in self:
                 key = item.name.split('/')[-1]
                 base_key_type = item.base_key_type
+                key_idx = item.key_idx
                 if base_key_type in container_key_types_dict.keys():
                     to_type_fn = container_key_types_dict[base_key_type]
                     key = to_type_fn(key)
-                keys.append(key)
+                items[key_idx] = [key, item[0]]
 
-            items = [item[0] for item in self]
-            return self.container_type(zip(keys, items))
+            # Try to initialize the dict using its true type
+            try:
+                return(self.container_type(items))
+            # If that does not work, attempt to use base type -> true type
+            except Exception as error:
+                try:
+                    return(self.container_type(dict(items)))
+                except Exception:
+                    # If that does not work either, raise original error
+                    raise error
         else:
             return self
 
@@ -614,6 +625,7 @@ def _load(py_container, h_group):
             py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
         if py_subcontainer.container_base_type == b'dict_item':
             py_subcontainer.base_key_type = h_group.attrs['base_key_type']
+            py_subcontainer.key_idx = h_group.attrs['key_idx']
 
         if py_subcontainer.container_base_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())
