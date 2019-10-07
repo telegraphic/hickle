@@ -8,7 +8,7 @@ from astropy.time import Time
 from hickle.helpers import get_type_and_data
 import six
 
-def create_astropy_quantity(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_astropy_quantity(py_obj, h_group, name, **kwargs):
     """ dumps an astropy quantity
 
     Args:
@@ -17,16 +17,16 @@ def create_astropy_quantity(py_obj, base_type, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
+    d = h_group.create_dataset(name, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs['base_type'] = b'astropy_quantity'
     if six.PY3:
         unit = bytes(str(py_obj.unit), 'ascii')
     else:
         unit = str(py_obj.unit)
     d.attrs['unit'] = unit
+    return(d)
 
-def create_astropy_angle(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_astropy_angle(py_obj, h_group, name, **kwargs):
     """ dumps an astropy quantity
 
     Args:
@@ -35,16 +35,16 @@ def create_astropy_angle(py_obj, base_type, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
+    d = h_group.create_dataset(name, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs['base_type'] = b'astropy_angle'
     if six.PY3:
         unit = str(py_obj.unit).encode('ascii')
     else:
         unit = str(py_obj.unit)
     d.attrs['unit'] = unit
+    return(d)
 
-def create_astropy_skycoord(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_astropy_skycoord(py_obj, h_group, name, **kwargs):
     """ dumps an astropy quantity
 
     Args:
@@ -57,9 +57,8 @@ def create_astropy_skycoord(py_obj, base_type, h_group, call_id=0, **kwargs):
     lon = py_obj.data.lon.value
     dd = np.column_stack((lon, lat))
 
-    d = h_group.create_dataset('data_%i' % call_id, data=dd,
+    d = h_group.create_dataset(name, data=dd,
                                dtype='float64')     #, **kwargs)
-    d.attrs['base_type'] = b'astropy_skycoord'
     if six.PY3:
         lon_unit = str(py_obj.data.lon.unit).encode('ascii')
         lat_unit = str(py_obj.data.lat.unit).encode('ascii')
@@ -68,8 +67,9 @@ def create_astropy_skycoord(py_obj, base_type, h_group, call_id=0, **kwargs):
         lat_unit = str(py_obj.data.lat.unit)
     d.attrs['lon_unit'] = lon_unit
     d.attrs['lat_unit'] = lat_unit
+    return(d)
 
-def create_astropy_time(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_astropy_time(py_obj, h_group, name, **kwargs):
     """ dumps an astropy Time object
 
     Args:
@@ -90,8 +90,7 @@ def create_astropy_time(py_obj, base_type, h_group, call_id=0, **kwargs):
         for item in py_obj.value:
             data.append(str(item).encode('ascii'))
 
-    d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=dtype)     #, **kwargs)
-    d.attrs['base_type'] = b'astropy_time'
+    d = h_group.create_dataset(name, data=data, dtype=dtype)     #, **kwargs)
     if six.PY2:
         fmt   = str(py_obj.format)
         scale = str(py_obj.scale)
@@ -101,7 +100,9 @@ def create_astropy_time(py_obj, base_type, h_group, call_id=0, **kwargs):
     d.attrs['format'] = fmt
     d.attrs['scale']  = scale
 
-def create_astropy_constant(py_obj, base_type, h_group, call_id=0, **kwargs):
+    return(d)
+
+def create_astropy_constant(py_obj, h_group, name, **kwargs):
     """ dumps an astropy constant
 
     Args:
@@ -110,9 +111,8 @@ def create_astropy_constant(py_obj, base_type, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj.value,
+    d = h_group.create_dataset(name, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    d.attrs['base_type']   = b'astropy_constant'
     d.attrs["unit"]   = str(py_obj.unit)
     d.attrs["abbrev"] = str(py_obj.abbrev)
     d.attrs["name"]   = str(py_obj.name)
@@ -121,9 +121,10 @@ def create_astropy_constant(py_obj, base_type, h_group, call_id=0, **kwargs):
 
     if py_obj.system:
         d.attrs["system"] = py_obj.system
+    return(d)
 
 
-def create_astropy_table(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_astropy_table(py_obj, h_group, name, **kwargs):
     """ Dump an astropy Table
 
     Args:
@@ -132,8 +133,7 @@ def create_astropy_table(py_obj, base_type, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     data = py_obj.as_array()
-    d = h_group.create_dataset('data_%i' % call_id, data=data, dtype=data.dtype, **kwargs)
-    d.attrs['base_type']  = b'astropy_table'
+    d = h_group.create_dataset(name, data=data, dtype=data.dtype, **kwargs)
 
     if six.PY3:
         colnames = [bytes(cn, 'ascii') for cn in py_obj.colnames]
@@ -142,6 +142,7 @@ def create_astropy_table(py_obj, base_type, h_group, call_id=0, **kwargs):
     d.attrs['colnames'] = colnames
     for key, value in py_obj.meta.items():
      d.attrs[key] = value
+    return(d)
 
 
 def load_astropy_quantity_dataset(h_node):

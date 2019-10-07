@@ -34,7 +34,7 @@ def check_is_numpy_array(py_obj):
     return is_numpy
 
 
-def create_np_scalar_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
@@ -44,16 +44,16 @@ def create_np_scalar_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
     """
 
     # DO NOT PASS KWARGS TO SCALAR DATASETS!
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
-    d.attrs['base_type'] = b'np_scalar'
+    d = h_group.create_dataset(name, data=py_obj)  # **kwargs)
 
     if six.PY2:
         d.attrs["np_dtype"] = str(d.dtype)
     else:
         d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
+    return(d)
 
 
-def create_np_dtype(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_np_dtype(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
@@ -61,11 +61,11 @@ def create_np_dtype(py_obj, base_type, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    d = h_group.create_dataset('data_%i' % call_id, data=[str(py_obj)])
-    d.attrs['base_type'] = b'np_dtype'
+    d = h_group.create_dataset(name, data=[str(py_obj)])
+    return(d)
 
 
-def create_np_array_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_np_array_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an ndarray object to h5py file
 
     Args:
@@ -74,15 +74,14 @@ def create_np_array_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     if isinstance(py_obj, np.ma.core.MaskedArray):
-        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
+        d = h_group.create_dataset(name, data=py_obj, **kwargs)
         #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
-        m = h_group.create_dataset('data_%i_mask' % call_id, data=py_obj.mask, **kwargs)
-        d.attrs['base_type'] = b'ndarray_masked_data'
+        m = h_group.create_dataset('%s_mask' % name, data=py_obj.mask, **kwargs)
         m.attrs['type'] = np.array(pickle.dumps(py_obj.mask.__class__))
         m.attrs['base_type'] = b'ndarray_masked_mask'
     else:
-        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-        d.attrs['base_type'] = b'ndarray'
+        d = h_group.create_dataset(name, data=py_obj, **kwargs)
+    return(d)
 
 
 

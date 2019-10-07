@@ -202,7 +202,7 @@ def file_opener(f, mode='r', track_times=True):
 ###########
 
 
-def _dump(py_obj, h_group, call_id=0, **kwargs):
+def _dump(py_obj, h_group, call_id=None, **kwargs):
     """ Dump a python object to a group within a HDF5 file.
 
     This function is called recursively by the main dump() function.
@@ -234,6 +234,8 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
         if item_type is False:
             h_subgroup = create_hkl_group(py_obj, h_group, call_id)
             for ii, py_subobj in enumerate(py_obj):
+                if len(py_obj) == 1:
+                    ii = None
                 _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
         # otherwise, subitems have same type. Check if subtype is an iterable
@@ -245,6 +247,8 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
             else:
                 h_subgroup = create_hkl_group(py_obj, h_group, call_id)
                 for ii, py_subobj in enumerate(py_obj):
+                    if len(py_obj) == 1:
+                        ii = None
                     _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
     # item is not iterable, so create a dataset for it
@@ -295,6 +299,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
         h_root_group.attrs["VERSION"] = __version__
         h_root_group.attrs["PYTHON_VERSION"] = py_ver
         h_root_group.attrs['base_type'] = b'hickle'
+        h_root_group.attrs['type'] = np.array(pickle.dumps('hickle'))
 
         _dump(py_obj, h_root_group, **kwargs)
     except NoMatchError:
@@ -346,7 +351,7 @@ def create_dataset_lookup(py_obj):
     return(match, base_type)
 
 
-def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
     """ Create a dataset within the hickle HDF5 file
 
     Args:
@@ -355,15 +360,19 @@ def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
 
     """
-    #lookup dataset creator type based on python object type
+    # lookup dataset creator type based on python object type
     create_dataset, base_type = create_dataset_lookup(py_obj)
 
+    # Set the name of this dataset
+    name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
+
     # do the creation
-    create_dataset(py_obj, base_type, h_group, call_id, **kwargs)
-    h_group['data_%i' % (call_id)].attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
+    h_subgroup = create_dataset(py_obj, h_group, name, **kwargs)
+    h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
+    h_subgroup.attrs['base_type'] = base_type
 
 
-def create_hkl_group(py_obj, h_group, call_id=0):
+def create_hkl_group(py_obj, h_group, call_id=None):
     """ Create a new group within the hickle file
 
     Args:
@@ -371,13 +380,17 @@ def create_hkl_group(py_obj, h_group, call_id=0):
         call_id (int): index to identify object's relative location in the iterable.
 
     """
-    h_subgroup = h_group.create_group('data_%i' % call_id)
+
+    # Set the name of this group
+    name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
+
+    h_subgroup = h_group.create_group(name)
     h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
     h_subgroup.attrs['base_type'] = create_dataset_lookup(py_obj)[1]
     return h_subgroup
 
 
-def create_dict_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
+def create_dict_dataset(py_obj, h_group, name, **kwargs):
     """ Creates a data group for each key in dictionary
 
     Notes:
@@ -391,8 +404,7 @@ def create_dict_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    h_dictgroup = h_group.create_group('data_%i' % call_id)
-    h_dictgroup.attrs['base_type'] = b"<class 'dict'>"
+    h_dictgroup = h_group.create_group(name)
 
     for idx, (key, py_subobj) in enumerate(py_obj.items()):
         if isinstance(key, string_types):
@@ -406,12 +418,13 @@ def create_dict_dataset(py_obj, base_type, h_group, call_id=0, **kwargs):
         h_subgroup.attrs['key_idx'] = idx
 
         _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
+    return(h_dictgroup)
 
 # Add create_dict_dataset to types_dict
 types_dict[dict] = (create_dict_dataset, b"<class 'dict'>")
 
 
-def no_match(py_obj, base_type, h_group, call_id=0, **kwargs):
+def no_match(py_obj, h_group, name, **kwargs):
     """ If no match is made, raise an exception
 
     Args:
@@ -420,11 +433,11 @@ def no_match(py_obj, base_type, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     pickled_obj = pickle.dumps(py_obj)
-    d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
-    d.attrs['base_type'] = b'pickle'
+    d = h_group.create_dataset(name, data=[pickled_obj])
 
     warnings.warn("%s type not understood, data have been serialized" % type(py_obj),
                   SerializedWarning)
+    return(d)
 
 
 
@@ -455,8 +468,17 @@ class PyContainer(list):
         """
 
         if self.container_base_type in container_types_dict.keys():
-            convert_fn = container_types_dict[self.container_base_type]
-            return convert_fn(self)
+            # Try to initialize the container using its true type
+            try:
+                return(self.container_type(self))
+            # If that does not work, attempt to use base type -> true type
+            except Exception as error:
+                try:
+                    convert_fn = container_types_dict[self.container_base_type]
+                    return(self.container_type(convert_fn(self)))
+                except Exception:
+                    # If that does not work either, raise original error
+                    raise error
         if self.container_base_type == b"<class 'dict'>":
             items = [[]]*len(self)
             for item in self:
@@ -627,12 +649,14 @@ def _load(py_container, h_group):
 
         py_subcontainer.name = h_group.name
 
-        if py_subcontainer.container_base_type == b"<class 'dict'>":
-            py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
+#        if py_subcontainer.container_base_type == b"<class 'dict'>":
+#            py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
+
         if py_subcontainer.container_base_type == b'dict_item':
             py_subcontainer.base_key_type = h_group.attrs['base_key_type']
             py_subcontainer.key_idx = h_group.attrs['key_idx']
-
+        else:
+            py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
         if py_subcontainer.container_base_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())
         else:

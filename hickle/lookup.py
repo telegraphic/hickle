@@ -39,10 +39,6 @@ container_key_types_dict: mapping specifically for converting hickled dict data 
         "<type 'unicode'>": unicode
         }
 
-5) types_not_to_sort
-type_not_to_sort is a list of hickle type attributes that may be hierarchical,
-but don't require sorting by integer index.
-
 ## Extending hickle to add support for other classes and types
 
 The process to add new load/dump capabilities is as follows:
@@ -65,11 +61,7 @@ The process to add new load/dump capabilities is as follows:
 from six import PY2
 from ast import literal_eval
 
-def return_first(x):
-    """ Return first element of a list """
-    return x[0]
-
-def load_nothing(h_hode):
+def load_nothing(h_node):
     pass
 
 types_dict = {}
@@ -85,9 +77,9 @@ container_types_dict = {
     b"<class 'list'>": list,
     b"<class 'tuple'>": tuple,
     b"<class 'set'>": set,
-    b"csr_matrix":  return_first,
-    b"csc_matrix": return_first,
-    b"bsr_matrix": return_first
+    b"csr_matrix":  None,
+    b"csc_matrix": None,
+    b"bsr_matrix": None
     }
 
 # Technically, any hashable object can be used, for now sticking with built-in types
