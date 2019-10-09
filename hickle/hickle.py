@@ -298,8 +298,6 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
         h_root_group.attrs["CLASS"] = b'hickle'
         h_root_group.attrs["VERSION"] = __version__
         h_root_group.attrs["PYTHON_VERSION"] = py_ver
-        h_root_group.attrs['base_type'] = b'hickle'
-        h_root_group.attrs['type'] = np.array(pickle.dumps('hickle'))
 
         _dump(py_obj, h_root_group, **kwargs)
     except NoMatchError:
@@ -413,11 +411,12 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
             h_subgroup = h_dictgroup.create_group(str(key))
         h_subgroup.attrs['base_type'] = b'dict_item'
 
-        h_subgroup.attrs['base_key_type'] = str(type(key)).encode('ascii', 'ignore')
+        h_subgroup.attrs['key_base_type'] = str(type(key)).encode('ascii', 'ignore')
+        h_subgroup.attrs['key_type'] = np.array(pickle.dumps(key.__class__))
 
         h_subgroup.attrs['key_idx'] = idx
 
-        _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
+        _dump(py_subobj, h_subgroup, call_id=None, **kwargs)
     return(h_dictgroup)
 
 # Add create_dict_dataset to types_dict
@@ -459,7 +458,7 @@ class PyContainer(list):
         self.container_base_type = None
         self.name = None
         self.key_type = None
-        self.base_key_type = None
+        self.key_base_type = None
 
     def convert(self):
         """ Convert from PyContainer to python core data type.
@@ -480,14 +479,15 @@ class PyContainer(list):
                 except Exception:
                     # If that does not work either, raise original error
                     raise error
+
         if self.container_base_type == b"<class 'dict'>":
             items = [[]]*len(self)
             for item in self:
                 key = item.name.split('/')[-1]
-                base_key_type = item.base_key_type
+                key_base_type = item.key_base_type
                 key_idx = item.key_idx
-                if base_key_type in container_key_types_dict.keys():
-                    to_type_fn = container_key_types_dict[base_key_type]
+                if key_base_type in container_key_types_dict.keys():
+                    to_type_fn = container_key_types_dict[key_base_type]
                     key = to_type_fn(key)
                 items[key_idx] = [key, item[0]]
 
@@ -584,9 +584,8 @@ def load(fileobj, path='/', safe=True):
                                        " created with Python 2 and an old hickle version.")
             elif VER_MAJOR >= 3:
                 py_container = PyContainer()
-                py_container.container_base_type = 'hickle'
-                py_container = _load(py_container, h_root_group)
-                return py_container[0][0]
+                py_container = _load(py_container, h_root_group['data'])
+                return py_container[0]
 
         except AssertionError:
             if PY2:
@@ -651,10 +650,12 @@ def _load(py_container, h_group):
         py_subcontainer.name = h_group.name
 
         if py_subcontainer.container_base_type == b'dict_item':
-            py_subcontainer.base_key_type = h_group.attrs['base_key_type']
+            py_subcontainer.key_base_type = h_group.attrs['key_base_type']
+            py_subcontainer.key_type = pickle.loads(h_group.attrs['key_type'])
             py_subcontainer.key_idx = h_group.attrs['key_idx']
         else:
             py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
+
         if py_subcontainer.container_base_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())
         else:
