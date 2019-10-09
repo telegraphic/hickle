@@ -153,7 +153,7 @@ class H5FileWrapper(h5.File):
         return group
 
 
-def file_opener(f, mode='r', track_times=True):
+def file_opener(f, path, mode='r', track_times=True):
     """ A file opener helper function with some error handling.  This can open
     files through a file object, a h5py file, or just the filename.
 
@@ -167,6 +167,10 @@ def file_opener(f, mode='r', track_times=True):
 
     # Assume that we will have to close the file after dump or load
     close_flag = True
+
+    # Make sure that the given path always starts with '/'
+    if not path.startswith('/'):
+        path = '/%s' % (path)
 
     # Were we handed a file object or just a file name string?
     if isinstance(f, (file, io.TextIOWrapper)):
@@ -184,13 +188,23 @@ def file_opener(f, mode='r', track_times=True):
         h5f = f
         # Since this file was already open, do not close the file afterward
         close_flag = False
+    elif isinstance(f, (h5._hl.group.Group)):
+        try:
+            filename = f.file.filename
+        except ValueError:
+            raise ClosedFileError
+        h5f = f.file
+
+        # Combine given path with path to this group
+        path = ''.join([f.name, path])
+        close_flag = False
     else:
         print(f.__class__)
         raise FileError
 
     h5f.__class__ = H5FileWrapper
     h5f.track_times = track_times
-    return(h5f, close_flag)
+    return(h5f, path, close_flag)
 
 
 ###########
@@ -257,7 +271,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
 
     Args:
     obj (object): python object to store in a Hickle
-    file: file object, filename string, or h5py.File object
+    file: file object, filename string, h5py.File object or h5py.Group object
             file in which to store the object. A h5py.File or a filename is also
             acceptable.
     mode (str): optional argument, 'r' (read only), 'w' (write) or 'a' (append).
@@ -266,7 +280,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
             lzf (+ szip, if installed)
     track_times (bool): optional argument. If set to False, repeated hickling will produce
             identical files.
-    path (str): path within hdf5 file to save data to. Defaults to root /
+    path (str): path within hdf5 file or group to save data to. Defaults to root /
     """
 
     # Make sure that file is not closed unless modified
@@ -275,7 +289,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
 
     try:
         # Open the file
-        h5f, close_flag = file_opener(file_obj, mode, track_times)
+        h5f, path, close_flag = file_opener(file_obj, path, mode, track_times)
 
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
@@ -539,7 +553,7 @@ def load(fileobj, path='/', safe=True):
     close_flag = False
 
     try:
-        h5f, close_flag = file_opener(fileobj)
+        h5f, path, close_flag = file_opener(fileobj, path)
         h_root_group = h5f.get(path)
         try:
             assert 'CLASS' in h_root_group.attrs.keys()
