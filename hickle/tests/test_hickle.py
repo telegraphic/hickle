@@ -14,6 +14,7 @@ import os
 import six
 import time
 from pprint import pprint
+from collections import OrderedDict as odict
 
 from py.path import local
 
@@ -199,6 +200,20 @@ def test_dict():
             print(dd[k])
             print(type(dd_hkl[k]), type(dd[k]))
             raise
+
+
+def test_odict():
+    """ Test ordered dictionary dumping and loading """
+    filename, mode = 'test.hdf5', 'w'
+
+    od = odict(((3, [3, 0.1]), (7, [5, 0.1]), (5, [3, 0.1])))
+    dump(od, filename, mode)
+    od_hkl = load(filename)
+
+    assert od.keys() == od_hkl.keys()
+
+    for od_item, od_hkl_item in zip(od.items(), od_hkl.items()):
+        assert od_item == od_hkl_item
 
 
 def test_empty_dict():

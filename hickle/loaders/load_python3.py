@@ -33,12 +33,12 @@ def get_py3_string_type(h_node):
 
     """
     try:
-        py_type = h_node.attrs["py3_string_type"][0]
+        py_type = h_node.attrs["py3_string_type"]
         return py_type
     except:
         return None
 
-def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_listlike_dataset(py_obj, h_group, name, **kwargs):
     """ Dumper for list, set, tuple
 
     Args:
@@ -46,7 +46,6 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    dtype = str(type(py_obj))
     obj = list(py_obj)
 
     # h5py does not handle Py3 'str' objects well. Need to catch this
@@ -63,16 +62,16 @@ def create_listlike_dataset(py_obj, h_group, call_id=0, **kwargs):
         #print(obj, "HERE")
 
 
-    d = h_group.create_dataset('data_%i' % call_id, data=obj, **kwargs)
-    d.attrs["type"] = [bytes(dtype, 'ascii')]
+    d = h_group.create_dataset(name, data=obj, **kwargs)
 
     # Need to add some metadata to aid in unpickling if it's a string type
     if py3_str_type is not None:
-        d.attrs["py3_string_type"] = [py3_str_type]
+        d.attrs["py3_string_type"] = py3_str_type
+    return(d)
 
 
 
-def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_python_dtype_dataset(py_obj, h_group, name, **kwargs):
     """ dumps a python dtype object to h5py file
 
     Args:
@@ -81,13 +80,13 @@ def create_python_dtype_dataset(py_obj, h_group, call_id=0, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj,
+    d = h_group.create_dataset(name, data=py_obj,
                                dtype=type(py_obj))     #, **kwargs)
-    d.attrs["type"] = [b'python_dtype']
     d.attrs['python_subdtype'] = bytes(str(type(py_obj)), 'ascii')
+    return(d)
 
 
-def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_stringlike_dataset(py_obj, h_group, name, **kwargs):
     """ dumps a list object to h5py file
 
     Args:
@@ -95,16 +94,10 @@ def create_stringlike_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    if isinstance(py_obj, bytes):
-        d = h_group.create_dataset('data_%i' % call_id, data=[py_obj], **kwargs)
-        d.attrs["type"] = [b'bytes']
-    elif isinstance(py_obj, str):
-        dt = h5.special_dtype(vlen=str)
-        dset = h_group.create_dataset('data_%i' % call_id, shape=(1, ), dtype=dt, **kwargs)
-        dset[0] = py_obj
-        dset.attrs['type'] = [b'string']
+    d = h_group.create_dataset(name, data=py_obj, **kwargs)
+    return(d)
 
-def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_none_dataset(py_obj, h_group, name, **kwargs):
     """ Dump None type to file
 
     Args:
@@ -112,12 +105,12 @@ def create_none_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    d = h_group.create_dataset('data_%i' % call_id, data=[0], **kwargs)
-    d.attrs["type"] = [b'none']
+    d = h_group.create_dataset(name, data=[0], **kwargs)
+    return(d)
 
 
 def load_list_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     py3_str_type = get_py3_string_type(h_node)
 
     if py3_str_type == b"<class 'bytes'>":
@@ -137,31 +130,31 @@ def load_set_dataset(h_node):
     return set(data)
 
 def load_bytes_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
-    return bytes(data[0])
+    _, _, data = get_type_and_data(h_node)
+    return bytes(data)
 
 def load_string_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
-    return str(data[0])
+    _, _, data = get_type_and_data(h_node)
+    return str(data)
 
 def load_unicode_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
-    return unicode(data[0])
+    _, _, data = get_type_and_data(h_node)
+    return unicode(data)
 
 def load_none_dataset(h_node):
     return None
 
 def load_pickled_data(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     try:
         import cPickle as pickle
     except ModuleNotFoundError:
         import pickle
-    return pickle.loads(data[0])
+    return pickle.loads(data)
 
 
 def load_python_dtype_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     subtype = h_node.attrs["python_subdtype"]
     type_dict = {
         b"<class 'int'>": int,
@@ -176,17 +169,17 @@ def load_python_dtype_dataset(h_node):
 
 
 types_dict = {
-    list:        create_listlike_dataset,
-    tuple:       create_listlike_dataset,
-    set:         create_listlike_dataset,
-    bytes:         create_stringlike_dataset,
-    str:           create_stringlike_dataset,
-    #bytearray:     create_stringlike_dataset,
-    int:         create_python_dtype_dataset,
-    float:       create_python_dtype_dataset,
-    bool:        create_python_dtype_dataset,
-    complex:     create_python_dtype_dataset,
-    type(None):    create_none_dataset,
+    list:        (create_listlike_dataset, b"<class 'list'>"),
+    tuple:       (create_listlike_dataset, b"<class 'tuple'>"),
+    set:         (create_listlike_dataset, b"<class 'set'>"),
+    bytes:       (create_stringlike_dataset, b"bytes"),
+    str:         (create_stringlike_dataset, b"string"),
+    # bytearray:   (create_stringlike_dataset, b"bytes"),
+    int:         (create_python_dtype_dataset, b"python_dtype"),
+    float:       (create_python_dtype_dataset, b"python_dtype"),
+    bool:        (create_python_dtype_dataset, b"python_dtype"),
+    complex:     (create_python_dtype_dataset, b"python_dtype"),
+    type(None):  (create_none_dataset, b"none"),
 }
 
 hkl_types_dict = {

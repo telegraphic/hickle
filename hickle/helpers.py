@@ -1,20 +1,26 @@
 import re
 import six
 
+try:
+    import dill as pickle
+except ImportError:
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
+
 def get_type_and_data(h_node):
     """ Helper function to return the py_type and data block for a HDF node """
-    py_type = h_node.attrs["type"][0]
+    py_type = pickle.loads(h_node.attrs['type'])
+    base_type = h_node.attrs['base_type']
     data = h_node[()]
-#    if h_node.shape == ():
-#        data = h_node.value
-#    else:
-#        data  = h_node[:]
-    return py_type, data
+    return py_type, base_type, data
 
 def get_type(h_node):
     """ Helper function to return the py_type for a HDF node """
-    py_type = h_node.attrs["type"][0]
-    return py_type
+    py_type = pickle.loads(h_node.attrs['type'])
+    base_type = h_node.attrs['base_type']
+    return py_type, base_type
 
 def sort_keys(key_list):
     """ Take a list of strings and sort it by integer value within string

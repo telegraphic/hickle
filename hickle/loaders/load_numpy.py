@@ -8,6 +8,13 @@ Utilities and dump / load handlers for handling numpy and scipy arrays
 import six
 import numpy as np
 
+try:
+    import dill as pickle
+except ImportError:
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
 
 from hickle.helpers import get_type_and_data
 
@@ -22,12 +29,12 @@ def check_is_numpy_array(py_obj):
         is_numpy (bool): Returns True if it is a numpy array, else False if it isn't
     """
 
-    is_numpy = type(py_obj) in (type(np.array([1])), type(np.ma.array([1])))
+    is_numpy = type(py_obj) in (np.ndarray, np.ma.core.MaskedArray)
 
     return is_numpy
 
 
-def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
@@ -37,16 +44,16 @@ def create_np_scalar_dataset(py_obj, h_group, call_id=0, **kwargs):
     """
 
     # DO NOT PASS KWARGS TO SCALAR DATASETS!
-    d = h_group.create_dataset('data_%i' % call_id, data=py_obj)  # **kwargs)
-    d.attrs["type"] = [b'np_scalar']
+    d = h_group.create_dataset(name, data=py_obj)  # **kwargs)
 
     if six.PY2:
         d.attrs["np_dtype"] = str(d.dtype)
     else:
         d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
+    return(d)
 
 
-def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
+def create_np_dtype(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
@@ -54,11 +61,11 @@ def create_np_dtype(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    d = h_group.create_dataset('data_%i' % call_id, data=[str(py_obj)])
-    d.attrs["type"] = [b'np_dtype']
+    d = h_group.create_dataset(name, data=[str(py_obj)])
+    return(d)
 
 
-def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_np_array_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an ndarray object to h5py file
 
     Args:
@@ -66,15 +73,15 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-    if isinstance(py_obj, type(np.ma.array([1]))):
-        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
+    if isinstance(py_obj, np.ma.core.MaskedArray):
+        d = h_group.create_dataset(name, data=py_obj, **kwargs)
         #m = h_group.create_dataset('mask_%i' % call_id, data=py_obj.mask, **kwargs)
-        m = h_group.create_dataset('data_%i_mask' % call_id, data=py_obj.mask, **kwargs)
-        d.attrs["type"] = [b'ndarray_masked_data']
-        m.attrs["type"] = [b'ndarray_masked_mask']
+        m = h_group.create_dataset('%s_mask' % name, data=py_obj.mask, **kwargs)
+        m.attrs['type'] = np.array(pickle.dumps(py_obj.mask.__class__))
+        m.attrs['base_type'] = b'ndarray_masked_mask'
     else:
-        d = h_group.create_dataset('data_%i' % call_id, data=py_obj, **kwargs)
-        d.attrs["type"] = [b'ndarray']
+        d = h_group.create_dataset(name, data=py_obj, **kwargs)
+    return(d)
 
 
 
@@ -84,41 +91,41 @@ def create_np_array_dataset(py_obj, h_group, call_id=0, **kwargs):
 #######################
 
 types_dict = {
-    np.ndarray:  create_np_array_dataset,
-    np.ma.core.MaskedArray: create_np_array_dataset,
-    np.float16:    create_np_scalar_dataset,
-    np.float32:    create_np_scalar_dataset,
-    np.float64:    create_np_scalar_dataset,
-    np.int8:       create_np_scalar_dataset,
-    np.int16:      create_np_scalar_dataset,
-    np.int32:      create_np_scalar_dataset,
-    np.int64:      create_np_scalar_dataset,
-    np.uint8:      create_np_scalar_dataset,
-    np.uint16:     create_np_scalar_dataset,
-    np.uint32:     create_np_scalar_dataset,
-    np.uint64:     create_np_scalar_dataset,
-    np.complex64:  create_np_scalar_dataset,
-    np.complex128: create_np_scalar_dataset,
-    np.dtype:      create_np_dtype
+    np.ndarray:  (create_np_array_dataset, b'ndarray'),
+    np.ma.core.MaskedArray: (create_np_array_dataset, b"ndarray_masked_data"),
+    np.float16:    (create_np_scalar_dataset, b'np_scalar'),
+    np.float32:    (create_np_scalar_dataset, b'np_scalar'),
+    np.float64:    (create_np_scalar_dataset, b'np_scalar'),
+    np.int8:       (create_np_scalar_dataset, b'np_scalar'),
+    np.int16:      (create_np_scalar_dataset, b'np_scalar'),
+    np.int32:      (create_np_scalar_dataset, b'np_scalar'),
+    np.int64:      (create_np_scalar_dataset, b'np_scalar'),
+    np.uint8:      (create_np_scalar_dataset, b'np_scalar'),
+    np.uint16:     (create_np_scalar_dataset, b'np_scalar'),
+    np.uint32:     (create_np_scalar_dataset, b'np_scalar'),
+    np.uint64:     (create_np_scalar_dataset, b'np_scalar'),
+    np.complex64:  (create_np_scalar_dataset, b'np_scalar'),
+    np.complex128: (create_np_scalar_dataset, b'np_scalar'),
+    np.dtype:      (create_np_dtype, b'np_dtype')
 }
 
 def load_np_dtype_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
-    data = np.dtype(data[0])
+    _, _, data = get_type_and_data(h_node)
+    data = np.dtype(data)
     return data
 
 def load_np_scalar_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
-    subtype = h_node.attrs["np_dtype"]
-    data = np.array([data], dtype=subtype)[0]
+    _, _, data = get_type_and_data(h_node)
+    subtype = h_node.attrs["np_dtype"].decode('utf-8')
+    data = getattr(np, subtype)(data)
     return data
 
 def load_ndarray_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     return np.array(data, copy=False)
 
 def load_ndarray_masked_dataset(h_node):
-    py_type, data = get_type_and_data(h_node)
+    _, _, data = get_type_and_data(h_node)
     try:
         mask_path = h_node.name + "_mask"
         h_root = h_node.parent
