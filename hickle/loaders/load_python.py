@@ -42,10 +42,10 @@ def create_python_dtype_dataset(py_obj, h_group, name, **kwargs):
     """
 
     # Determine the subdtype of the given py_obj
-    subdtype = bytes(str(type(py_obj)))
+    subdtype = str(type(py_obj))
 
     # If py_obj is an integer and cannot be stored in 64-bits, convert to str
-    if isinstance(py_obj, int) and (py_obj.bit_length() > 64):
+    if isinstance(py_obj, integer_types) and (py_obj.bit_length() > 64):
         py_obj = str(py_obj)
 
     # kwarg compression etc does not work on scalars
