@@ -91,6 +91,14 @@ def test_unicode2():
     else:
         pass
 
+
+def test_65bit_int():
+    i = 2**65-1
+    dump(i, 'test.hdf5')
+    i_hkl = load('test.hdf5')
+    assert i == i_hkl
+
+
 def test_list():
     """ Dumping and loading a list """
     filename, mode = 'test_list.h5', 'w'
