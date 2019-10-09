@@ -459,6 +459,7 @@ class PyContainer(list):
         self.container_base_type = None
         self.name = None
         self.key_type = None
+        self.base_key_type = None
 
     def convert(self):
         """ Convert from PyContainer to python core data type.
@@ -648,9 +649,6 @@ def _load(py_container, h_group):
             raise
 
         py_subcontainer.name = h_group.name
-
-#        if py_subcontainer.container_base_type == b"<class 'dict'>":
-#            py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
 
         if py_subcontainer.container_base_type == b'dict_item':
             py_subcontainer.base_key_type = h_group.attrs['base_key_type']
