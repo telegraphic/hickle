@@ -32,11 +32,8 @@ import numpy as np
 import h5py as h5
 
 
-from .helpers import get_type, sort_keys, check_is_iterable, check_iterable_item_type
-from .lookup import types_dict, hkl_types_dict, types_not_to_sort, \
-    container_types_dict, container_key_types_dict
-from .lookup import check_is_ndarray_like
-
+from .__version__ import __version__
+    container_types_dict, container_key_types_dict, check_is_ndarray_like
 
 try:
     from exceptions import Exception
@@ -62,11 +59,6 @@ except ImportError:
     string_like_types = string_types
 
 import warnings
-
-try:
-    __version__ = get_distribution('hickle').version
-except DistributionNotFound:
-    __version__ = '0.0.0 - please install via pip/setup.py'
 
 ##################
 # Error handling #
