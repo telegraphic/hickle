@@ -9,16 +9,17 @@
 from setuptools import setup, find_packages
 import sys
 
-if sys.version_info.major == 3:
-      astro = "astropy<3.1"
-else:
-      astro = "astropy<3.0"
-
-version = '3.4.3'
+version = '3.4.6'
 author  = 'Danny Price'
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+with open("requirements.txt", 'r') as fh:
+    requirements = fh.read().splitlines()
+
+with open("requirements_test.txt", 'r') as fh:
+    test_requirements = fh.read().splitlines()
 
 setup(name='hickle',
       version=version,
@@ -31,10 +32,8 @@ setup(name='hickle',
       download_url='https://github.com/telegraphic/hickle/archive/%s.tar.gz' % version,
       platforms='Cross platform (Linux, Mac OSX, Windows)',
       keywords=['pickle', 'hdf5', 'data storage', 'data export'],
-      #py_modules = ['hickle', 'hickle_legacy'],
-      install_requires=['numpy', 'h5py'],
-      setup_requires = ['pytest-runner', 'pytest-cov'],
-      tests_require = ['pytest', astro, 'scipy', 'pandas'],
+      install_requires=requirements,
+      tests_require=test_requirements,
       python_requires='>=2.7',
       packages=find_packages(),
       zip_safe=False,

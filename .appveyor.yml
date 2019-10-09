@@ -1,0 +1,54 @@
+environment:
+    matrix:
+        - PYTHON: "C:\\Python27"
+          PYTHON_VERSION: "2.7.x"
+          PYTHON_ARCH: "32"
+
+        - PYTHON: "C:\\Python27-x64"
+          PYTHON_VERSION: "2.7.x"
+          PYTHON_ARCH: "64"
+
+        - PYTHON: "C:\\Python35"
+          PYTHON_VERSION: "3.5.x"
+          PYTHON_ARCH: "32"
+
+        - PYTHON: "C:\\Python35-x64"
+          PYTHON_VERSION: "3.5.x"
+          PYTHON_ARCH: "64"
+
+        - PYTHON: "C:\\Python36"
+          PYTHON_VERSION: "3.6.x"
+          PYTHON_ARCH: "32"
+
+        - PYTHON: "C:\\Python36-x64"
+          PYTHON_VERSION: "3.6.x"
+          PYTHON_ARCH: "64"
+
+        - PYTHON: "C:\\Python37"
+          PYTHON_VERSION: "3.7.x"
+          PYTHON_ARCH: "32"
+
+        - PYTHON: "C:\\Python37-x64"
+          PYTHON_VERSION: "3.7.x"
+          PYTHON_ARCH: "64"
+
+install:
+    # Prepend newly installed Python to the PATH of this build (this cannot be
+    # done from inside the powershell script as it would require to restart
+    # the parent CMD process).
+    - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+
+    # Upgrade pip
+    - "python -m pip install --user --upgrade pip setuptools wheel"
+
+    # Install testing requirements
+    - "pip install -r requirements_test.txt"
+
+build: false
+
+test_script:
+    - "check-manifest"
+    - "python setup.py sdist bdist_wheel"
+    - "twine check dist/*"
+    - "pip install ."
+    - "python setup.py test"

@@ -7,6 +7,9 @@ authors:
   - name: Danny C. Price
     orcid: 0000-0003-2783-1608
     affiliation: "1, 2" # (Multiple affiliations must be quoted)
+  - name: Ellert van der Velden
+    orcid: 0000-0002-1559-9832  
+    affiliation: 2
   - name: Sébastien Celles
     orcid: 0000-0001-9987-4338
     affiliation: 3
@@ -22,6 +25,8 @@ authors:
     affiliation: 8
   - name: Bairen Yi
     affiliation: 9
+  - name: Elliott Ash
+    affiliation: 10
 affiliations:
   - name: Department of Astronomy,  University of California Berkeley, Berkeley CA 94720
     index: 1
@@ -41,6 +46,8 @@ affiliations:
     index: 8
   - name: The Hong Kong University of Science and Technology
     index: 9
+  - name: ETH Zurich
+    index: 10
 date: 10 November 2018
 bibliography: paper.bib
 ---

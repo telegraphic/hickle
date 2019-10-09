@@ -11,18 +11,15 @@ python:
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libhdf5-serial-dev
-  - pip install pytest coveralls
-  - pip install -r requirements.txt
-  - pip install .
+  - python -m pip install --upgrade pip setuptools wheel
+  - pip install -r requirements_test.txt
 
 script:
+  - check-manifest
+  - python setup.py sdist bdist_wheel
+  - twine check dist/*
+  - pip install .
   - python setup.py test
 
 # Run code coverage
-after_success: coveralls
-
-# Run on dev and master branches
-branches:
-  only:
-    - dev
-    - master
+after_success: codecov

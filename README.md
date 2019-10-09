@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
+[![Build status](https://ci.appveyor.com/api/projects/status/8cwrkjpwxet5jmgp?svg=true)](https://ci.appveyor.com/project/telegraphic/hickle)
+[![codecov](https://codecov.io/gh/telegraphic/hickle/branch/master/graph/badge.svg)](https://codecov.io/gh/telegraphic/hickle)
 [![JOSS Status](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847)
 
 
@@ -144,8 +146,8 @@ For storing python dictionaries of lists, hickle beats the python json encoder, 
 
 It should be noted that these comparisons are of course not fair: storing in HDF5 will not help you convert something into JSON, nor will it help you serialize a string. But for quick storage of the contents of a python variable, it's a pretty good option.
 
-Installation guidelines (for Linux and Mac OS).
------------------------------------------------
+Installation guidelines
+-----------------------
 
 ### Easy method
 Install with `pip` by running `pip install hickle` from the command line.

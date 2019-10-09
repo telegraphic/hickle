@@ -1,0 +1,14 @@
+include LICENSE
+include *.md
+include MANIFEST.in
+include requirements*.txt
+recursive-include hickle tests *
+
+exclude docs
+recursive-exclude docs *
+exclude *.yml
+exclude .nojekyll
+exclude .pylintrc
+exclude paper*
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
