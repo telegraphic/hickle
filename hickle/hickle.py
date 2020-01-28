@@ -63,7 +63,7 @@ except ImportError:
 
 try:
     from pathlib import Path
-    string_like_types = (*string_types, Path)
+    string_like_types = string_types + (Path,)
 except ImportError:
     # Python 2 does not have pathlib
     string_like_types = string_types
