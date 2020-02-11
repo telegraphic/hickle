@@ -61,6 +61,13 @@ except ImportError:
     except ImportError:
         import pickle
 
+try:
+    from pathlib import Path
+    string_like_types = string_types + (Path,)
+except ImportError:
+    # Python 2 does not have pathlib
+    string_like_types = string_types
+
 import warnings
 
 try:
@@ -178,7 +185,7 @@ def file_opener(f, mode='r', track_times=True):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
-    elif isinstance(f, string_types):
+    elif isinstance(f, string_like_types):
         filename = f
         h5f = h5.File(filename, mode)
     elif isinstance(f, (H5FileWrapper, h5._hl.files.File)):
