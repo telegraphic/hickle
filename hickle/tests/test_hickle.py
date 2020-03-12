@@ -14,6 +14,7 @@ import os
 import six
 import time
 from pprint import pprint
+import pytest
 
 from py.path import local
 
@@ -42,7 +43,22 @@ NESTED_DICT = {
     }
 }
 
+# Define a test function that must be serialized and unpacked again
+def func(a, b, c=0):
+    return(a, b, c)
+
+
 DUMP_CACHE = []             # Used in test_track_times()
+
+
+def test_local_func():
+    """ Dumping and loading a local function """
+    filename, mode = 'test.h5', 'w'
+    with pytest.warns(SerializedWarning):
+        dump(func, filename, mode)
+    func_hkl = load(filename)
+    assert type(func) == type(func_hkl)
+    assert func(1, 2) == func_hkl(1, 2)
 
 
 def test_string():
@@ -821,6 +837,7 @@ if __name__ == '__main__':
     test_complex_dict()
     test_multi_hickle()
     test_dict_int_key()
+    test_local_func()
 
     # Cleanup
     print("ALL TESTS PASSED!")

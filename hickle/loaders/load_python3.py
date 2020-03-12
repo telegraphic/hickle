@@ -153,10 +153,7 @@ def load_none_dataset(h_node):
 
 def load_pickled_data(h_node):
     py_type, data = get_type_and_data(h_node)
-    try:
-        import cPickle as pickle
-    except ModuleNotFoundError:
-        import pickle
+    import dill as pickle
     return pickle.loads(data[0])
 
 
