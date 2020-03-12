@@ -434,7 +434,7 @@ types_dict[dict] = (create_dict_dataset, b"<class 'dict'>")
 
 
 def no_match(py_obj, h_group, name, **kwargs):
-    """ If no match is made, raise an exception
+    """ If no match is made, raise a warning
 
     Args:
         py_obj: python object to dump; default if item is not matched.
