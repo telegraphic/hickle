@@ -837,6 +837,7 @@ if __name__ == '__main__':
     test_complex_dict()
     test_multi_hickle()
     test_dict_int_key()
+    test_local_func()
 
     # Cleanup
     print("ALL TESTS PASSED!")
