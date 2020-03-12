@@ -51,15 +51,8 @@ import io
 if PY3:
     file = io.TextIOWrapper
 
-# Import a default 'pickler'
-# Not the nicest import code, but should work on Py2/Py3
-try:
-    import dill as pickle
-except ImportError:
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
+# Import dill as pickle
+import dill as pickle
 
 try:
     from pathlib import Path
