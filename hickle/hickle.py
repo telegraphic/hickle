@@ -46,15 +46,15 @@ except ImportError:
 from six import PY2, PY3, string_types, integer_types
 import io
 
-# Import a default 'pickler'
-# Not the nicest import code, but should work on Py2/Py3
+# Import dill as pickle
+import dill as pickle
+
 try:
-    import dill as pickle
+    from pathlib import Path
+    string_like_types = string_types + (Path,)
 except ImportError:
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
+    # Python 2 does not have pathlib
+    string_like_types = string_types
 
 import warnings
 
@@ -177,7 +177,7 @@ def file_opener(f, mode='r', track_times=True):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
-    elif isinstance(f, string_types):
+    elif isinstance(f, string_like_types):
         filename = f
         h5f = h5.File(filename, mode)
     elif isinstance(f, (H5FileWrapper, h5._hl.files.File)):

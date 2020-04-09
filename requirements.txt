@@ -1,5 +1,4 @@
-dill
+dill>=0.3.0
 h5py>=2.8.0
 numpy>=1.8
 six>=1.11.0
-

@@ -94,6 +94,11 @@ def load_unicode_dataset(h_node):
 def load_none_dataset(h_node):
     return None
 
+def load_pickled_data(h_node):
+    py_type, data = get_type_and_data(h_node)
+    import dill as pickle
+    return pickle.loads(data[0])
+
 def load_python_dtype_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
     subtype = h_node.attrs["python_subdtype"]
@@ -128,6 +133,7 @@ hkl_types_dict = {
     "python_dtype"   : load_python_dtype_dataset,
     "string"         : load_string_dataset,
     "unicode"        : load_unicode_dataset,
+    "pickle"         : load_pickled_data,
     "none"           : load_none_dataset
 }
 
