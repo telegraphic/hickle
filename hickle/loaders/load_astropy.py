@@ -237,3 +237,5 @@ class_register = [
     [Table,    b'astropy_table',  create_astropy_table, load_astropy_table,
      True, check_is_astropy_table]
 ]
+
+exclude_register = []

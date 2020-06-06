@@ -61,6 +61,7 @@ The process to add new load/dump capabilities is as follows:
 from six import PY2
 from ast import literal_eval
 import numpy as np
+import hickle
 
 def load_nothing(h_node):
     pass
@@ -115,12 +116,17 @@ else:
 types_dict.update(py_types_dict)
 hkl_types_dict.update(py_hkl_types_dict)
 
+from importlib import import_module
+# This list holds all loaded loaders
+loaded_loaders = []
+
 # Add loaders for numpy types
-from .loaders.load_numpy import  types_dict as np_types_dict
-from .loaders.load_numpy import  hkl_types_dict as np_hkl_types_dict
+from .loaders.load_numpy import types_dict as np_types_dict
+from .loaders.load_numpy import hkl_types_dict as np_hkl_types_dict
 from .loaders.load_numpy import check_is_numpy_array
 types_dict.update(np_types_dict)
 hkl_types_dict.update(np_hkl_types_dict)
+loaded_loaders.append(hickle.loaders.load_numpy)
 
 #######################
 ## ND-ARRAY checking ##
@@ -203,35 +209,36 @@ def register_exclude_list(exclude_list):
     for hkl_str in exclude_list:
         register_class_exclude(hkl_str)
 
-########################
-## Scipy sparse array ##
-########################
 
-try:
-    from .loaders.load_scipy import class_register, exclude_register
-    register_class_list(class_register)
-    register_exclude_list(exclude_register)
-except ImportError:
-    pass
-except NameError:
-    pass
+# This function checks if an additional loader is required for given py_obj
+def load_loader(py_obj):
+    """
+    Checks if given `py_obj` requires an additional loader to be handled
+    properly and loads it if so.
 
-####################
-## Astropy  stuff ##
-####################
+    """
 
-try:
-    from .loaders.load_astropy import class_register
-    register_class_list(class_register)
-except ImportError:
-    pass
+    # Obtain the MRO of this object
+    if type(py_obj) is type:
+        mro_list = py_obj.mro()
+    else:
+        mro_list = py_obj.__class__.mro()
 
-##################
-## Pandas stuff ##
-##################
+    # Loop over the entire mro_list
+    for mro_item in mro_list:
+        # Obtain the package name of mro_item
+        pkg_name = mro_item.__module__.split('.')[0]
 
-try:
-    from .loaders.load_pandas import class_register
-    register_class_list(class_register)
-except ImportError:
-    pass
+        # Try to load a loader with this name
+        try:
+            loader = import_module('hickle.loaders.load_%s' % (pkg_name))
+        # If such a loader does not exist, continue
+        except (ImportError, NameError):
+            pass
+        # If such a loader does exist, register classes if not done before
+        else:
+            # Check if loader had been loaded before
+            if loader not in loaded_loaders:
+                register_class_list(loader.class_register)
+                register_exclude_list(loader.exclude_register)
+                loaded_loaders.append(loader)

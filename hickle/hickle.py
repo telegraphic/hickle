@@ -35,7 +35,8 @@ import h5py as h5
 from hickle.__version__ import __version__
 from hickle.helpers import get_type, sort_keys, check_is_iterable, check_iterable_item_type
 from hickle.lookup import (types_dict, hkl_types_dict, types_not_to_sort,
-    container_types_dict, container_key_types_dict, check_is_ndarray_like)
+    container_types_dict, container_key_types_dict, check_is_ndarray_like,
+    load_loader)
 
 
 try:
@@ -227,6 +228,9 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
     dumpable_dtypes = []
     for lst in [[bool, complex, bytes, float], string_types, integer_types]:
         dumpable_dtypes.extend(lst)
+
+    # Check if we have a unloaded loader for the provided py_obj
+    load_loader(py_obj)
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_ndarray_like(py_obj):
@@ -454,7 +458,6 @@ def no_match(py_obj, h_group, name, **kwargs):
     return(d)
 
 
-
 #############
 ## LOADERS ##
 #############
@@ -677,10 +680,15 @@ def _load(py_container, h_group):
 
         if py_subcontainer.container_base_type == b'dict_item':
             py_subcontainer.key_base_type = h_group.attrs['key_base_type']
-            py_subcontainer.key_type = pickle.loads(h_group.attrs['key_type'])
+            py_obj_type = pickle.loads(h_group.attrs['key_type'])
+            py_subcontainer.key_type = py_obj_type
             py_subcontainer.key_idx = h_group.attrs['key_idx']
         else:
-            py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
+            py_obj_type = pickle.loads(h_group.attrs['type'])
+            py_subcontainer.container_type = py_obj_type
+
+        # Check if we have a unloaded loader for the provided py_obj
+        load_loader(py_obj_type)
 
         if py_subcontainer.container_base_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())
