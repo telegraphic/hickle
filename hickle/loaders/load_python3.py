@@ -79,10 +79,17 @@ def create_python_dtype_dataset(py_obj, h_group, name, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
+
+    # Determine the subdtype of the given py_obj
+    subdtype = bytes(str(type(py_obj)), 'ascii')
+
+    # If py_obj is an integer and cannot be stored in 64-bits, convert to str
+    if isinstance(py_obj, int) and (py_obj.bit_length() > 64):
+        py_obj = bytes(str(py_obj), 'ascii')
+
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset(name, data=py_obj,
-                               dtype=type(py_obj))     #, **kwargs)
-    d.attrs['python_subdtype'] = bytes(str(type(py_obj)), 'ascii')
+    d = h_group.create_dataset(name, data=py_obj)     #, **kwargs)
+    d.attrs['python_subdtype'] = subdtype
     return(d)
 
 

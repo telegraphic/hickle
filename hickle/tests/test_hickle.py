@@ -107,6 +107,14 @@ def test_unicode2():
     else:
         pass
 
+
+def test_65bit_int():
+    i = 2**65-1
+    dump(i, 'test.hdf5')
+    i_hkl = load('test.hdf5')
+    assert i == i_hkl
+
+
 def test_list():
     """ Dumping and loading a list """
     filename, mode = 'test_list.h5', 'w'
@@ -502,6 +510,19 @@ def test_file_open_close():
         print("Tests: Closed file exception caught")
 
 
+def test_hdf5_group():
+    import h5py
+    file = h5py.File('test.hdf5', 'w')
+    group = file.create_group('test_group')
+    a = np.arange(5)
+
+    dump(a, group, path='deeper/and_deeper')
+    file.close()
+
+    a_hkl = load('test.hdf5', path='/test_group/deeper/and_deeper')
+    assert np.allclose(a_hkl, a)
+
+
 def test_list_order():
     """ https://github.com/telegraphic/hickle/issues/26 """
     d = [np.arange(n + 1) for n in range(20)]
@@ -809,6 +830,7 @@ if __name__ == '__main__':
     test_scalar_compression()
     test_complex()
     test_file_open_close()
+    test_hdf5_group()
     test_dict_none()
     test_none()
     test_masked_dict()
@@ -816,6 +838,7 @@ if __name__ == '__main__':
     test_set()
     test_numpy()
     test_dict()
+    test_odict()
     test_empty_dict()
     test_compression()
     test_masked()
