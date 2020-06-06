@@ -173,7 +173,7 @@ def file_opener(f, path, mode='r', track_times=True):
         path = '/%s' % (path)
 
     # Were we handed a file object or just a file name string?
-    if isinstance(f, (file, io.TextIOWrapper)):
+    if isinstance(f, (file, io.TextIOWrapper, io.BufferedWriter)):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
