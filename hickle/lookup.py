@@ -60,6 +60,7 @@ The process to add new load/dump capabilities is as follows:
 
 from six import PY2
 from ast import literal_eval
+import numpy as np
 
 def load_nothing(h_node):
     pass
@@ -69,9 +70,6 @@ types_dict = {}
 hkl_types_dict = {}
 
 types_not_to_sort = [b'dict', b'csr_matrix', b'csc_matrix', b'bsr_matrix']
-
-# Create list of acceptable iterables
-iterable_types = [tuple, list]
 
 
 container_types_dict = {
@@ -128,19 +126,25 @@ hkl_types_dict.update(np_hkl_types_dict)
 ## ND-ARRAY checking ##
 #######################
 
-ndarray_like_check_fns = [
-    check_is_numpy_array
-]
+ndarray_like_check_fns = {
+    np.ndarray: check_is_numpy_array
+}
+
 
 def check_is_ndarray_like(py_obj):
-    is_ndarray_like = False
-    for ii, check_fn in enumerate(ndarray_like_check_fns):
-        is_ndarray_like = check_fn(py_obj)
-        if is_ndarray_like:
-            break
-    return is_ndarray_like
+    # Obtain the MRO of this object
+    mro_list = py_obj.__class__.mro()
 
+    # Create a function map
+    func_map = map(ndarray_like_check_fns.get, mro_list)
 
+    # Loop over the entire func_map until something else than None is found
+    for func_item in func_map:
+        if func_item is not None:
+            return(func_item(py_obj))
+    # If that did not happen, then py_obj is not ndarray_like
+    else:
+        return(False)
 
 
 #######################
@@ -165,7 +169,7 @@ def register_class(myclass_type, hkl_str, dump_function, load_function,
     if not to_sort:
         types_not_to_sort.append(hkl_str)
     if ndarray_check_fn is not None:
-        ndarray_like_check_fns.append(ndarray_check_fn)
+        ndarray_like_check_fns[myclass_type] = ndarray_check_fn
 
 def register_class_list(class_list):
     """ Register multiple classes in a list

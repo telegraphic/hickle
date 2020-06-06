@@ -354,17 +354,12 @@ def create_dataset_lookup(py_obj):
     type_map = map(types_dict.get, mro_list)
 
     # Loop over the entire type_map until something else than None is found
-    for i, type_item in enumerate(type_map):
+    for type_item in type_map:
         if type_item is not None:
-            match, base_type = type_item
-            break
+            return(type_item)
     # If that did not happen, then match is no_match
     else:
-        match = no_match
-        base_type = b'pickle'
-
-    # Return found match and base_type
-    return(match, base_type)
+        return(no_match, b'pickle')
 
 
 def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
