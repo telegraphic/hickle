@@ -790,35 +790,37 @@ def test_nonstring_keys():
     """ Test that keys are reconstructed back to their original datatypes
     https://github.com/telegraphic/hickle/issues/36
     """
+
+    data = {
+            u'test': 123,
+            'def': 456,
+            'hik' : np.array([1,2,3]),
+            0: 0,
+            True: 'hi',
+            1.1 : 'hey',
+            #2L : 'omg',
+            1j: 'complex_hashable',
+            (1, 2): 'boo',
+            ('A', 17.4, 42): [1, 7, 'A'],
+            (): '1313e was here',
+            '0': 0
+            }
     if six.PY2:
         u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
+        data[u] = u
 
-        data = {u'test': 123,
-                'def': 456,
-                'hik' : np.array([1,2,3]),
-                u: u,
-                0: 0,
-                True: 'hi',
-                1.1 : 'hey',
-                #2L : 'omg',
-                1j: 'complex_hashable',
-                (1, 2): 'boo',
-                ('A', 17.4, 42): [1, 7, 'A'],
-                (): '1313e was here',
-                '0': 0
-                }
-        #data = {'0': 123, 'def': 456}
-        print(data)
-        dump(data, "test.hkl")
-        data2 = load("test.hkl")
-        print(data2)
+    #data = {'0': 123, 'def': 456}
+    print(data)
+    dump(data, "test.hkl")
+    data2 = load("test.hkl")
+    print(data2)
 
-        for key in data.keys():
-            assert key in data2.keys()
+    for key in data.keys():
+        assert key in data2.keys()
 
-        print(data2)
-    else:
-        pass
+    print(data2)
+#    else:
+#        pass
 
 def test_scalar_compression():
     """ Test bug where compression causes a crash on scalar datasets

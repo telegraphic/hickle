@@ -266,7 +266,7 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
 
-def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
+def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
     """
     Write a pickled representation of obj to the open file object file.
 
@@ -280,11 +280,11 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
     mode : str, optional
         Accepted values are 'r' (read only), 'w' (write) or 'a' (append).
         Ignored if file is a file object.
-    track_times : bool, optional
-        If set to *False*, repeated hickling will produce identical files.
     path : str, optional
         Path within hdf5 file or group to save data to.
         Defaults to root ('/').
+    track_times : bool, optional
+        If set to *False*, repeated hickling will produce identical files.
     compression : str or None, optional
         Applies compression to dataset.
         Accepted value are *None*, 'gzip', 'lzf' (and 'szip', if installed)
@@ -422,7 +422,7 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
             subgroup_key = "%r" % (key)
         else:
             subgroup_key = str(key)
-        subgroup_key = subgroup_key.replace('/', '\\')
+        subgroup_key = subgroup_key.replace('/', '\\\\')
         h_subgroup = h_dictgroup.create_group(subgroup_key)
         h_subgroup.attrs['base_type'] = b'dict_item'
 
@@ -498,7 +498,7 @@ class PyContainer(list):
         if self.container_base_type == b"<class 'dict'>":
             items = [[]]*len(self)
             for item in self:
-                key = item.name.split('/')[-1].replace('\\', '/')
+                key = item.name.split('/')[-1].replace('\\\\', '/')
                 key_base_type = item.key_base_type
                 key_idx = item.key_idx
                 if key_base_type in container_key_types_dict.keys():
