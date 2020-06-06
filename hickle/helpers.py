@@ -61,7 +61,7 @@ def check_is_iterable(py_obj):
     """
 
     # Check if py_obj is an accepted iterable and return
-    return(isinstance(py_obj, (tuple, list)))
+    return(isinstance(py_obj, (tuple, list, set)))
 
 
 def check_is_hashable(py_obj):

@@ -335,7 +335,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
 
 
 def create_dataset_lookup(py_obj):
-    """ What type of object are we trying to pickle?  This is a python
+    """ What type of object are we trying to hickle?  This is a python
     dictionary based equivalent of a case statement.  It returns the correct
     helper function for a given data type.
 
@@ -419,9 +419,11 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
 
     for idx, (key, py_subobj) in enumerate(py_obj.items()):
         if isinstance(key, string_types):
-            h_subgroup = h_dictgroup.create_group("%r" % (key))
+            subgroup_key = "%r" % (key)
         else:
-            h_subgroup = h_dictgroup.create_group(str(key))
+            subgroup_key = str(key)
+        subgroup_key = subgroup_key.replace('/', '\\')
+        h_subgroup = h_dictgroup.create_group(subgroup_key)
         h_subgroup.attrs['base_type'] = b'dict_item'
 
         h_subgroup.attrs['key_base_type'] = str(type(key)).encode('ascii', 'ignore')
@@ -496,7 +498,7 @@ class PyContainer(list):
         if self.container_base_type == b"<class 'dict'>":
             items = [[]]*len(self)
             for item in self:
-                key = item.name.split('/')[-1]
+                key = item.name.split('/')[-1].replace('\\', '/')
                 key_base_type = item.key_base_type
                 key_idx = item.key_idx
                 if key_base_type in container_key_types_dict.keys():

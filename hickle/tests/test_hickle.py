@@ -548,7 +548,6 @@ def test_file_open_close():
     except hickle.hickle.ClosedFileError:
         print("Tests: Closed file exception caught")
 
-
 def test_hdf5_group():
     import h5py
     file = h5py.File('test.hdf5', 'w')
@@ -561,6 +560,10 @@ def test_hdf5_group():
     a_hkl = load('test.hdf5', path='/test_group/deeper/and_deeper')
     assert np.allclose(a_hkl, a)
 
+    file = h5py.File('test.hdf5', 'r')
+    a_hkl2 = load(file['test_group'], path='deeper/and_deeper')
+    assert np.allclose(a_hkl2, a)
+    file.close()
 
 def test_list_order():
     """ https://github.com/telegraphic/hickle/issues/26 """
@@ -861,6 +864,19 @@ def test_np_scalar():
     print(r)
     assert type(r0['test']) == type(r['test'])
 
+
+def test_slash_dict_keys():
+    """ Support for having slashes in dict keys """
+    dct = {'a/b': [1, '2'], 'c': 3}
+
+    dump(dct, 'test.hdf5', 'w')
+    dct_hkl = load('test.hdf5')
+
+    assert isinstance(dct_hkl, dict)
+    for key, val in dct_hkl.items():
+        assert val == dct.get(key)
+
+
 if __name__ == '__main__':
     """ Some tests and examples """
     test_sort_keys()
@@ -915,6 +931,8 @@ if __name__ == '__main__':
     test_multi_hickle()
     test_dict_int_key()
     test_local_func()
+    test_state_obj()
+    test_slash_dict_keys()
 
     # Cleanup
     print("ALL TESTS PASSED!")
