@@ -70,6 +70,10 @@ hkl_types_dict = {}
 
 types_not_to_sort = [b'dict', b'csr_matrix', b'csc_matrix', b'bsr_matrix']
 
+# Create list of acceptable iterables
+iterable_types = [tuple, list]
+
+
 container_types_dict = {
     b"<type 'list'>": list,
     b"<type 'tuple'>": tuple,
@@ -149,17 +153,16 @@ def register_class(myclass_type, hkl_str, dump_function, load_function,
 
     Args:
         myclass_type type(class): type of class
+        hkl_str (str): String to write to HDF5 file to describe class
         dump_function (function def): function to write data to HDF5
         load_function (function def): function to load data from HDF5
-        is_iterable (bool): Is the item iterable?
-        hkl_str (str): String to write to HDF5 file to describe class
         to_sort (bool): If the item is iterable, does it require sorting?
         ndarray_check_fn (function def): function to use to check if
 
     """
     types_dict.update({myclass_type: (dump_function, hkl_str)})
     hkl_types_dict.update({hkl_str: load_function})
-    if to_sort == False:
+    if not to_sort:
         types_not_to_sort.append(hkl_str)
     if ndarray_check_fn is not None:
         ndarray_like_check_fns.append(ndarray_check_fn)
