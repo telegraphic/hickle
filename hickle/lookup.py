@@ -58,10 +58,11 @@ The process to add new load/dump capabilities is as follows:
         raise
 """
 
+from __future__ import absolute_import
+
 from six import PY2
 from ast import literal_eval
 import numpy as np
-import hickle
 
 def load_nothing(h_node):
     pass
@@ -126,6 +127,7 @@ from .loaders.load_numpy import hkl_types_dict as np_hkl_types_dict
 from .loaders.load_numpy import check_is_numpy_array
 types_dict.update(np_types_dict)
 hkl_types_dict.update(np_hkl_types_dict)
+import hickle.loaders
 loaded_loaders.append(hickle.loaders.load_numpy)
 
 #######################
