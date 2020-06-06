@@ -44,12 +44,51 @@ NESTED_DICT = {
     }
 }
 
+
 # Define a test function that must be serialized and unpacked again
 def func(a, b, c=0):
     return(a, b, c)
 
 
+# Define a class that must always be pickled
+class with_state(object):
+    def __init__(self):
+        self.a = 12
+        self.b = {
+            'love': np.ones([12, 7]),
+            'hatred': np.zeros([4, 9])}
+
+    def __getstate__(self):
+        return({
+            'a': self.a,
+            'b': self.b})
+
+    def __setstate__(self, state):
+        self.a = state['a']
+        self.b = state['b']
+
+    def __getitem__(self, index):
+        if(index == 0):
+            return(self.a)
+        if(index < 2):
+            return(self.b['hatred'])
+        if(index > 2):
+            raise ValueError("index unknown")
+        return(self.b['love'])
+
+
 DUMP_CACHE = []             # Used in test_track_times()
+
+
+def test_state_obj():
+    """ Dumping and loading a class object with pickle states """
+    filename, mode = 'test.h5', 'w'
+    obj = with_state()
+    with pytest.warns(SerializedWarning):
+        dump(obj, filename, mode)
+    obj_hkl = load(filename)
+    assert type(obj) == type(obj_hkl)
+    assert np.allclose(obj[1], obj_hkl[1])
 
 
 def test_local_func():
