@@ -44,12 +44,51 @@ NESTED_DICT = {
     }
 }
 
+
 # Define a test function that must be serialized and unpacked again
 def func(a, b, c=0):
     return(a, b, c)
 
 
+# Define a class that must always be pickled
+class with_state(object):
+    def __init__(self):
+        self.a = 12
+        self.b = {
+            'love': np.ones([12, 7]),
+            'hatred': np.zeros([4, 9])}
+
+    def __getstate__(self):
+        return({
+            'a': self.a,
+            'b': self.b})
+
+    def __setstate__(self, state):
+        self.a = state['a']
+        self.b = state['b']
+
+    def __getitem__(self, index):
+        if(index == 0):
+            return(self.a)
+        if(index < 2):
+            return(self.b['hatred'])
+        if(index > 2):
+            raise ValueError("index unknown")
+        return(self.b['love'])
+
+
 DUMP_CACHE = []             # Used in test_track_times()
+
+
+def test_state_obj():
+    """ Dumping and loading a class object with pickle states """
+    filename, mode = 'test.h5', 'w'
+    obj = with_state()
+    with pytest.warns(SerializedWarning):
+        dump(obj, filename, mode)
+    obj_hkl = load(filename)
+    assert type(obj) == type(obj_hkl)
+    assert np.allclose(obj[1], obj_hkl[1])
 
 
 def test_local_func():
@@ -509,7 +548,6 @@ def test_file_open_close():
     except hickle.hickle.ClosedFileError:
         print("Tests: Closed file exception caught")
 
-
 def test_hdf5_group():
     import h5py
     file = h5py.File('test.hdf5', 'w')
@@ -522,6 +560,10 @@ def test_hdf5_group():
     a_hkl = load('test.hdf5', path='/test_group/deeper/and_deeper')
     assert np.allclose(a_hkl, a)
 
+    file = h5py.File('test.hdf5', 'r')
+    a_hkl2 = load(file['test_group'], path='deeper/and_deeper')
+    assert np.allclose(a_hkl2, a)
+    file.close()
 
 def test_list_order():
     """ https://github.com/telegraphic/hickle/issues/26 """
@@ -748,35 +790,37 @@ def test_nonstring_keys():
     """ Test that keys are reconstructed back to their original datatypes
     https://github.com/telegraphic/hickle/issues/36
     """
+
+    data = {
+            u'test': 123,
+            'def': 456,
+            'hik' : np.array([1,2,3]),
+            0: 0,
+            True: 'hi',
+            1.1 : 'hey',
+            #2L : 'omg',
+            1j: 'complex_hashable',
+            (1, 2): 'boo',
+            ('A', 17.4, 42): [1, 7, 'A'],
+            (): '1313e was here',
+            '0': 0
+            }
     if six.PY2:
         u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
+        data[u] = u
 
-        data = {u'test': 123,
-                'def': 456,
-                'hik' : np.array([1,2,3]),
-                u: u,
-                0: 0,
-                True: 'hi',
-                1.1 : 'hey',
-                #2L : 'omg',
-                1j: 'complex_hashable',
-                (1, 2): 'boo',
-                ('A', 17.4, 42): [1, 7, 'A'],
-                (): '1313e was here',
-                '0': 0
-                }
-        #data = {'0': 123, 'def': 456}
-        print(data)
-        dump(data, "test.hkl")
-        data2 = load("test.hkl")
-        print(data2)
+    #data = {'0': 123, 'def': 456}
+    print(data)
+    dump(data, "test.hkl")
+    data2 = load("test.hkl")
+    print(data2)
 
-        for key in data.keys():
-            assert key in data2.keys()
+    for key in data.keys():
+        assert key in data2.keys()
 
-        print(data2)
-    else:
-        pass
+    print(data2)
+#    else:
+#        pass
 
 def test_scalar_compression():
     """ Test bug where compression causes a crash on scalar datasets
@@ -821,6 +865,19 @@ def test_np_scalar():
     r = load(fid)
     print(r)
     assert type(r0['test']) == type(r['test'])
+
+
+def test_slash_dict_keys():
+    """ Support for having slashes in dict keys """
+    dct = {'a/b': [1, '2'], 'c': 3}
+
+    dump(dct, 'test.hdf5', 'w')
+    dct_hkl = load('test.hdf5')
+
+    assert isinstance(dct_hkl, dict)
+    for key, val in dct_hkl.items():
+        assert val == dct.get(key)
+
 
 if __name__ == '__main__':
     """ Some tests and examples """
@@ -876,6 +933,8 @@ if __name__ == '__main__':
     test_multi_hickle()
     test_dict_int_key()
     test_local_func()
+    test_state_obj()
+    test_slash_dict_keys()
 
     # Cleanup
     print("ALL TESTS PASSED!")

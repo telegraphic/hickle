@@ -35,7 +35,8 @@ import h5py as h5
 from hickle.__version__ import __version__
 from hickle.helpers import get_type, sort_keys, check_is_iterable, check_iterable_item_type
 from hickle.lookup import (types_dict, hkl_types_dict, types_not_to_sort,
-    container_types_dict, container_key_types_dict, check_is_ndarray_like)
+    container_types_dict, container_key_types_dict, check_is_ndarray_like,
+    load_loader)
 
 
 try:
@@ -228,6 +229,9 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
     for lst in [[bool, complex, bytes, float], string_types, integer_types]:
         dumpable_dtypes.extend(lst)
 
+    # Check if we have a unloaded loader for the provided py_obj
+    load_loader(py_obj)
+
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_ndarray_like(py_obj):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
@@ -266,21 +270,29 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
 
-def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
-    """ Write a pickled representation of obj to the open file object file.
+def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
+    """
+    Write a pickled representation of obj to the open file object file.
 
-    Args:
-    obj (object): python object to store in a Hickle
-    file: file object, filename string, h5py.File object or h5py.Group object
-            file in which to store the object. A h5py.File or a filename is also
-            acceptable.
-    mode (str): optional argument, 'r' (read only), 'w' (write) or 'a' (append).
-            Ignored if file is a file object.
-    compression (str): optional argument. Applies compression to dataset. Options: None, gzip,
-            lzf (+ szip, if installed)
-    track_times (bool): optional argument. If set to False, repeated hickling will produce
-            identical files.
-    path (str): path within hdf5 file or group to save data to. Defaults to root /
+    Parameters
+    ----------
+    py_obj : object
+        Python object to store in a Hickle
+    file_obj : file object, filename string, h5py.File object or h5py.Group object
+        File in which to store the object.
+        A h5py.File or a filename is also acceptable.
+    mode : str, optional
+        Accepted values are 'r' (read only), 'w' (write) or 'a' (append).
+        Ignored if file is a file object.
+    path : str, optional
+        Path within hdf5 file or group to save data to.
+        Defaults to root ('/').
+    track_times : bool, optional
+        If set to *False*, repeated hickling will produce identical files.
+    compression : str or None, optional
+        Applies compression to dataset.
+        Accepted value are *None*, 'gzip', 'lzf' (and 'szip', if installed)
+
     """
 
     # Make sure that file is not closed unless modified
@@ -327,7 +339,7 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
 
 
 def create_dataset_lookup(py_obj):
-    """ What type of object are we trying to pickle?  This is a python
+    """ What type of object are we trying to hickle?  This is a python
     dictionary based equivalent of a case statement.  It returns the correct
     helper function for a given data type.
 
@@ -346,17 +358,12 @@ def create_dataset_lookup(py_obj):
     type_map = map(types_dict.get, mro_list)
 
     # Loop over the entire type_map until something else than None is found
-    for i, type_item in enumerate(type_map):
+    for type_item in type_map:
         if type_item is not None:
-            match, base_type = type_item
-            break
+            return(type_item)
     # If that did not happen, then match is no_match
     else:
-        match = no_match
-        base_type = b'pickle'
-
-    # Return found match and base_type
-    return(match, base_type)
+        return(no_match, b'pickle')
 
 
 def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
@@ -416,9 +423,11 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
 
     for idx, (key, py_subobj) in enumerate(py_obj.items()):
         if isinstance(key, string_types):
-            h_subgroup = h_dictgroup.create_group("%r" % (key))
+            subgroup_key = "%r" % (key)
         else:
-            h_subgroup = h_dictgroup.create_group(str(key))
+            subgroup_key = str(key)
+        subgroup_key = subgroup_key.replace('/', '\\\\')
+        h_subgroup = h_dictgroup.create_group(subgroup_key)
         h_subgroup.attrs['base_type'] = b'dict_item'
 
         h_subgroup.attrs['key_base_type'] = str(type(key)).encode('ascii', 'ignore')
@@ -447,7 +456,6 @@ def no_match(py_obj, h_group, name, **kwargs):
     warnings.warn("%s type not understood, data have been serialized" % type(py_obj),
                   SerializedWarning)
     return(d)
-
 
 
 #############
@@ -493,7 +501,7 @@ class PyContainer(list):
         if self.container_base_type == b"<class 'dict'>":
             items = [[]]*len(self)
             for item in self:
-                key = item.name.split('/')[-1]
+                key = item.name.split('/')[-1].replace('\\\\', '/')
                 key_base_type = item.key_base_type
                 key_idx = item.key_idx
                 if key_base_type in container_key_types_dict.keys():
@@ -537,15 +545,26 @@ def load_dataset_lookup(key):
     return match
 
 def load(fileobj, path='/', safe=True):
-    """ Load a hickle file and reconstruct a python object
+    """
+    Load a hickle file and reconstruct a python object
 
-    Args:
-        fileobj: file object, h5py.File, or filename string
-            safe (bool): Disable automatic depickling of arbitrary python objects.
-            DO NOT set this to False unless the file is from a trusted source.
-            (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+    Parameters
+    ----------
+    fileobj : file object, h5py.File, or filename string
+        The file object or the path to the file that must be loaded.
+    path : str, optional
+        Path within hdf5 file to load data from.
+        Defaults to root ('/').
+    safe : bool, optional
+        Disable automatic depickling of arbitrary python objects.
+        DO NOT set this to False unless the file is from a trusted source.
+        (See https://docs.python.org/3/library/pickle.html for an explanation)
 
-        path (str): path within hdf5 file to load data from. Defaults to root /
+    Returns
+    -------
+    py_obj : object
+        The unhickled Python object.
+
     """
 
     # Make sure that the file is not closed unless modified
@@ -661,10 +680,15 @@ def _load(py_container, h_group):
 
         if py_subcontainer.container_base_type == b'dict_item':
             py_subcontainer.key_base_type = h_group.attrs['key_base_type']
-            py_subcontainer.key_type = pickle.loads(h_group.attrs['key_type'])
+            py_obj_type = pickle.loads(h_group.attrs['key_type'])
+            py_subcontainer.key_type = py_obj_type
             py_subcontainer.key_idx = h_group.attrs['key_idx']
         else:
-            py_subcontainer.container_type = pickle.loads(h_group.attrs['type'])
+            py_obj_type = pickle.loads(h_group.attrs['type'])
+            py_subcontainer.container_type = py_obj_type
+
+        # Check if we have a unloaded loader for the provided py_obj
+        load_loader(py_obj_type)
 
         if py_subcontainer.container_base_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())

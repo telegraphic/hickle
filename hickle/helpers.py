@@ -1,26 +1,21 @@
 import re
 import six
+import dill as pickle
 
-try:
-    import dill as pickle
-except ImportError:
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
-
-def get_type_and_data(h_node):
-    """ Helper function to return the py_type and data block for a HDF node """
-    py_type = pickle.loads(h_node.attrs['type'])
-    base_type = h_node.attrs['base_type']
-    data = h_node[()]
-    return py_type, base_type, data
 
 def get_type(h_node):
     """ Helper function to return the py_type for a HDF node """
     py_type = pickle.loads(h_node.attrs['type'])
     base_type = h_node.attrs['base_type']
     return py_type, base_type
+
+
+def get_type_and_data(h_node):
+    """ Helper function to return the py_type and data block for a HDF node """
+    py_type, base_type = get_type(h_node)
+    data = h_node[()]
+    return py_type, base_type, data
+
 
 def sort_keys(key_list):
     """ Take a list of strings and sort it by integer value within string
@@ -54,7 +49,7 @@ def sort_keys(key_list):
 
 
 def check_is_iterable(py_obj):
-    """ Check whether a python object is iterable.
+    """ Check whether a python object is a built-in iterable.
 
     Note: this treats unicode and string as NON ITERABLE
 
@@ -64,17 +59,9 @@ def check_is_iterable(py_obj):
     Returns:
         iter_ok (bool): True if item is iterable, False is item is not
     """
-    if six.PY2:
-        string_types = (str, unicode)
-    else:
-        string_types = (str, bytes, bytearray)
-    if isinstance(py_obj, string_types):
-        return False
-    try:
-        iter(py_obj)
-        return True
-    except TypeError:
-        return False
+
+    # Check if py_obj is an accepted iterable and return
+    return(isinstance(py_obj, (tuple, list, set)))
 
 
 def check_is_hashable(py_obj):

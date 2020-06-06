@@ -7,14 +7,7 @@ Utilities and dump / load handlers for handling numpy and scipy arrays
 """
 import six
 import numpy as np
-
-try:
-    import dill as pickle
-except ImportError:
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
+import dill as pickle
 
 from hickle.helpers import get_type_and_data
 
@@ -29,10 +22,7 @@ def check_is_numpy_array(py_obj):
         is_numpy (bool): Returns True if it is a numpy array, else False if it isn't
     """
 
-    is_numpy = type(py_obj) in (np.ndarray, np.ma.core.MaskedArray)
-
-    return is_numpy
-
+    return(isinstance(py_obj, np.ndarray))
 
 def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
@@ -89,7 +79,6 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
 #######################
 ## Lookup dictionary ##
 #######################
-
 types_dict = {
     np.ndarray:  (create_np_array_dataset, b'ndarray'),
     np.ma.core.MaskedArray: (create_np_array_dataset, b"ndarray_masked_data"),
@@ -148,5 +137,3 @@ hkl_types_dict = {
     b"ndarray_masked_data" : load_ndarray_masked_dataset,
     b"ndarray_masked_mask" : load_nothing        # Loaded automatically
 }
-
-
