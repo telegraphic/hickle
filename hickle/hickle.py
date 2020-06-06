@@ -267,20 +267,28 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
 
 
 def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
-    """ Write a pickled representation of obj to the open file object file.
+    """
+    Write a pickled representation of obj to the open file object file.
 
-    Args:
-    obj (object): python object to store in a Hickle
-    file: file object, filename string, h5py.File object or h5py.Group object
-            file in which to store the object. A h5py.File or a filename is also
-            acceptable.
-    mode (str): optional argument, 'r' (read only), 'w' (write) or 'a' (append).
-            Ignored if file is a file object.
-    compression (str): optional argument. Applies compression to dataset. Options: None, gzip,
-            lzf (+ szip, if installed)
-    track_times (bool): optional argument. If set to False, repeated hickling will produce
-            identical files.
-    path (str): path within hdf5 file or group to save data to. Defaults to root /
+    Parameters
+    ----------
+    py_obj : object
+        Python object to store in a Hickle
+    file_obj : file object, filename string, h5py.File object or h5py.Group object
+        File in which to store the object.
+        A h5py.File or a filename is also acceptable.
+    mode : str, optional
+        Accepted values are 'r' (read only), 'w' (write) or 'a' (append).
+        Ignored if file is a file object.
+    track_times : bool, optional
+        If set to *False*, repeated hickling will produce identical files.
+    path : str, optional
+        Path within hdf5 file or group to save data to.
+        Defaults to root ('/').
+    compression : str or None, optional
+        Applies compression to dataset.
+        Accepted value are *None*, 'gzip', 'lzf' (and 'szip', if installed)
+
     """
 
     # Make sure that file is not closed unless modified
@@ -537,15 +545,26 @@ def load_dataset_lookup(key):
     return match
 
 def load(fileobj, path='/', safe=True):
-    """ Load a hickle file and reconstruct a python object
+    """
+    Load a hickle file and reconstruct a python object
 
-    Args:
-        fileobj: file object, h5py.File, or filename string
-            safe (bool): Disable automatic depickling of arbitrary python objects.
-            DO NOT set this to False unless the file is from a trusted source.
-            (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+    Parameters
+    ----------
+    fileobj : file object, h5py.File, or filename string
+        The file object or the path to the file that must be loaded.
+    path : str, optional
+        Path within hdf5 file to load data from.
+        Defaults to root ('/').
+    safe : bool, optional
+        Disable automatic depickling of arbitrary python objects.
+        DO NOT set this to False unless the file is from a trusted source.
+        (See https://docs.python.org/3/library/pickle.html for an explanation)
 
-        path (str): path within hdf5 file to load data from. Defaults to root /
+    Returns
+    -------
+    py_obj : object
+        The unhickled Python object.
+
     """
 
     # Make sure that the file is not closed unless modified
