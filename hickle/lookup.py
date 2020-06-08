@@ -234,9 +234,12 @@ def load_loader(py_obj):
         # Try to load a loader with this name
         try:
             loader = import_module('hickle.loaders.load_%s' % (pkg_name))
-        # If such a loader does not exist, continue
-        except (ImportError, NameError):
-            pass
+        # If any module is not found, catch error and check it
+        except ImportError as error:
+            # Check if the error was due to a package in loader not being found
+            if 'hickle' not in error.args[0]:
+                # If so, reraise the error
+                raise
         # If such a loader does exist, register classes if not done before
         else:
             # Check if loader had been loaded before
