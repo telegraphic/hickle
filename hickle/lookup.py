@@ -237,7 +237,7 @@ def load_loader(py_obj):
         # If any module is not found, catch error and check it
         except ImportError as error:
             # Check if the error was due to a package in loader not being found
-            if 'hickle' not in error.args[0]:
+            if 'load_%s' % (pkg_name) not in error.args[0]:
                 # If so, reraise the error
                 raise
         # If such a loader does exist, register classes if not done before
