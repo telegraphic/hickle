@@ -422,10 +422,19 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
     h_dictgroup = h_group.create_group(name)
 
     for idx, (key, py_subobj) in enumerate(py_obj.items()):
+        # Obtain the string representation of this key
         if isinstance(key, string_types):
+            # Get raw string format of string
             subgroup_key = "%r" % (key)
+
+            # Make sure that the '\\\\' is not in the key, or raise error if so
+            if '\\\\' in subgroup_key:
+                raise ValueError("Dict item keys containing the '\\\\' string "
+                                 "are not supported!")
         else:
             subgroup_key = str(key)
+
+        # Replace any forward slashes with double backslashes
         subgroup_key = subgroup_key.replace('/', '\\\\')
         h_subgroup = h_dictgroup.create_group(subgroup_key)
         h_subgroup.attrs['base_type'] = b'dict_item'
