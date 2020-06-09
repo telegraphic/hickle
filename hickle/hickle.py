@@ -181,7 +181,7 @@ def file_opener(f, path, mode='r', track_times=True):
     elif isinstance(f, string_like_types):
         filename = f
         h5f = h5.File(filename, mode)
-    elif isinstance(f, (H5FileWrapper, h5._hl.files.File)):
+    elif isinstance(f, h5._hl.files.File):
         try:
             filename = f.filename
         except ValueError:
@@ -189,7 +189,7 @@ def file_opener(f, path, mode='r', track_times=True):
         h5f = f
         # Since this file was already open, do not close the file afterward
         close_flag = False
-    elif isinstance(f, (h5._hl.group.Group)):
+    elif isinstance(f, h5._hl.group.Group):
         try:
             filename = f.file.filename
         except ValueError:
@@ -212,6 +212,11 @@ def file_opener(f, path, mode='r', track_times=True):
 # DUMPERS #
 ###########
 
+# Get list of dumpable dtypes
+dumpable_dtypes = []
+for lst in [[bool, complex, bytes, float], string_types, integer_types]:
+    dumpable_dtypes.extend(lst)
+
 
 def _dump(py_obj, h_group, call_id=None, **kwargs):
     """ Dump a python object to a group within a HDF5 file.
@@ -223,11 +228,6 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the iterable.
     """
-
-    # Get list of dumpable dtypes
-    dumpable_dtypes = []
-    for lst in [[bool, complex, bytes, float], string_types, integer_types]:
-        dumpable_dtypes.extend(lst)
 
     # Check if we have a unloaded loader for the provided py_obj
     load_loader(py_obj)
@@ -460,7 +460,7 @@ def no_match(py_obj, h_group, name, **kwargs):
         call_id (int): index to identify object's relative location in the iterable.
     """
     pickled_obj = pickle.dumps(py_obj)
-    d = h_group.create_dataset(name, data=[pickled_obj])
+    d = h_group.create_dataset(name, data=np.array(pickled_obj))
 
     warnings.warn("%s type not understood, data have been serialized" % type(py_obj),
                   SerializedWarning)
@@ -650,17 +650,13 @@ def load_dataset(h_node):
     """
     py_type, base_type = get_type(h_node)
 
-    try:
-        load_fn = load_dataset_lookup(base_type)
-        data = load_fn(h_node)
+    load_fn = load_dataset_lookup(base_type)
+    data = load_fn(h_node)
 
-        # If data is not py_type yet, convert to it (unless it is pickle)
-        if base_type != b'pickle' and type(data) != py_type:
-            data = py_type(data)
-        return data
-    except:
-        raise
-        #raise RuntimeError("Hickle type %s not understood." % py_type)
+    # If data is not py_type yet, convert to it (unless it is pickle)
+    if base_type != b'pickle' and type(data) != py_type:
+        data = py_type(data)
+    return data
 
 def _load(py_container, h_group):
     """ Load a hickle file
@@ -673,11 +669,8 @@ def _load(py_container, h_group):
                 and load all datasets.
     """
 
-    group_dtype   = h5._hl.group.Group
-    dataset_dtype = h5._hl.dataset.Dataset
-
     #either a file, group, or dataset
-    if isinstance(h_group, (H5FileWrapper, group_dtype)):
+    if isinstance(h_group, h5._hl.group.Group):
 
         py_subcontainer = PyContainer()
         try:
@@ -696,7 +689,7 @@ def _load(py_container, h_group):
             py_obj_type = pickle.loads(h_group.attrs['type'])
             py_subcontainer.container_type = py_obj_type
 
-        # Check if we have a unloaded loader for the provided py_obj
+        # Check if we have an unloaded loader for the provided py_obj
         load_loader(py_obj_type)
 
         if py_subcontainer.container_base_type not in types_not_to_sort:
