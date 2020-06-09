@@ -317,9 +317,8 @@ def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
             else:
                 raise error
 
-        h_root_group.attrs["CLASS"] = b'hickle'
-        h_root_group.attrs["VERSION"] = __version__
-        h_root_group.attrs["PYTHON_VERSION"] = py_ver
+        h_root_group.attrs["HICKLE_VERSION"] = __version__
+        h_root_group.attrs["HICKLE_PYTHON_VERSION"] = py_ver
 
         _dump(py_obj, h_root_group, **kwargs)
     except NoMatchError:
@@ -584,56 +583,35 @@ def load(fileobj, path='/', safe=True):
     try:
         h5f, path, close_flag = file_opener(fileobj, path)
         h_root_group = h5f.get(path)
-        try:
-            assert 'CLASS' in h_root_group.attrs.keys()
-            assert 'VERSION' in h_root_group.attrs.keys()
-            VER = h_root_group.attrs['VERSION']
-            try:
-                VER_MAJOR = int(VER)
-            except ValueError:
-                VER_MAJOR = int(VER[0])
-            if VER_MAJOR == 1:
-                if PY2:
-                    warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
-                    from . import hickle_legacy
-                    return hickle_legacy.load(fileobj, safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            elif VER_MAJOR == 2:
-                if PY2:
-                    warnings.warn("Hickle file appears to be old version (v2), attempting "
-                                  "legacy loading...")
-                    from . import hickle_legacy2
-                    return hickle_legacy2.load(fileobj, path=path, safe=safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            # There is an unfortunate period of time where hickle 2.1.0 claims VERSION = int(3)
-            # For backward compatibility we really need to catch this.
-            # Actual hickle v3 files are versioned as A.B.C (e.g. 3.1.0)
-            elif VER_MAJOR == 3 and VER == VER_MAJOR:
-                if PY2:
-                    warnings.warn("Hickle file appears to be old version (v2.1.0), attempting "
-                                  "legacy loading...")
-                    from . import hickle_legacy2
-                    return hickle_legacy2.load(fileobj, path=path, safe=safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            elif VER_MAJOR >= 3:
-                py_container = PyContainer()
-                py_container = _load(py_container, h_root_group['data'])
-                return py_container[0]
 
-        except AssertionError:
-            if PY2:
-                warnings.warn("Hickle file is not versioned, attempting legacy loading...")
-                from . import hickle_legacy
-                return hickle_legacy.load(fileobj, safe)
-            else:
-                raise RuntimeError("Cannot open file. This file was likely"
-                                   " created with Python 2 and an old hickle version.")
+        # Define attributes h_root_group must have
+        v3_attrs = ['CLASS', 'VERSION', 'PYTHON_VERSION']
+        v4_attrs = ['HICKLE_VERSION', 'HICKLE_PYTHON_VERSION']
+
+        # Check if the proper attributes for v3 loading are available
+        if all(map(h_root_group.attrs.get, v3_attrs)):
+            # If group has attribute 'CLASS' with value 'hickle', try to use v3
+            assert h_root_group.attrs.get('CLASS') == b'hickle'
+            major_version = int(h_root_group.attrs['VERSION'][0])
+            assert major_version == 3
+
+            # Load file
+            py_container = PyContainer()
+            py_container = _load(py_container, h_root_group['data_0'])
+            return(py_container[0])
+
+        # Else, check if the proper attributes for v4 loading are available
+        elif all(map(h_root_group.attrs.get, v4_attrs)):
+            # Load file
+            py_container = PyContainer()
+            py_container = _load(py_container, h_root_group['data'])
+            return(py_container[0])
+
+        # Else, raise error
+        else:
+            raise ValueError("Provided argument 'fileobj' does not appear to "
+                             "be a valid hickle file!")
+
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems

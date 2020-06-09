@@ -59,6 +59,7 @@ class with_state(object):
             'hatred': np.zeros([4, 9])}
 
     def __getstate__(self):
+        self.a *= 2
         return({
             'a': self.a,
             'b': self.b})
