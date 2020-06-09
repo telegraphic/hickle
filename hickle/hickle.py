@@ -187,23 +187,30 @@ def file_opener(f, path, mode='r', track_times=True):
         except ValueError:
             raise ClosedFileError
         h5f = f
+
         # Since this file was already open, do not close the file afterward
         close_flag = False
+
+        h5f.__class__ = H5FileWrapper
     elif isinstance(f, h5._hl.group.Group):
         try:
             filename = f.file.filename
         except ValueError:
             raise ClosedFileError
-        h5f = f.file
-
-        # Combine given path with path to this group
         path = ''.join([f.name, path])
+        h5f = f
+
+        if path.endswith('/'):
+            path = path[:-1]
+
+        # Since this file was already open, do not close the file afterward
         close_flag = False
+
+        h5f.__class__ = H5GroupWrapper
     else:
         print(f.__class__)
         raise FileError
 
-    h5f.__class__ = H5FileWrapper
     h5f.track_times = track_times
     return(h5f, path, close_flag)
 
@@ -310,20 +317,22 @@ def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
         # Try to create the root group
         try:
             h_root_group = h5f.create_group(path)
-        # If that is not possible, raise an error about it if path is not '/'
+
+        # If that is not possible, check if it is empty
         except ValueError as error:
-            if path == '/':
-                h_root_group = h5f['/']
-            else:
+            # Raise error if this group is not empty
+            if len(h5f[path]):
                 raise error
+            else:
+                h_root_group = h5f.get(path)
 
         h_root_group.attrs["HICKLE_VERSION"] = __version__
         h_root_group.attrs["HICKLE_PYTHON_VERSION"] = py_ver
 
         _dump(py_obj, h_root_group, **kwargs)
     except NoMatchError:
-        fname = h5f.filename
-        h5f.close()
+        fname = h5f.file.filename
+        h5f.file.close()
         try:
             os.remove(fname)
         except OSError:
@@ -334,7 +343,7 @@ def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
-            h5f.close()
+            h5f.file.close()
 
 
 def create_dataset_lookup(py_obj):
@@ -616,7 +625,7 @@ def load(fileobj, path='/', safe=True):
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
-            h5f.close()
+            h5f.file.close()
 
 def load_dataset(h_node):
     """ Load a dataset, converting into its correct python type

@@ -554,16 +554,25 @@ def test_hdf5_group():
     file = h5py.File('test.hdf5', 'w')
     group = file.create_group('test_group')
     a = np.arange(5)
-
-    dump(a, group, path='deeper/and_deeper')
+    dump(a, group)
     file.close()
 
-    a_hkl = load('test.hdf5', path='/test_group/deeper/and_deeper')
+    a_hkl = load('test.hdf5', path='/test_group')
     assert np.allclose(a_hkl, a)
 
+    file = h5py.File('test.hdf5', 'r+')
+    group = file.create_group('test_group2')
+    b = np.arange(8)
+
+    dump(b, group, path='deeper/and_deeper')
+    file.close()
+
+    b_hkl = load('test.hdf5', path='/test_group2/deeper/and_deeper')
+    assert np.allclose(b_hkl, b)
+
     file = h5py.File('test.hdf5', 'r')
-    a_hkl2 = load(file['test_group'], path='deeper/and_deeper')
-    assert np.allclose(a_hkl2, a)
+    b_hkl2 = load(file['test_group2'], path='deeper/and_deeper')
+    assert np.allclose(b_hkl2, b)
     file.close()
 
 def test_list_order():
