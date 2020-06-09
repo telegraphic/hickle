@@ -5,8 +5,11 @@ import dill as pickle
 
 def get_type(h_node):
     """ Helper function to return the py_type for a HDF node """
-    py_type = pickle.loads(h_node.attrs['type'])
     base_type = h_node.attrs['base_type']
+    if base_type != b'pickle':
+        py_type = pickle.loads(h_node.attrs['type'])
+    else:
+        py_type = None
     return py_type, base_type
 
 
