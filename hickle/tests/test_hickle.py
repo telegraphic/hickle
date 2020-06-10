@@ -118,7 +118,7 @@ def test_list():
         assert type(list_obj) == type(list_hkl) == list
         assert list_obj == list_hkl
         import h5py
-        a = h5py.File(filename)
+        a = h5py.File(filename, 'r')
         a.close()
 
     except AssertionError:
@@ -577,7 +577,7 @@ def test_with_dump():
     dct = {1: 1}
     arr = np.array([1])
 
-    with h5py.File('test.hkl') as file:
+    with h5py.File('test.hkl', 'r+') as file:
         dump(lst, file, path='/lst')
         dump(tpl, file, path='/tpl')
         dump(dct, file, path='/dct')
@@ -590,7 +590,7 @@ def test_with_load():
     dct = {1: 1}
     arr = np.array([1])
 
-    with h5py.File('test.hkl') as file:
+    with h5py.File('test.hkl', 'r') as file:
         assert load(file, '/lst') == lst
         assert load(file, '/tpl') == tpl
         assert load(file, '/dct') == dct
