@@ -2,7 +2,7 @@ import six
 import scipy
 from scipy import sparse
 
-from hickle.helpers import get_type_and_data
+from ..helpers import get_type_and_data
 
 def check_is_scipy_sparse_array(py_obj):
     """ Check if a python object is a scipy sparse array

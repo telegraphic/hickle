@@ -7,7 +7,7 @@ NB: As these are for built-in types, they are critical to the functioning of hic
 
 """
 
-from hickle.helpers import get_type_and_data
+from ..helpers import get_type_and_data
 
 import sys
 if sys.version_info.major == 3:

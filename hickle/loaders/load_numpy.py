@@ -9,7 +9,7 @@ import six
 import numpy as np
 
 
-from hickle.helpers import get_type_and_data
+from ..helpers import get_type_and_data
 
 
 def check_is_numpy_array(py_obj):

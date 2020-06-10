@@ -8,7 +8,7 @@ NB: As these are for built-in types, they are critical to the functioning of hic
 """
 
 import six
-from hickle.helpers import get_type_and_data
+from ..helpers import get_type_and_data
 
 try:
     from exceptions import Exception

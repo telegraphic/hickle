@@ -5,7 +5,7 @@ from astropy.constants import Constant, EMConstant
 from astropy.table import Table
 from astropy.time import Time
 
-from hickle.helpers import get_type_and_data
+from ..helpers import get_type_and_data
 import six
 
 def create_astropy_quantity(py_obj, h_group, call_id=0, **kwargs):
