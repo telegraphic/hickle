@@ -1,10 +1,9 @@
-pytest
+pytest>=3.8.0
 pytest-cov
-pytest-runner
 astropy<3.1;python_version>="3"
 astropy<3.0;python_version=="2.7.*"
-scipy
-pandas
+scipy>=1.0.0
+pandas>=0.24.0
 codecov
 check-manifest
 twine>=1.13.0
