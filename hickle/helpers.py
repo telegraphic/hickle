@@ -1,7 +1,12 @@
+# %% IMPORTS
+# Built-in imports
 import re
+
+# Package imports
 import dill as pickle
 
 
+# %% FUNCTION DEFINITIONS
 def get_type(h_node):
     """ Helper function to return the py_type for a HDF node """
     base_type = h_node.attrs['base_type']
@@ -43,8 +48,8 @@ def sort_keys(key_list):
 
     # Sort the keys on number if they have it, or normally if not
     if(len(key_list) and not numbered_keys.count(None)):
-        to_int = lambda x: int(re.search(br'\d+', x).group(0))
-        return(sorted(key_list, key=to_int))
+        return(sorted(key_list,
+                      key=lambda x: int(re.search(br'\d+', x).group(0))))
     else:
         return(sorted(key_list))
 
@@ -90,10 +95,11 @@ def check_iterable_item_type(iter_obj):
 
     Returns:
         iter_type: type of item contained within the iterable. If
-                   the iterable has many types, a boolean False is returned instead.
+            the iterable has many types, a boolean False is returned instead.
 
     References:
-    http://stackoverflow.com/questions/13252333/python-check-if-all-elements-of-a-list-are-the-same-type
+    http://stackoverflow.com/questions/13252333/python-check-if-all-\
+    elements-of-a-list-are-the-same-type
     """
     iseq = iter(iter_obj)
 
@@ -104,4 +110,7 @@ def check_iterable_item_type(iter_obj):
     except Exception:
         return False
     else:
-        return first_type if all((type(x) is first_type) for x in iseq) else False
+        if all([type(x) is first_type for x in iseq]):
+            return(first_type)
+        else:
+            return(False)

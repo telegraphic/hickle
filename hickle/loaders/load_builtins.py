@@ -3,22 +3,42 @@
 # load_python.py
 
 Handlers for dumping and loading built-in python types.
-NB: As these are for built-in types, they are critical to the functioning of hickle.
+NB: As these are for built-in types, they are critical to the functioning of
+hickle.
 
 """
 
+
+# %% IMPORTS
+# Built-in imports
+import warnings
+
+# Package imports
+import dill as pickle
+import numpy as np
+
+# hickle imports
 from hickle.helpers import get_type_and_data
 
-import h5py as h5
+
+# %% CLASS DEFINITIONS
+class SerializedWarning(UserWarning):
+    """ An object type was not understood
+
+    The data will be serialized using pickle.
+    """
+    pass
 
 
+# %% FUNCTION DEFINITIONS
 def get_py3_string_type(h_node):
     """ Helper function to return the python string type for items in a list.
 
     Notes:
-        Py3 string handling is a bit funky and doesn't play too nicely with HDF5.
-        We needed to add metadata to say if the strings in a list started off as
-        bytes, string, etc. This helper loads
+        Py3 string handling is a bit funky and doesn't play too nicely with
+        HDF5.
+        We needed to add metadata to say if the strings in a list started off
+        as bytes, string, etc. This helper loads
 
     """
     try:
@@ -27,14 +47,17 @@ def get_py3_string_type(h_node):
     except Exception:
         return None
 
+
 def create_listlike_dataset(py_obj, h_group, name, **kwargs):
     """ Dumper for list, set, tuple
 
     Args:
         py_obj: python object to dump; should be list-like
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
     """
+
     obj = list(py_obj)
 
     # h5py does not handle Py3 'str' objects well. Need to catch this
@@ -45,11 +68,7 @@ def create_listlike_dataset(py_obj, h_group, name, **kwargs):
         py3_str_type = bytes(str(type(obj[0])), 'ascii')
 
     if type(obj[0]) is str:
-        #print(py3_str_type)
-        #print(obj, "HERE")
         obj = [bytes(oo, 'utf8') for oo in obj]
-        #print(obj, "HERE")
-
 
     d = h_group.create_dataset(name, data=obj, **kwargs)
 
@@ -59,14 +78,15 @@ def create_listlike_dataset(py_obj, h_group, name, **kwargs):
     return(d)
 
 
-
 def create_python_dtype_dataset(py_obj, h_group, name, **kwargs):
     """ dumps a python dtype object to h5py file
 
     Args:
-        py_obj: python object to dump; should be a python type (int, float, bool etc)
+        py_obj: python object to dump; should be a python type (int, float,
+            bool etc)
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
     """
 
     # Determine the subdtype of the given py_obj
@@ -77,7 +97,7 @@ def create_python_dtype_dataset(py_obj, h_group, name, **kwargs):
         py_obj = bytes(str(py_obj), 'ascii')
 
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset(name, data=py_obj)     #, **kwargs)
+    d = h_group.create_dataset(name, data=py_obj)
     d.attrs['python_subdtype'] = subdtype
     return(d)
 
@@ -86,12 +106,15 @@ def create_stringlike_dataset(py_obj, h_group, name, **kwargs):
     """ dumps a list object to h5py file
 
     Args:
-        py_obj: python object to dump; should be string-like (unicode or string)
+        py_obj: python object to dump; should be string-like (unicode or
+            string)
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
     """
     d = h_group.create_dataset(name, data=py_obj, **kwargs)
     return(d)
+
 
 def create_none_dataset(py_obj, h_group, name, **kwargs):
     """ Dump None type to file
@@ -99,9 +122,27 @@ def create_none_dataset(py_obj, h_group, name, **kwargs):
     Args:
         py_obj: python object to dump; must be None object
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
     """
     d = h_group.create_dataset(name, data=[0], **kwargs)
+    return(d)
+
+
+def create_pickled_dataset(py_obj, h_group, name, **kwargs):
+    """ If no match is made, raise a warning
+
+    Args:
+        py_obj: python object to dump; default if item is not matched.
+        h_group (h5.File.group): group to dump data into.
+        call_id (int): index to identify object's relative location in the
+            iterable.
+    """
+    pickled_obj = pickle.dumps(py_obj)
+    d = h_group.create_dataset(name, data=np.array(pickled_obj))
+
+    warnings.warn("%s type not understood, data have been serialized"
+                  % (type(py_obj)), SerializedWarning)
     return(d)
 
 
@@ -117,33 +158,35 @@ def load_list_dataset(h_node):
     else:
         return list(data)
 
+
 def load_tuple_dataset(h_node):
     data = load_list_dataset(h_node)
     return tuple(data)
+
 
 def load_set_dataset(h_node):
     data = load_list_dataset(h_node)
     return set(data)
 
+
 def load_bytes_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
     return bytes(data)
+
 
 def load_string_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
     return str(data)
 
-def load_unicode_dataset(h_node):
-    _, _, data = get_type_and_data(h_node)
-    return unicode(data)
 
 def load_none_dataset(h_node):
     return None
 
+
 def load_pickled_data(h_node):
     _, _, data = get_type_and_data(h_node)
-    import dill as pickle
     return pickle.loads(data)
+
 
 def load_python_dtype_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
@@ -153,38 +196,28 @@ def load_python_dtype_dataset(h_node):
         b"<class 'float'>": float,
         b"<class 'bool'>": bool,
         b"<class 'complex'>": complex,
-        b"<type 'int'>": int,
-        b"<type 'float'>": float,
-        b"<type 'bool'>": bool,
-        b"<type 'complex'>": complex
     }
 
     tcast = type_dict.get(subtype)
     return tcast(data)
 
 
+# %% REGISTERS
+class_register = [
+    [list, b"list", create_listlike_dataset, load_list_dataset],
+    [tuple, b"tuple", create_listlike_dataset, load_tuple_dataset],
+    [set, b"set", create_listlike_dataset, load_set_dataset],
+    [bytes, b"bytes", create_stringlike_dataset, load_bytes_dataset],
+    [str, b"string", create_stringlike_dataset, load_string_dataset],
+    [int, b"python_dtype", create_python_dtype_dataset,
+     load_python_dtype_dataset],
+    [float, b"python_dtype", create_python_dtype_dataset,
+     load_python_dtype_dataset],
+    [complex, b"python_dtype", create_python_dtype_dataset,
+     load_python_dtype_dataset],
+    [bool, b"python_dtype", create_python_dtype_dataset,
+     load_python_dtype_dataset],
+    [type(None), b"none", create_none_dataset, load_none_dataset],
+    [object, b"pickle", create_pickled_dataset, load_pickled_data]]
 
-types_dict = {
-    list:        (create_listlike_dataset, b"<class 'list'>"),
-    tuple:       (create_listlike_dataset, b"<class 'tuple'>"),
-    set:         (create_listlike_dataset, b"<class 'set'>"),
-    bytes:       (create_stringlike_dataset, b"bytes"),
-    str:         (create_stringlike_dataset, b"string"),
-    # bytearray:   (create_stringlike_dataset, b"bytes"),
-    int:         (create_python_dtype_dataset, b"python_dtype"),
-    float:       (create_python_dtype_dataset, b"python_dtype"),
-    bool:        (create_python_dtype_dataset, b"python_dtype"),
-    complex:     (create_python_dtype_dataset, b"python_dtype"),
-    type(None):  (create_none_dataset, b"none"),
-}
-
-hkl_types_dict = {
-    b"<class 'list'>"  : load_list_dataset,
-    b"<class 'tuple'>" : load_tuple_dataset,
-    b"<class 'set'>"   : load_set_dataset,
-    b"bytes"           : load_bytes_dataset,
-    b"python_dtype"   : load_python_dtype_dataset,
-    b"string"         : load_string_dataset,
-    b"pickle"         : load_pickled_data,
-    b"none"           : load_none_dataset,
-}
+exclude_register = []

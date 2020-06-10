@@ -1,9 +1,16 @@
+# %% IMPORTS
+# Built-in imports
 import glob
 import warnings
-import hickle as hkl
+
+# Package imports
 import h5py
 
+# hickle imports
+import hickle as hkl
 
+
+# %% FUNCTION DEFINITIONS
 def test_legacy_load():
     filelist = sorted(glob.glob('legacy_hkls/*.hkl'))
 
@@ -22,5 +29,7 @@ def test_legacy_load():
                     print(item.attrs.items())
                 raise
 
+
+# %% MAIN SCRIPT
 if __name__ == "__main__":
     test_legacy_load()

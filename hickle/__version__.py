@@ -3,7 +3,7 @@
 """
 Hickle Version
 ==============
-Stores the different versions of the *Hickle* package.
+Stores the different versions of the *hickle* package.
 
 """
 
