@@ -96,6 +96,7 @@ These file-level options are abstracted away from the data model.
 Recent changes
 --------------
 
+* June 2020: Major refactor to version 4, and removal of support for Python 2.
 * December 2018: Accepted to Journal of Open-Source Software (JOSS).
 * June 2018: Major refactor and support for Python 3.
 * Aug 2016: Added support for scipy sparse matrices `bsr_matrix`, `csr_matrix` and `csc_matrix`.
@@ -154,7 +155,7 @@ Install with `pip` by running `pip install hickle` from the command line.
 
 ### Manual install
 
-1. You should have Python 2.7 and above installed
+1. You should have Python 3.5 and above installed
 
 2. Install h5py
 (Official page: http://docs.h5py.org/en/latest/build.html)

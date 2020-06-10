@@ -605,9 +605,10 @@ def load(fileobj, path='/', safe=True):
             assert major_version == 3
 
             # Load file
-            py_container = PyContainer()
-            py_container = _load(py_container, h_root_group['data_0'])
-            return(py_container[0])
+            from hickle import legacy_v3
+            warnings.warn("Input argument 'fileobj' appears to be a file made "
+                          "with hickle v3. Using legacy load...")
+            return(legacy_v3.load(fileobj, path, safe))
 
         # Else, check if the proper attributes for v4 loading are available
         elif all(map(h_root_group.attrs.get, v4_attrs)):
