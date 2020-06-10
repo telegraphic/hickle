@@ -12,7 +12,7 @@ import re
 from setuptools import setup, find_packages
 import sys
 
-author  = 'Danny Price'
+author  = "Danny Price, Ellert van der Velden and contributors"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()

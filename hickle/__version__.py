@@ -10,5 +10,4 @@ Stores the different versions of the *Hickle* package.
 
 # %% VERSIONS
 # Default/Latest/Current version
-__version__ = '4.0.0'
-
+__version__ = '3.4.7'
