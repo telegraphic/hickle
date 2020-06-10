@@ -1,21 +1,10 @@
-import six
 import scipy
 import numpy as np
 from scipy import sparse
 
-try:
-    import dill as pickle
-except ImportError:
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
+import dill as pickle
 
-import sys
-if sys.version_info.major == 3:
-    NoneType = type(None)
-else:
-    from types import NoneType
+NoneType = type(None)
 
 from hickle.helpers import get_type_and_data
 
@@ -106,6 +95,5 @@ exclude_register = []
 for mat_type in ('csr', 'csc', 'bsr'):
     for attrib in ('indices', 'indptr', 'shape'):
         hkl_key = "%s_matrix_%s" % (mat_type, attrib)
-        if not six.PY2:
-            hkl_key = hkl_key.encode('ascii')
+        hkl_key = hkl_key.encode('ascii')
         exclude_register.append(hkl_key)

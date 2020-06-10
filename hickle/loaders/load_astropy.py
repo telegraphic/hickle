@@ -6,7 +6,6 @@ from astropy.table import Table
 from astropy.time import Time
 
 from hickle.helpers import get_type_and_data
-import six
 
 def create_astropy_quantity(py_obj, h_group, name, **kwargs):
     """ dumps an astropy quantity
@@ -19,10 +18,7 @@ def create_astropy_quantity(py_obj, h_group, name, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset(name, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    if six.PY3:
-        unit = bytes(str(py_obj.unit), 'ascii')
-    else:
-        unit = str(py_obj.unit)
+    unit = bytes(str(py_obj.unit), 'ascii')
     d.attrs['unit'] = unit
     return(d)
 
@@ -37,10 +33,7 @@ def create_astropy_angle(py_obj, h_group, name, **kwargs):
     # kwarg compression etc does not work on scalars
     d = h_group.create_dataset(name, data=py_obj.value,
                                dtype='float64')     #, **kwargs)
-    if six.PY3:
-        unit = str(py_obj.unit).encode('ascii')
-    else:
-        unit = str(py_obj.unit)
+    unit = str(py_obj.unit).encode('ascii')
     d.attrs['unit'] = unit
     return(d)
 
@@ -59,12 +52,8 @@ def create_astropy_skycoord(py_obj, h_group, name, **kwargs):
 
     d = h_group.create_dataset(name, data=dd,
                                dtype='float64')     #, **kwargs)
-    if six.PY3:
-        lon_unit = str(py_obj.data.lon.unit).encode('ascii')
-        lat_unit = str(py_obj.data.lat.unit).encode('ascii')
-    else:
-        lon_unit = str(py_obj.data.lon.unit)
-        lat_unit = str(py_obj.data.lat.unit)
+    lon_unit = str(py_obj.data.lon.unit).encode('ascii')
+    lat_unit = str(py_obj.data.lat.unit).encode('ascii')
     d.attrs['lon_unit'] = lon_unit
     d.attrs['lat_unit'] = lat_unit
     return(d)
@@ -91,12 +80,8 @@ def create_astropy_time(py_obj, h_group, name, **kwargs):
             data.append(str(item).encode('ascii'))
 
     d = h_group.create_dataset(name, data=data, dtype=dtype)     #, **kwargs)
-    if six.PY2:
-        fmt   = str(py_obj.format)
-        scale = str(py_obj.scale)
-    else:
-        fmt   = str(py_obj.format).encode('ascii')
-        scale = str(py_obj.scale).encode('ascii')
+    fmt   = str(py_obj.format).encode('ascii')
+    scale = str(py_obj.scale).encode('ascii')
     d.attrs['format'] = fmt
     d.attrs['scale']  = scale
 
@@ -135,10 +120,7 @@ def create_astropy_table(py_obj, h_group, name, **kwargs):
     data = py_obj.as_array()
     d = h_group.create_dataset(name, data=data, dtype=data.dtype, **kwargs)
 
-    if six.PY3:
-        colnames = [bytes(cn, 'ascii') for cn in py_obj.colnames]
-    else:
-        colnames = py_obj.colnames
+    colnames = [bytes(cn, 'ascii') for cn in py_obj.colnames]
     d.attrs['colnames'] = colnames
     for key, value in py_obj.meta.items():
      d.attrs[key] = value
@@ -153,12 +135,8 @@ def load_astropy_quantity_dataset(h_node):
 
 def load_astropy_time_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
-    if six.PY3:
-        fmt = h_node.attrs["format"].decode('ascii')
-        scale = h_node.attrs["scale"].decode('ascii')
-    else:
-        fmt = h_node.attrs["format"]
-        scale = h_node.attrs["scale"]
+    fmt = h_node.attrs["format"].decode('ascii')
+    scale = h_node.attrs["scale"].decode('ascii')
     q = Time(data, format=fmt, scale=scale)
     return q
 
@@ -197,10 +175,7 @@ def load_astropy_table(h_node):
     metadata.pop('base_type')
     metadata.pop('colnames')
 
-    if six.PY3:
-        colnames = [cn.decode('ascii') for cn in h_node.attrs["colnames"]]
-    else:
-        colnames = h_node.attrs["colnames"]
+    colnames = [cn.decode('ascii') for cn in h_node.attrs["colnames"]]
 
     t = Table(data, names=colnames, meta=metadata)
     return t

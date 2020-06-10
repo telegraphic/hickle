@@ -1,5 +1,4 @@
 import re
-import six
 import dill as pickle
 
 
@@ -32,13 +31,12 @@ def sort_keys(key_list):
 
     # Py3 h5py returns an irritating KeysView object
     # Py3 also complains about bytes and strings, convert all keys to bytes
-    if six.PY3:
-        key_list2 = []
-        for key in key_list:
-            if isinstance(key, str):
-                key = bytes(key, 'ascii')
-            key_list2.append(key)
-        key_list = key_list2
+    key_list2 = []
+    for key in key_list:
+        if isinstance(key, str):
+            key = bytes(key, 'ascii')
+        key_list2.append(key)
+    key_list = key_list2
 
     # Check which keys contain a number
     numbered_keys = [re.search(br'\d+', key) for key in key_list]
@@ -103,7 +101,7 @@ def check_iterable_item_type(iter_obj):
         first_type = type(next(iseq))
     except StopIteration:
         return False
-    except Exception as ex:
+    except Exception:
         return False
     else:
         return first_type if all((type(x) is first_type) for x in iseq) else False

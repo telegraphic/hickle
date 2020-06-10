@@ -58,9 +58,6 @@ The process to add new load/dump capabilities is as follows:
         raise
 """
 
-from __future__ import absolute_import
-
-from six import PY2
 from ast import literal_eval
 import numpy as np
 
@@ -102,17 +99,9 @@ container_key_types_dict = {
     b"<class 'tuple'>": literal_eval
     }
 
-if PY2:
-    container_key_types_dict[b"<type 'unicode'>"] = literal_eval
-    container_key_types_dict[b"<type 'long'>"] = long
-
 # Add loaders for built-in python types
-if PY2:
-    from .loaders.load_python import types_dict as py_types_dict
-    from .loaders.load_python import hkl_types_dict as py_hkl_types_dict
-else:
-    from .loaders.load_python3 import types_dict as py_types_dict
-    from .loaders.load_python3 import hkl_types_dict as py_hkl_types_dict
+from hickle.loaders.load_python3 import types_dict as py_types_dict
+from hickle.loaders.load_python3 import hkl_types_dict as py_hkl_types_dict
 
 types_dict.update(py_types_dict)
 hkl_types_dict.update(py_hkl_types_dict)
@@ -122,9 +111,9 @@ from importlib import import_module
 loaded_loaders = []
 
 # Add loaders for numpy types
-from .loaders.load_numpy import types_dict as np_types_dict
-from .loaders.load_numpy import hkl_types_dict as np_hkl_types_dict
-from .loaders.load_numpy import check_is_numpy_array
+from hickle.loaders.load_numpy import types_dict as np_types_dict
+from hickle.loaders.load_numpy import hkl_types_dict as np_hkl_types_dict
+from hickle.loaders.load_numpy import check_is_numpy_array
 types_dict.update(np_types_dict)
 hkl_types_dict.update(np_hkl_types_dict)
 import hickle.loaders
@@ -237,7 +226,7 @@ def load_loader(py_obj):
         # If any module is not found, catch error and check it
         except ImportError as error:
             # Check if the error was due to a package in loader not being found
-            if 'load_%s' % (pkg_name) not in error.args[0]:
+            if 'hickle' not in error.args[0]:
                 # If so, reraise the error
                 raise
         # If such a loader does exist, register classes if not done before

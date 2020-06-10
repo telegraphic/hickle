@@ -5,7 +5,6 @@
 Utilities and dump / load handlers for handling numpy and scipy arrays
 
 """
-import six
 import numpy as np
 import dill as pickle
 
@@ -36,10 +35,7 @@ def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
     # DO NOT PASS KWARGS TO SCALAR DATASETS!
     d = h_group.create_dataset(name, data=py_obj)  # **kwargs)
 
-    if six.PY2:
-        d.attrs["np_dtype"] = str(d.dtype)
-    else:
-        d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
+    d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
     return(d)
 
 

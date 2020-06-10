@@ -11,7 +11,6 @@ import h5py
 import hashlib
 import numpy as np
 import os
-import six
 import time
 from pprint import pprint
 from collections import OrderedDict as odict
@@ -104,48 +103,14 @@ def test_local_func():
 
 def test_string():
     """ Dumping and loading a string """
-    if six.PY2:
-        filename, mode = 'test.h5', 'w'
-        string_obj = "The quick brown fox jumps over the lazy dog"
-        dump(string_obj, filename, mode)
-        string_hkl = load(filename)
-        #print "Initial list:   %s"%list_obj
-        #print "Unhickled data: %s"%list_hkl
-        assert type(string_obj) == type(string_hkl) == str
-        assert string_obj == string_hkl
-    else:
-        pass
-
-
-def test_unicode():
-    """ Dumping and loading a unicode string """
-    if six.PY2:
-        filename, mode = 'test.h5', 'w'
-        u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
-        dump(u, filename, mode)
-        u_hkl = load(filename)
-
-        assert type(u) == type(u_hkl) == unicode
-        assert u == u_hkl
-        # For those interested, uncomment below to see what those codes are:
-        # for i, c in enumerate(u_hkl):
-        #     print i, '%04x' % ord(c), unicodedata.category(c),
-        #     print unicodedata.name(c)
-    else:
-        pass
-
-
-def test_unicode2():
-    if six.PY2:
-        a = u"unicode test"
-        dump(a, 'test.hkl', mode='w')
-
-        z = load('test.hkl')
-        assert a == z
-        assert type(a) == type(z) == unicode
-        pprint(z)
-    else:
-        pass
+    filename, mode = 'test.h5', 'w'
+    string_obj = "The quick brown fox jumps over the lazy dog"
+    dump(string_obj, filename, mode)
+    string_hkl = load(filename)
+    #print "Initial list:   %s"%list_obj
+    #print "Unhickled data: %s"%list_hkl
+    assert type(string_obj) == type(string_hkl) == str
+    assert string_obj == string_hkl
 
 
 def test_65bit_int():
@@ -167,7 +132,7 @@ def test_list():
         assert type(list_obj) == type(list_hkl) == list
         assert list_obj == list_hkl
         import h5py
-        a = h5py.File(filename)
+        a = h5py.File(filename, 'r')
         a.close()
 
     except AssertionError:
@@ -413,7 +378,7 @@ def md5sum(filename, blocksize=65536):
 def caching_dump(obj, filename, *args, **kwargs):
     """ Save arguments of all dump calls """
     DUMP_CACHE.append((obj, filename, args, kwargs))
-    return hickle_dump(obj, filename, *args, **kwargs)
+    return dump(obj, filename, *args, **kwargs)
 
 
 def test_track_times():
@@ -665,7 +630,7 @@ def test_with_dump():
     dct = {1: 1}
     arr = np.array([1])
 
-    with h5py.File('test.hkl') as file:
+    with h5py.File('test.hkl', 'r+') as file:
         dump(lst, file, path='/lst')
         dump(tpl, file, path='/tpl')
         dump(dct, file, path='/dct')
@@ -678,7 +643,7 @@ def test_with_load():
     dct = {1: 1}
     arr = np.array([1])
 
-    with h5py.File('test.hkl') as file:
+    with h5py.File('test.hkl', 'r') as file:
         assert load(file, '/lst') == lst
         assert load(file, '/tpl') == tpl
         assert load(file, '/dct') == dct
@@ -754,13 +719,8 @@ def test_simple_dict():
 
 def test_complex_dict():
     a = {'akey': 1, 'akey2': 2}
-    if six.PY2:
-        # NO LONG TYPE IN PY3!
-        b = {'bkey': 2.0, 'bkey3': long(3.0)}
-    else:
-        b = a
     c = {'ckey': "hello", "ckey2": "hi there"}
-    z = {'zkey1': a, 'zkey2': b, 'zkey3': c}
+    z = {'zkey1': a, 'zkey2': a, 'zkey3': c}
 
     print("Original:")
     pprint(z)
@@ -815,9 +775,6 @@ def test_nonstring_keys():
             (): '1313e was here',
             '0': 0
             }
-    if six.PY2:
-        u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
-        data[u] = u
 
     #data = {'0': 123, 'def': 456}
     print(data)
@@ -849,19 +806,17 @@ def test_scalar_compression():
 
 def test_bytes():
     """ Dumping and loading a string. PYTHON3 ONLY """
-    if six.PY3:
-        filename, mode = 'test.h5', 'w'
-        string_obj = b"The quick brown fox jumps over the lazy dog"
-        dump(string_obj, filename, mode)
-        string_hkl = load(filename)
-        #print "Initial list:   %s"%list_obj
-        #print "Unhickled data: %s"%list_hkl
-        print(type(string_obj))
-        print(type(string_hkl))
-        assert type(string_obj) == type(string_hkl) == bytes
-        assert string_obj == string_hkl
-    else:
-        pass
+
+    filename, mode = 'test.h5', 'w'
+    string_obj = b"The quick brown fox jumps over the lazy dog"
+    dump(string_obj, filename, mode)
+    string_hkl = load(filename)
+    #print "Initial list:   %s"%list_obj
+    #print "Unhickled data: %s"%list_hkl
+    print(type(string_obj))
+    print(type(string_hkl))
+    assert type(string_obj) == type(string_hkl) == bytes
+    assert string_obj == string_hkl
 
 def test_np_scalar():
     """ Numpy scalar datatype
@@ -917,16 +872,9 @@ if __name__ == '__main__':
     test_list_order()
     test_embedded_array()
     test_np_float()
-
-    if six.PY2:
-        test_unicode()
-        test_unicode2()
-        test_string()
-        test_nonstring_keys()
-
-    if six.PY3:
-        test_bytes()
-
+    test_string()
+    test_nonstring_keys()
+    test_bytes()
 
     # NEW TESTS
     test_is_iterable()

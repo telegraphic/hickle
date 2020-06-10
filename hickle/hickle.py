@@ -22,7 +22,6 @@ h5py installed.
 
 """
 
-from __future__ import absolute_import, division, print_function
 import sys
 import os
 from pkg_resources import get_distribution, DistributionNotFound
@@ -38,31 +37,17 @@ from hickle.lookup import (types_dict, hkl_types_dict, types_not_to_sort,
     container_types_dict, container_key_types_dict, check_is_ndarray_like,
     load_loader)
 
-
-try:
-    from exceptions import Exception
-    from types import NoneType
-except ImportError:
-    pass        # above imports will fail in python3
-
-from six import PY2, PY3, string_types, integer_types
 import io
 
 # Import dill as pickle
 import dill as pickle
 
-try:
-    from pathlib import Path
-    string_like_types = string_types + (Path,)
-except ImportError:
-    # Python 2 does not have pathlib
-    string_like_types = string_types
+from pathlib import Path
+string_like_types = (str, Path)
 
 import warnings
 
 # Make several aliases for Python2/Python3 compatibility
-if PY3:
-    file = io.TextIOWrapper
 
 ##################
 # Error handling #
@@ -174,7 +159,7 @@ def file_opener(f, path, mode='r', track_times=True):
         path = '/%s' % (path)
 
     # Were we handed a file object or just a file name string?
-    if isinstance(f, (file, io.TextIOWrapper, io.BufferedWriter)):
+    if isinstance(f, (io.TextIOWrapper, io.BufferedWriter)):
         filename, mode = f.name, f.mode
         f.close()
         h5f = h5.File(filename, mode)
@@ -220,9 +205,7 @@ def file_opener(f, path, mode='r', track_times=True):
 ###########
 
 # Get list of dumpable dtypes
-dumpable_dtypes = []
-for lst in [[bool, complex, bytes, float], string_types, integer_types]:
-    dumpable_dtypes.extend(lst)
+dumpable_dtypes = [bool, complex, bytes, float, int, str]
 
 
 def _dump(py_obj, h_group, call_id=None, **kwargs):
@@ -432,7 +415,7 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
 
     for idx, (key, py_subobj) in enumerate(py_obj.items()):
         # Obtain the string representation of this key
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             # Get raw string format of string
             subgroup_key = "%r" % (key)
 

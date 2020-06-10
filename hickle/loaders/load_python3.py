@@ -7,18 +7,7 @@ NB: As these are for built-in types, they are critical to the functioning of hic
 
 """
 
-import six
 from hickle.helpers import get_type_and_data
-
-try:
-    from exceptions import Exception
-except ImportError:
-    pass        # above imports will fail in python3
-
-try:
-    ModuleNotFoundError  # This fails on Py3.5 and below
-except NameError:
-    ModuleNotFoundError = ImportError
 
 import h5py as h5
 
@@ -35,7 +24,7 @@ def get_py3_string_type(h_node):
     try:
         py_type = h_node.attrs["py3_string_type"]
         return py_type
-    except:
+    except Exception:
         return None
 
 def create_listlike_dataset(py_obj, h_group, name, **kwargs):
@@ -163,7 +152,11 @@ def load_python_dtype_dataset(h_node):
         b"<class 'int'>": int,
         b"<class 'float'>": float,
         b"<class 'bool'>": bool,
-        b"<class 'complex'>": complex
+        b"<class 'complex'>": complex,
+        b"<type 'int'>": int,
+        b"<type 'float'>": float,
+        b"<type 'bool'>": bool,
+        b"<type 'complex'>": complex
     }
 
     tcast = type_dict.get(subtype)
