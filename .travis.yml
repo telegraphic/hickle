@@ -2,10 +2,10 @@ language: python
 dist: xenial
 
 python:
-  - "2.7"
   - "3.5"
   - "3.6"
   - "3.7"
+  - "3.8"
 
 # command to install dependencies
 install:
@@ -19,7 +19,7 @@ script:
   - python setup.py sdist bdist_wheel
   - twine check dist/*
   - pip install .
-  - python setup.py test
+  - pytest
 
 # Run code coverage
 after_success: codecov

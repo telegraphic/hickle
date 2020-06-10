@@ -1,42 +1,34 @@
 """
 #lookup.py
 
-This file contains all the mappings between hickle/HDF5 metadata and python types.
-There are four dictionaries and one set that are populated here:
+This file contains all the mappings between hickle/HDF5 metadata and python
+types.
+There are three dictionaries that are populated here:
 
 1) types_dict
-types_dict: mapping between python types and dataset creation functions, e.g.
+Mapping between python types and dataset creation functions, e.g.
     types_dict = {
-        list:        create_listlike_dataset,
-        int:         create_python_dtype_dataset,
-        np.ndarray:  create_np_array_dataset
+        list: (create_listlike_dataset, 'list'),
+        int: (create_python_dtype_dataset, 'int'),
+        np.ndarray: (create_np_array_dataset, 'ndarray'),
         }
 
 2) hkl_types_dict
-hkl_types_dict: mapping between hickle metadata and dataset loading functions, e.g.
+Mapping between hickle metadata and dataset loading functions, e.g.
     hkl_types_dict = {
-        "<type 'list'>"  : load_list_dataset,
-        "<type 'tuple'>" : load_tuple_dataset
+        'list': load_list_dataset,
+        'tuple': load_tuple_dataset
         }
 
-3) container_types_dict
-container_types_dict: mapping required to convert the PyContainer object in hickle.py
-                      back into the required native type. PyContainer is required as
-                      some iterable types are immutable (do not have an append() function).
-                      Here is an example:
-    container_types_dict = {
-        "<type 'list'>": list,
-        "<type 'tuple'>": tuple
-        }
+3) dict_key_types_dict
+Mapping specifically for converting hickled dict data back into a dictionary
+with the same key type. While python dictionary keys can be any hashable
+object, in HDF5 a unicode/string is required for a dataset name.
 
-4) container_key_types_dict
-container_key_types_dict: mapping specifically for converting hickled dict data back into
-                          a dictionary with the same key type. While python dictionary keys
-                          can be any hashable object, in HDF5 a unicode/string is required
-                          for a dataset name. Example:
-    container_key_types_dict = {
-        "<type 'str'>": str,
-        "<type 'unicode'>": unicode
+Example:
+    dict_key_types_dict = {
+        "<class 'str'>": literal_eval,
+        "<class 'float'>": float
         }
 
 ## Extending hickle to add support for other classes and types
@@ -44,56 +36,38 @@ container_key_types_dict: mapping specifically for converting hickled dict data 
 The process to add new load/dump capabilities is as follows:
 
 1) Create a file called load_[newstuff].py in loaders/
-2) In the load_[newstuff].py file, define your create_dataset and load_dataset functions,
-   along with all required mapping dictionaries.
-3) Add an import call here, and populate the lookup dictionaries with update() calls:
-    # Add loaders for [newstuff]
-    try:
-        from .loaders.load_[newstuff[ import types_dict as ns_types_dict
-        from .loaders.load_[newstuff[ import hkl_types_dict as ns_hkl_types_dict
-        types_dict.update(ns_types_dict)
-        hkl_types_dict.update(ns_hkl_types_dict)
-        ... (Add container_types_dict etc if required)
-    except ImportError:
-        raise
+2) In the load_[newstuff].py file, define your create_dataset and load_dataset
+   functions, along with the 'class_register' and 'exclude_register' lists.
+
 """
 
-from __future__ import absolute_import
 
-from six import PY2
+# %% IMPORTS
+# Built-in imports
 from ast import literal_eval
-import numpy as np
+from importlib import import_module
+from inspect import isclass
+from itertools import starmap
 
-def load_nothing(h_node):
-    pass
 
+# %% GLOBALS
+# Define dict of all acceptable types
 types_dict = {}
 
+# Define dict of all acceptable hickle types
 hkl_types_dict = {}
 
-types_not_to_sort = [b'dict', b'csr_matrix', b'csc_matrix', b'bsr_matrix']
+# Define list of types that should never be sorted
+types_not_to_sort = []
 
+# Empty list of loaded loaders
+loaded_loaders = []
 
-container_types_dict = {
-    b"<type 'list'>": list,
-    b"<type 'tuple'>": tuple,
-    b"<type 'set'>": set,
-    b"<class 'list'>": list,
-    b"<class 'tuple'>": tuple,
-    b"<class 'set'>": set,
-    b"csr_matrix":  None,
-    b"csc_matrix": None,
-    b"bsr_matrix": None
-    }
+# Define dict containing validation functions for ndarray-like objects
+ndarray_like_check_fns = {}
 
-# Technically, any hashable object can be used, for now sticking with built-in types
-container_key_types_dict = {
-    b"<type 'str'>": literal_eval,
-    b"<type 'float'>": float,
-    b"<type 'bool'>": bool,
-    b"<type 'int'>": int,
-    b"<type 'complex'>": complex,
-    b"<type 'tuple'>": literal_eval,
+# Define conversion dict of all acceptable dict key types
+dict_key_types_dict = {
     b"<class 'str'>": literal_eval,
     b"<class 'float'>": float,
     b"<class 'bool'>": bool,
@@ -102,42 +76,15 @@ container_key_types_dict = {
     b"<class 'tuple'>": literal_eval
     }
 
-if PY2:
-    container_key_types_dict[b"<type 'unicode'>"] = literal_eval
-    container_key_types_dict[b"<type 'long'>"] = long
 
-# Add loaders for built-in python types
-if PY2:
-    from .loaders.load_python import types_dict as py_types_dict
-    from .loaders.load_python import hkl_types_dict as py_hkl_types_dict
-else:
-    from .loaders.load_python3 import types_dict as py_types_dict
-    from .loaders.load_python3 import hkl_types_dict as py_hkl_types_dict
+# %% FUNCTION DEFINITIONS
+def load_nothing(h_node):
+    pass
 
-types_dict.update(py_types_dict)
-hkl_types_dict.update(py_hkl_types_dict)
 
-from importlib import import_module
-# This list holds all loaded loaders
-loaded_loaders = []
-
-# Add loaders for numpy types
-from .loaders.load_numpy import types_dict as np_types_dict
-from .loaders.load_numpy import hkl_types_dict as np_hkl_types_dict
-from .loaders.load_numpy import check_is_numpy_array
-types_dict.update(np_types_dict)
-hkl_types_dict.update(np_hkl_types_dict)
-import hickle.loaders
-loaded_loaders.append(hickle.loaders.load_numpy)
-
-#######################
-## ND-ARRAY checking ##
-#######################
-
-ndarray_like_check_fns = {
-    np.ndarray: check_is_numpy_array
-}
-
+#####################
+# ND-ARRAY checking #
+#####################
 
 def check_is_ndarray_like(py_obj):
     # Obtain the MRO of this object
@@ -155,12 +102,13 @@ def check_is_ndarray_like(py_obj):
         return(False)
 
 
-#######################
-## loading optional  ##
-#######################
+#####################
+# loading optional  #
+#####################
 
+# This function registers a class to be used by hickle
 def register_class(myclass_type, hkl_str, dump_function, load_function,
-                   to_sort=True, ndarray_check_fn=None):
+                   ndarray_check_fn=None, to_sort=True):
     """ Register a new hickle class.
 
     Args:
@@ -168,48 +116,27 @@ def register_class(myclass_type, hkl_str, dump_function, load_function,
         hkl_str (str): String to write to HDF5 file to describe class
         dump_function (function def): function to write data to HDF5
         load_function (function def): function to load data from HDF5
-        to_sort (bool): If the item is iterable, does it require sorting?
         ndarray_check_fn (function def): function to use to check if
+        to_sort (bool): If the item is iterable, does it require sorting?
 
     """
-    types_dict.update({myclass_type: (dump_function, hkl_str)})
-    hkl_types_dict.update({hkl_str: load_function})
+    types_dict[myclass_type] = (dump_function, hkl_str)
+    hkl_types_dict[hkl_str] = load_function
     if not to_sort:
         types_not_to_sort.append(hkl_str)
     if ndarray_check_fn is not None:
         ndarray_like_check_fns[myclass_type] = ndarray_check_fn
 
-def register_class_list(class_list):
-    """ Register multiple classes in a list
-
-    Args:
-        class_list (list): A list, where each item is an argument to
-                           the register_class() function.
-
-    Notes: This just runs the code:
-            for item in mylist:
-                register_class(*item)
-    """
-    for class_item in class_list:
-        register_class(*class_item)
 
 def register_class_exclude(hkl_str_to_ignore):
-    """ Tell loading funciton to ignore any HDF5 dataset with attribute 'type=XYZ'
+    """ Tell loading funciton to ignore any HDF5 dataset with attribute
+    'type=XYZ'
 
     Args:
-        hkl_str_to_ignore (str): attribute type=string to ignore and exclude from loading.
+        hkl_str_to_ignore (str): attribute type=string to ignore and exclude
+            from loading.
     """
     hkl_types_dict[hkl_str_to_ignore] = load_nothing
-
-def register_exclude_list(exclude_list):
-    """ Ignore HDF5 datasets with attribute type='XYZ' from loading
-
-    ArgsL
-        exclude_list (list): List of strings, which correspond to hdf5/hickle
-                             type= attributes not to load.
-    """
-    for hkl_str in exclude_list:
-        register_class_exclude(hkl_str)
 
 
 # This function checks if an additional loader is required for given py_obj
@@ -221,26 +148,39 @@ def load_loader(py_obj):
     """
 
     # Obtain the MRO of this object
-    if type(py_obj) is type:
+    if isclass(py_obj):
         mro_list = py_obj.mro()
     else:
         mro_list = py_obj.__class__.mro()
 
     # Loop over the entire mro_list
     for mro_item in mro_list:
+        # Check if mro_item can be found in types_dict and return if so
+        if mro_item in types_dict:
+            return
+
         # Obtain the package name of mro_item
         pkg_name = mro_item.__module__.split('.')[0]
 
+        # Obtain the name of the associated loader
+        loader_name = 'hickle.loaders.load_%s' % (pkg_name)
+
+        # Check if this module is already loaded, and return if so
+        if loader_name in loaded_loaders:
+            return
+
         # Try to load a loader with this name
         try:
-            loader = import_module('hickle.loaders.load_%s' % (pkg_name))
-        # If such a loader does not exist, continue
-        except (ImportError, NameError):
-            pass
-        # If such a loader does exist, register classes if not done before
+            loader = import_module(loader_name)
+        # If any module is not found, catch error and check it
+        except ImportError as error:
+            # Check if the error was due to a package in loader not being found
+            if 'hickle' not in error.args[0]:
+                # If so, reraise the error
+                raise
+        # If such a loader does exist, register classes and return
         else:
-            # Check if loader had been loaded before
-            if loader not in loaded_loaders:
-                register_class_list(loader.class_register)
-                register_exclude_list(loader.exclude_register)
-                loaded_loaders.append(loader)
+            list(starmap(register_class, loader.class_register))
+            list(map(register_class_exclude, loader.exclude_register))
+            loaded_loaders.append(loader)
+            return

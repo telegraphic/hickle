@@ -1,13 +1,5 @@
 environment:
     matrix:
-        - PYTHON: "C:\\Python27"
-          PYTHON_VERSION: "2.7.x"
-          PYTHON_ARCH: "32"
-
-        - PYTHON: "C:\\Python27-x64"
-          PYTHON_VERSION: "2.7.x"
-          PYTHON_ARCH: "64"
-
         - PYTHON: "C:\\Python35"
           PYTHON_VERSION: "3.5.x"
           PYTHON_ARCH: "32"
@@ -32,6 +24,14 @@ environment:
           PYTHON_VERSION: "3.7.x"
           PYTHON_ARCH: "64"
 
+        - PYTHON: "C:\\Python38"
+          PYTHON_VERSION: "3.8.x"
+          PYTHON_ARCH: "32"
+
+        - PYTHON: "C:\\Python38-x64"
+          PYTHON_VERSION: "3.8.x"
+          PYTHON_ARCH: "64"
+
 install:
     # Prepend newly installed Python to the PATH of this build (this cannot be
     # done from inside the powershell script as it would require to restart
@@ -51,4 +51,4 @@ test_script:
     - "python setup.py sdist bdist_wheel"
     - "twine check dist/*"
     - "pip install ."
-    - "python setup.py test"
+    - "pytest"

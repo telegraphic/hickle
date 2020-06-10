@@ -12,7 +12,7 @@ import re
 from setuptools import setup, find_packages
 import sys
 
-author  = 'Danny Price'
+author  = "Danny Price, Ellert van der Velden and contributors"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -32,7 +32,7 @@ version = re.search(r"^_*version_* = ['\"]([^'\"]*)['\"]", vf, re.M).group(1)
 
 setup(name='hickle',
       version=version,
-      description='Hickle - a HDF5 based version of pickle',
+      description='Hickle - an HDF5 based version of pickle',
       long_description=long_description,
       long_description_content_type='text/markdown',
       author=author,
@@ -43,7 +43,7 @@ setup(name='hickle',
       keywords=['pickle', 'hdf5', 'data storage', 'data export'],
       install_requires=requirements,
       tests_require=test_requirements,
-      python_requires='>=2.7',
+      python_requires='>=3.5',
       packages=find_packages(),
       zip_safe=False,
 )

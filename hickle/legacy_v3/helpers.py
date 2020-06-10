@@ -1,28 +1,20 @@
-# %% IMPORTS
-# Built-in imports
 import re
-
-# Package imports
-import dill as pickle
-
-
-# %% FUNCTION DEFINITIONS
-def get_type(h_node):
-    """ Helper function to return the py_type for a HDF node """
-    base_type = h_node.attrs['base_type']
-    if base_type != b'pickle':
-        py_type = pickle.loads(h_node.attrs['type'])
-    else:
-        py_type = None
-    return py_type, base_type
-
+import six
 
 def get_type_and_data(h_node):
     """ Helper function to return the py_type and data block for a HDF node """
-    py_type, base_type = get_type(h_node)
+    py_type = h_node.attrs["type"][0]
     data = h_node[()]
-    return py_type, base_type, data
+#    if h_node.shape == ():
+#        data = h_node.value
+#    else:
+#        data  = h_node[:]
+    return py_type, data
 
+def get_type(h_node):
+    """ Helper function to return the py_type for a HDF node """
+    py_type = h_node.attrs["type"][0]
+    return py_type
 
 def sort_keys(key_list):
     """ Take a list of strings and sort it by integer value within string
@@ -36,26 +28,27 @@ def sort_keys(key_list):
 
     # Py3 h5py returns an irritating KeysView object
     # Py3 also complains about bytes and strings, convert all keys to bytes
-    key_list2 = []
-    for key in key_list:
-        if isinstance(key, str):
-            key = bytes(key, 'ascii')
-        key_list2.append(key)
-    key_list = key_list2
+    if six.PY3:
+        key_list2 = []
+        for key in key_list:
+            if isinstance(key, str):
+                key = bytes(key, 'ascii')
+            key_list2.append(key)
+        key_list = key_list2
 
     # Check which keys contain a number
     numbered_keys = [re.search(br'\d+', key) for key in key_list]
 
     # Sort the keys on number if they have it, or normally if not
     if(len(key_list) and not numbered_keys.count(None)):
-        return(sorted(key_list,
-                      key=lambda x: int(re.search(br'\d+', x).group(0))))
+        to_int = lambda x: int(re.search(br'\d+', x).group(0))
+        return(sorted(key_list, key=to_int))
     else:
         return(sorted(key_list))
 
 
 def check_is_iterable(py_obj):
-    """ Check whether a python object is a built-in iterable.
+    """ Check whether a python object is iterable.
 
     Note: this treats unicode and string as NON ITERABLE
 
@@ -65,9 +58,17 @@ def check_is_iterable(py_obj):
     Returns:
         iter_ok (bool): True if item is iterable, False is item is not
     """
-
-    # Check if py_obj is an accepted iterable and return
-    return(isinstance(py_obj, (tuple, list, set)))
+    if six.PY2:
+        string_types = (str, unicode)
+    else:
+        string_types = (str, bytes, bytearray)
+    if isinstance(py_obj, string_types):
+        return False
+    try:
+        iter(py_obj)
+        return True
+    except TypeError:
+        return False
 
 
 def check_is_hashable(py_obj):
@@ -95,11 +96,10 @@ def check_iterable_item_type(iter_obj):
 
     Returns:
         iter_type: type of item contained within the iterable. If
-            the iterable has many types, a boolean False is returned instead.
+                   the iterable has many types, a boolean False is returned instead.
 
     References:
-    http://stackoverflow.com/questions/13252333/python-check-if-all-\
-    elements-of-a-list-are-the-same-type
+    http://stackoverflow.com/questions/13252333/python-check-if-all-elements-of-a-list-are-the-same-type
     """
     iseq = iter(iter_obj)
 
@@ -107,10 +107,7 @@ def check_iterable_item_type(iter_obj):
         first_type = type(next(iseq))
     except StopIteration:
         return False
-    except Exception:
+    except Exception as ex:
         return False
     else:
-        if all([type(x) is first_type for x in iseq]):
-            return(first_type)
-        else:
-            return(False)
+        return first_type if all((type(x) is first_type) for x in iseq) else False
