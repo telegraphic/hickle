@@ -68,12 +68,12 @@ ndarray_like_check_fns = {}
 
 # Define conversion dict of all acceptable dict key types
 dict_key_types_dict = {
-    b"<class 'str'>": literal_eval,
-    b"<class 'float'>": float,
-    b"<class 'bool'>": bool,
-    b"<class 'int'>": int,
-    b"<class 'complex'>": complex,
-    b"<class 'tuple'>": literal_eval
+    b'str': literal_eval,
+    b'float': float,
+    b'bool': bool,
+    b'int': int,
+    b'complex': complex,
+    b'tuple': literal_eval
     }
 
 

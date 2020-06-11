@@ -428,8 +428,8 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
         h_subgroup = h_dictgroup.create_group(subgroup_key)
         h_subgroup.attrs['base_type'] = b'dict_item'
 
-        h_subgroup.attrs['key_base_type'] = str(type(key)).encode('ascii',
-                                                                  'ignore')
+        h_subgroup.attrs['key_base_type'] = type(key).__name__.encode('ascii',
+                                                                      'ignore')
         h_subgroup.attrs['key_type'] = np.array(pickle.dumps(key.__class__))
 
         h_subgroup.attrs['key_idx'] = idx
