@@ -23,7 +23,7 @@ from recommonmark.transform import AutoStructify
 # -- Project information -----------------------------------------------------
 
 project = u'hickle'
-copyright = u'2018, Danny Price'
+copyright = u'2018-2020, Danny Price, Ellert van der Velden and contributors'
 author = u'Danny Price'
 
 # The short X.Y version

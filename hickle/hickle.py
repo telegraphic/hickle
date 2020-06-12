@@ -4,9 +4,9 @@
 
 Created by Danny Price 2016-02-03.
 
-Hickle is a HDF5 based clone of Pickle. Instead of serializing to a pickle
-file, Hickle dumps to a HDF5 file. It is designed to be as similar to pickle in
-usage as possible, providing a load() and dump() function.
+Hickle is an HDF5 based clone of Pickle. Instead of serializing to a pickle
+file, Hickle dumps to an HDF5 file. It is designed to be as similar to pickle
+in usage as possible, providing a load() and dump() function.
 
 ## Notes
 
@@ -184,7 +184,7 @@ dumpable_dtypes = [bool, complex, bytes, float, int, str]
 
 
 def _dump(py_obj, h_group, call_id=None, **kwargs):
-    """ Dump a python object to a group within a HDF5 file.
+    """ Dump a python object to a group within an HDF5 file.
 
     This function is called recursively by the main dump() function.
 

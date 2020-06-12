@@ -8,7 +8,7 @@ import dill as pickle
 
 # %% FUNCTION DEFINITIONS
 def get_type(h_node):
-    """ Helper function to return the py_type for a HDF node """
+    """ Helper function to return the py_type for an HDF node """
     base_type = h_node.attrs['base_type']
     if base_type != b'pickle':
         py_type = pickle.loads(h_node.attrs['type'])
@@ -18,7 +18,7 @@ def get_type(h_node):
 
 
 def get_type_and_data(h_node):
-    """ Helper function to return the py_type and data block for a HDF node """
+    """ Helper function to return the py_type and data block for an HDF node"""
     py_type, base_type = get_type(h_node)
     data = h_node[()]
     return py_type, base_type, data
