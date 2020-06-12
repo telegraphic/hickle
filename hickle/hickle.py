@@ -26,7 +26,6 @@ h5py installed.
 # %% IMPORTS
 # Built-in imports
 import io
-import os
 from pathlib import Path
 import sys
 import warnings
@@ -55,40 +54,16 @@ __all__ = ['dump', 'load']
 
 class FileError(Exception):
     """ An exception raised if the file is fishy """
-    def __init__(self):
-        return
-
-    def __str__(self):
-        return ("Cannot open file. Please pass either a filename "
-                "string, a file object, or a h5py.File")
+    pass
 
 
 class ClosedFileError(Exception):
     """ An exception raised if the file is fishy """
-    def __init__(self):
-        return
-
-    def __str__(self):
-        return ("HDF5 file has been closed. Please pass either "
-                "a filename string, a file object, or an open h5py.File")
+    pass
 
 
-class NoMatchError(Exception):
-    """ An exception raised if the object type is not understood (or
-    supported)"""
-    def __init__(self):
-        return
-
-    def __str__(self):
-        return ("Error: this type of python object cannot be converted into a "
-                "hickle.")
-
-
-class ToDoError(Exception):
+class ToDoError(Exception):     # pragma: no cover
     """ An exception raised for non-implemented functionality"""
-    def __init__(self):
-        return
-
     def __str__(self):
         return "Error: this functionality hasn't been implemented yet."
 
@@ -120,9 +95,6 @@ class H5FileWrapper(h5.File):
     track_times is a boolean flag that can be set to False, so that two
     files created at different times will have identical MD5 hashes.
     """
-    def create_dataset(self, *args, **kwargs):
-        kwargs['track_times'] = getattr(self, 'track_times', True)
-        return super(H5FileWrapper, self).create_dataset(*args, **kwargs)
 
     def create_group(self, *args, **kwargs):
         group = super(H5FileWrapper, self).create_group(*args, **kwargs)
@@ -140,13 +112,21 @@ def file_opener(f, path, mode='r', track_times=True):
 
     Parameters
     ----------
-        f (file, h5py.File, or string): File-identifier, e.g. filename or
-            file object.
-        mode (str): File open mode. Only required if opening by filename
-            string.
-        track_times (bool): Track time in HDF5; turn off if you want hickling
-            at different times to produce identical files (e.g. for MD5 hash
-            check).
+    f : file object, str or :obj:`~h5py.Group` object
+        File to open for dumping or loading purposes.
+        If str, `file_obj` provides the path of the HDF5-file that must be
+        used.
+        If :obj:`~h5py._hl.group.Group`, the group (or file) in an open
+        HDF5-file that must be used.
+    path : str
+        Path within HDF5-file or group to dump to/load from.
+    mode : str, optional
+        Accepted values are 'r' (read only), 'w' (write; default) or 'a'
+        (append).
+        Ignored if file is a file object.
+    track_times : bool, optional
+        If set to *True* (default), repeated hickling will produce different
+        files.
 
     """
 
@@ -169,7 +149,9 @@ def file_opener(f, path, mode='r', track_times=True):
         try:
             filename = f.file.filename
         except ValueError:
-            raise ClosedFileError
+            raise ClosedFileError("HDF5 file has been closed. Please pass "
+                                  "either a filename string, a file object, or"
+                                  "an open HDF5-file")
         path = ''.join([f.name, path])
         h5f = f
 
@@ -179,14 +161,15 @@ def file_opener(f, path, mode='r', track_times=True):
         # Since this file was already open, do not close the file afterward
         close_flag = False
 
-        if isinstance(f, h5._hl.files.File):
-            h5f.__class__ = H5FileWrapper
-        else:
-            h5f.__class__ = H5GroupWrapper
     else:
         print(f.__class__)
-        raise FileError
+        raise FileError("Cannot open file. Please pass either a filename "
+                        "string, a file object, or a h5py.File")
 
+    if isinstance(h5f, h5._hl.files.File):
+        h5f.__class__ = H5FileWrapper
+    else:
+        h5f.__class__ = H5GroupWrapper
     h5f.track_times = track_times
     return(h5f, path, close_flag)
 
@@ -310,15 +293,6 @@ def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
         h_root_group.attrs["HICKLE_PYTHON_VERSION"] = py_ver
 
         _dump(py_obj, h_root_group, **kwargs)
-    except NoMatchError:
-        fname = h5f.file.filename
-        h5f.file.close()
-        try:
-            os.remove(fname)
-        except OSError:
-            warnings.warn("Dump failed. Could not remove %s" % fname)
-        finally:
-            raise NoMatchError
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems
@@ -559,6 +533,7 @@ def load(file_obj, path='/', safe=True):
     # This is to avoid trying to close a file that was never opened
     close_flag = False
 
+    # Try to read the provided file_obj as a hickle file
     try:
         h5f, path, close_flag = file_opener(file_obj, path)
         h_root_group = h5f.get(path)
@@ -569,8 +544,13 @@ def load(file_obj, path='/', safe=True):
 
         # Check if the proper attributes for v3 loading are available
         if all(map(h_root_group.attrs.get, v3_attrs)):
-            # If group has attribute 'CLASS' with value 'hickle', try to use v3
-            assert h_root_group.attrs.get('CLASS') == b'hickle'
+            # Check if group attribute 'CLASS' has value 'hickle
+            if(h_root_group.attrs.get('CLASS') != b'hickle'):
+                # If not, raise error
+                raise AttributeError("HDF5-file attribute 'CLASS' does not "
+                                     "have value 'hickle'!")
+
+            # Obtain version with which the file was made
             major_version = int(h_root_group.attrs['VERSION'][0])
             assert major_version == 3
 
@@ -589,9 +569,12 @@ def load(file_obj, path='/', safe=True):
 
         # Else, raise error
         else:
-            raise ValueError("Provided argument 'fileobj' does not appear to "
-                             "be a valid hickle file!")
+            pass
 
+    # If this fails, raise error and provide user with caught error message
+    except Exception as error:
+        raise ValueError("Provided argument 'fileobj' does not appear to be a "
+                         "valid hickle file! (%s)" % (error))
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems

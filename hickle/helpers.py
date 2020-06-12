@@ -98,16 +98,16 @@ def check_iterable_item_type(iter_obj):
             the iterable has many types, a boolean False is returned instead.
 
     References:
-    http://stackoverflow.com/questions/13252333/python-check-if-all-\
-    elements-of-a-list-are-the-same-type
+    http://stackoverflow.com/questions/13252333
     """
+
     iseq = iter(iter_obj)
 
     try:
         first_type = type(next(iseq))
     except StopIteration:
         return False
-    except Exception:
+    except Exception:   # pragma: no cover
         return False
     else:
         if all([type(x) is first_type for x in iseq]):
