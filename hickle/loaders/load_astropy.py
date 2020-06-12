@@ -207,14 +207,11 @@ def check_is_astropy_table(py_obj):
 
 
 def check_is_astropy_quantity_array(py_obj):
-    if isinstance(py_obj, Quantity) or isinstance(py_obj, Time) or \
-       isinstance(py_obj, Angle) or isinstance(py_obj, SkyCoord):
-        if py_obj.isscalar:
-            return False
-        else:
-            return True
+    if(isinstance(py_obj, (Quantity, Time, Angle, SkyCoord)) and
+       not py_obj.isscalar):
+        return(True)
     else:
-        return False
+        return(False)
 
 
 # %% REGISTERS

@@ -214,8 +214,6 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
         if item_type is False:
             h_subgroup = create_hkl_group(py_obj, h_group, call_id)
             for ii, py_subobj in enumerate(py_obj):
-                if len(py_obj) == 1:
-                    ii = None
                 _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
         # otherwise, subitems have same type. Check if subtype is an iterable
@@ -227,8 +225,6 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
             else:
                 h_subgroup = create_hkl_group(py_obj, h_group, call_id)
                 for ii, py_subobj in enumerate(py_obj):
-                    if len(py_obj) == 1:
-                        ii = None
                     _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
     # item is not iterable, so create a dataset for it
@@ -403,8 +399,7 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
         h_subgroup = h_dictgroup.create_group(subgroup_key)
         h_subgroup.attrs['base_type'] = b'dict_item'
 
-        h_subgroup.attrs['key_base_type'] = type(key).__name__.encode('ascii',
-                                                                      'ignore')
+        h_subgroup.attrs['key_base_type'] = bytes(type(key).__name__, 'ascii')
         h_subgroup.attrs['key_type'] = np.array(pickle.dumps(key.__class__))
 
         h_subgroup.attrs['key_idx'] = idx
@@ -480,7 +475,7 @@ class PyContainer(list):
                 return(self)
 
 
-def no_match_load(key):
+def no_match_load(key):     # pragma: no cover
     """ If no match is made when loading, need to raise an exception
     """
     raise RuntimeError("Cannot load %s data type" % key)
@@ -552,13 +547,24 @@ def load(file_obj, path='/', safe=True):
                                      "have value 'hickle'!")
 
             # Obtain version with which the file was made
-            major_version = int(h_root_group.attrs['VERSION'][0])
-            assert major_version == 3
+            try:
+                major_version = int(h_root_group.attrs['VERSION'][0])
+
+            # If this cannot be done, then this is not a v3 file
+            except Exception:
+                raise Exception("This file does not appear to be a hickle v3 "
+                                "file.")
+
+            # Else, if the major version is not 3, it is not a v3 file either
+            else:
+                if(major_version != 3):
+                    raise Exception("This file does not appear to be a hickle "
+                                    "v3 file.")
 
             # Load file
             from hickle import legacy_v3
-            warnings.warn("Input argument 'fileobj' appears to be a file made "
-                          "with hickle v3. Using legacy load...")
+            warnings.warn("Input argument 'file_obj' appears to be a file made"
+                          " with hickle v3. Using legacy load...")
             return(legacy_v3.load(file_obj, path, safe))
 
         # Else, check if the proper attributes for v4 loading are available
@@ -570,12 +576,12 @@ def load(file_obj, path='/', safe=True):
 
         # Else, raise error
         else:
-            pass
+            raise FileError("HDF5-file does not have the proper attributes!")
 
     # If this fails, raise error and provide user with caught error message
     except Exception as error:
-        raise ValueError("Provided argument 'fileobj' does not appear to be a "
-                         "valid hickle file! (%s)" % (error))
+        raise ValueError("Provided argument 'file_obj' does not appear to be a"
+                         " valid hickle file! (%s)" % (error))
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems

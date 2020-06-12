@@ -130,6 +130,14 @@ def test_binary_file():
         hickle.dump(None, f)
 
 
+def test_non_empty_group():
+    """ Test if attempting to dump to a group with data fails """
+
+    hickle.dump(None, 'test.hdf5')
+    with pytest.raises(ValueError):
+        dump(None, 'test.hdf5', 'r+')
+
+
 def test_string():
     """ Dumping and loading a string """
     filename, mode = 'test.h5', 'w'
@@ -493,6 +501,15 @@ def test_tuple_numpy():
     assert isinstance(dd_hkl[0], np.ndarray)
 
 
+def test_numpy_dtype():
+    """ Dumping and loading a NumPy dtype """
+
+    dtype = np.dtype('float16')
+    dump(dtype, 'test.hdf5')
+    dtype_hkl = load('test.hdf5')
+    assert dtype == dtype_hkl
+
+
 def test_none():
     """ Test None type hickling """
 
@@ -506,21 +523,6 @@ def test_none():
     print(dd_hkl)
 
     assert isinstance(dd_hkl, type(None))
-
-
-def test_dict_none():
-    """ Test None type hickling """
-
-    filename, mode = 'test.h5', 'w'
-
-    a = {'a': 1, 'b': None}
-
-    dump(a, filename, mode)
-    dd_hkl = load(filename)
-    print(a)
-    print(dd_hkl)
-
-    assert isinstance(a['b'], type(None))
 
 
 def test_file_open_close():
@@ -790,16 +792,17 @@ def test_nonstring_keys():
 
     data = {
             u'test': 123,
-            'def': 456,
+            'def': [b'test'],
             'hik': np.array([1, 2, 3]),
             0: 0,
-            True: 'hi',
+            True: ['test'],
             1.1: 'hey',
             1j: 'complex_hashable',
             (1, 2): 'boo',
             ('A', 17.4, 42): [1, 7, 'A'],
             (): '1313e was here',
-            '0': 0
+            '0': 0,
+            None: None
             }
 
     print(data)
@@ -869,6 +872,11 @@ def test_slash_dict_keys():
     for key, val in dct_hkl.items():
         assert val == dct.get(key)
 
+    # Check that having backslashes in dict keys will fail
+    dct2 = {'a\\b': [1, '2'], 1.4: 3}
+    with pytest.raises(ValueError):
+        dump(dct2, 'test.hdf5')
+
 
 # %% MAIN SCRIPT
 if __name__ == '__main__':
@@ -880,7 +888,6 @@ if __name__ == '__main__':
     test_complex()
     test_file_open_close()
     test_hdf5_group()
-    test_dict_none()
     test_none()
     test_masked_dict()
     test_list()
@@ -921,6 +928,8 @@ if __name__ == '__main__':
     test_state_obj()
     test_slash_dict_keys()
     test_invalid_file()
+    test_non_empty_group()
+    test_numpy_dtype()
 
     # Cleanup
     print("ALL TESTS PASSED!")

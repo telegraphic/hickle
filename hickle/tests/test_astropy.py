@@ -3,7 +3,7 @@
 from astropy.units import Quantity
 from astropy.time import Time
 from astropy.coordinates import Angle, SkyCoord
-from astropy.constants import G
+import astropy.constants as apc
 from astropy.table import Table
 import numpy as np
 from py.path import local
@@ -34,11 +34,13 @@ def test_astropy_quantity():
 
 
 def test_astropy_constant():
-    hkl.dump(G, "test_ap.h5")
+    hkl.dump(apc.G, "test_ap.h5")
     gg = hkl.load("test_ap.h5")
+    assert gg == apc.G
 
-    print(G)
-    print(gg)
+    hkl.dump(apc.cgs.e, 'test_ap.h5')
+    ee = hkl.load('test_ap.h5')
+    assert ee == apc.cgs.e
 
 
 def test_astropy_table():
