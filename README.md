@@ -1,6 +1,8 @@
-[![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
-[![Build status](https://ci.appveyor.com/api/projects/status/8cwrkjpwxet5jmgp?svg=true)](https://ci.appveyor.com/project/telegraphic/hickle)
-[![codecov](https://codecov.io/gh/telegraphic/hickle/branch/master/graph/badge.svg)](https://codecov.io/gh/telegraphic/hickle)
+[![PyPI - Latest Release](https://img.shields.io/pypi/v/hickle.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.python.org/pypi/hickle)
+[![PyPI - Python Versions](https://img.shields.io/pypi/pyversions/hickle.svg?logo=python&logoColor=white&label=Python)](https://pypi.python.org/pypi/hickle)
+[![Travis CI - Build Status](https://img.shields.io/travis/org/telegraphic/hickle/master.svg?logo=travis%20ci&logoColor=white&label=Travis%20CI)](https://travis-ci.org/telegraphic/hickle)
+[![AppVeyor - Build Status](https://img.shields.io/appveyor/ci/telegraphic/hickle/master.svg?logo=appveyor&logoColor=white&label=AppVeyor)](https://ci.appveyor.com/project/telegraphic/hickle)
+[![CodeCov - Coverage Status](https://img.shields.io/codecov/c/github/telegraphic/hickle/master.svg?logo=codecov&logoColor=white&label=Coverage)](https://codecov.io/gh/telegraphic/hickle/branches/master)
 [![JOSS Status](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847)
 
 
