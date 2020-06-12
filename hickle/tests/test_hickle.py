@@ -61,6 +61,18 @@ def test_local_func():
     assert func(1, 2) == func_hkl(1, 2)
 
 
+def test_binary_file():
+    """ Test if using a binary file works
+
+    https://github.com/telegraphic/hickle/issues/123"""
+
+    with open("test.hdf5", "w") as f:
+        hickle.dump(None, f)
+
+    with open("test.hdf5", "wb") as f:
+        hickle.dump(None, f)
+
+
 def test_string():
     """ Dumping and loading a string """
     if six.PY2:
@@ -838,6 +850,7 @@ if __name__ == '__main__':
     test_multi_hickle()
     test_dict_int_key()
     test_local_func()
+    test_binary_file()
 
     # Cleanup
     print("ALL TESTS PASSED!")
