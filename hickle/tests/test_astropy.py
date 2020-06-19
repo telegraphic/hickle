@@ -1,17 +1,22 @@
-import hickle as hkl
+# %% IMPORTS
+# Package imports
 from astropy.units import Quantity
 from astropy.time import Time
 from astropy.coordinates import Angle, SkyCoord
-from astropy.constants import Constant, EMConstant, G
+import astropy.constants as apc
 from astropy.table import Table
 import numpy as np
 from py.path import local
 
+# hickle imports
+import hickle as hkl
+
 # Set the current working directory to the temporary directory
 local.get_temproot().chdir()
 
-def test_astropy_quantity():
 
+# %% FUNCTION DEFINITIONS
+def test_astropy_quantity():
     for uu in ['m^3', 'm^3 / s', 'kg/pc']:
         a = Quantity(7, unit=uu)
 
@@ -27,12 +32,16 @@ def test_astropy_quantity():
         assert a == b
         assert a.unit == b.unit
 
-def TODO_test_astropy_constant():
-        hkl.dump(G, "test_ap.h5")
-        gg = hkl.load("test_ap.h5")
 
-        print(G)
-        print(gg)
+def test_astropy_constant():
+    hkl.dump(apc.G, "test_ap.h5")
+    gg = hkl.load("test_ap.h5")
+    assert gg == apc.G
+
+    hkl.dump(apc.cgs.e, 'test_ap.h5')
+    ee = hkl.load('test_ap.h5')
+    assert ee == apc.cgs.e
+
 
 def test_astropy_table():
     t = Table([[1, 2], [3, 4]], names=('a', 'b'), meta={'name': 'test_thing'})
@@ -52,14 +61,16 @@ def test_astropy_table():
     assert np.allclose(t['a'].astype('float32'), t2['a'].astype('float32'))
     assert np.allclose(t['b'].astype('float32'), t2['b'].astype('float32'))
 
+
 def test_astropy_quantity_array():
-    a = Quantity([1,2,3], unit='m')
+    a = Quantity([1, 2, 3], unit='m')
 
     hkl.dump(a, "test_ap.h5")
     b = hkl.load("test_ap.h5")
 
     assert np.allclose(a.value, b.value)
     assert a.unit == b.unit
+
 
 def test_astropy_time_array():
     times = ['1999-01-01T00:00:00.123456789', '2010-01-01T00:00:00']
@@ -87,6 +98,7 @@ def test_astropy_time_array():
     assert t1.format == t2.format
     assert t1.scale == t2.scale
 
+
 def test_astropy_angle():
     for uu in ['radian', 'degree']:
         a = Angle(1.02, unit=uu)
@@ -96,14 +108,16 @@ def test_astropy_angle():
         assert a == b
         assert a.unit == b.unit
 
+
 def test_astropy_angle_array():
-    a = Angle([1,2,3], unit='degree')
+    a = Angle([1, 2, 3], unit='degree')
 
     hkl.dump(a, "test_ap.h5")
     b = hkl.load("test_ap.h5")
 
     assert np.allclose(a.value, b.value)
     assert a.unit == b.unit
+
 
 def test_astropy_skycoord():
     ra = Angle(['1d20m', '1d21m'], unit='degree')
@@ -122,9 +136,11 @@ def test_astropy_skycoord():
     assert np.allclose(radec.ra.value, radec2.ra.value)
     assert np.allclose(radec.dec.value, radec2.dec.value)
 
+
+# %% MAIN SCRIPT
 if __name__ == "__main__":
     test_astropy_quantity()
-    #test_astropy_constant()
+    test_astropy_constant()
     test_astropy_table()
     test_astropy_quantity_array()
     test_astropy_time_array()

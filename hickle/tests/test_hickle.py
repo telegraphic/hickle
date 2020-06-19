@@ -7,24 +7,29 @@ Unit tests for hickle module.
 
 """
 
-import h5py
+
+# %% IMPORTS
+# Built-in imports
+from collections import OrderedDict as odict
 import hashlib
-import numpy as np
 import os
-import six
-import time
 from pprint import pprint
+import time
+
+# Package imports
+import h5py
+import numpy as np
+from py.path import local
 import pytest
 
-from py.path import local
-
-import hickle
-from hickle.hickle import *
-
+# hickle imports
+from hickle import dump, helpers, hickle, load, loaders
 
 # Set current working directory to the temporary directory
 local.get_temproot().chdir()
 
+
+# %% GLOBALS
 NESTED_DICT = {
     "level1_1": {
         "level2_1": [1, 2, 3],
@@ -43,18 +48,70 @@ NESTED_DICT = {
     }
 }
 
+DUMP_CACHE = []             # Used in test_track_times()
+
+
+# %% HELPER DEFINITIONS
 # Define a test function that must be serialized and unpacked again
 def func(a, b, c=0):
     return(a, b, c)
 
 
-DUMP_CACHE = []             # Used in test_track_times()
+# Define a class that must always be pickled
+class with_state(object):
+    def __init__(self):
+        self.a = 12
+        self.b = {
+            'love': np.ones([12, 7]),
+            'hatred': np.zeros([4, 9])}
+
+    def __getstate__(self):
+        self.a *= 2
+        return({
+            'a': self.a,
+            'b': self.b})
+
+    def __setstate__(self, state):
+        self.a = state['a']
+        self.b = state['b']
+
+    def __getitem__(self, index):
+        if(index == 0):
+            return(self.a)
+        if(index < 2):
+            return(self.b['hatred'])
+        if(index > 2):
+            raise ValueError("index unknown")
+        return(self.b['love'])
+
+
+# %% FUNCTION DEFINITIONS
+def test_invalid_file():
+    """ Test if trying to use a non-file object fails. """
+
+    with pytest.raises(hickle.FileError):
+        dump('test', ())
+
+
+def test_state_obj():
+    """ Dumping and loading a class object with pickle states
+
+    https://github.com/telegraphic/hickle/issues/125"""
+    filename, mode = 'test.h5', 'w'
+    obj = with_state()
+    with pytest.warns(loaders.load_builtins.SerializedWarning):
+        dump(obj, filename, mode)
+    obj_hkl = load(filename)
+    assert type(obj) == type(obj_hkl)
+    assert np.allclose(obj[1], obj_hkl[1])
 
 
 def test_local_func():
-    """ Dumping and loading a local function """
+    """ Dumping and loading a local function
+
+    https://github.com/telegraphic/hickle/issues/119"""
     filename, mode = 'test.h5', 'w'
-    with pytest.warns(SerializedWarning):
+    with pytest.warns(loaders.load_builtins.SerializedWarning):
         dump(func, filename, mode)
     func_hkl = load(filename)
     assert type(func) == type(func_hkl)
@@ -73,50 +130,33 @@ def test_binary_file():
         hickle.dump(None, f)
 
 
+def test_non_empty_group():
+    """ Test if attempting to dump to a group with data fails """
+
+    hickle.dump(None, 'test.hdf5')
+    with pytest.raises(ValueError):
+        dump(None, 'test.hdf5', 'r+')
+
+
 def test_string():
     """ Dumping and loading a string """
-    if six.PY2:
-        filename, mode = 'test.h5', 'w'
-        string_obj = "The quick brown fox jumps over the lazy dog"
-        dump(string_obj, filename, mode)
-        string_hkl = load(filename)
-        #print "Initial list:   %s"%list_obj
-        #print "Unhickled data: %s"%list_hkl
-        assert type(string_obj) == type(string_hkl) == str
-        assert string_obj == string_hkl
-    else:
-        pass
+    filename, mode = 'test.h5', 'w'
+    string_obj = "The quick brown fox jumps over the lazy dog"
+    dump(string_obj, filename, mode)
+    string_hkl = load(filename)
+    assert isinstance(string_hkl, str)
+    assert string_obj == string_hkl
 
 
-def test_unicode():
-    """ Dumping and loading a unicode string """
-    if six.PY2:
-        filename, mode = 'test.h5', 'w'
-        u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
-        dump(u, filename, mode)
-        u_hkl = load(filename)
+def test_65bit_int():
+    """ Dumping and loading an integer with arbitrary precision
 
-        assert type(u) == type(u_hkl) == unicode
-        assert u == u_hkl
-        # For those interested, uncomment below to see what those codes are:
-        # for i, c in enumerate(u_hkl):
-        #     print i, '%04x' % ord(c), unicodedata.category(c),
-        #     print unicodedata.name(c)
-    else:
-        pass
+    https://github.com/telegraphic/hickle/issues/113"""
+    i = 2**65-1
+    dump(i, 'test.hdf5')
+    i_hkl = load('test.hdf5')
+    assert i == i_hkl
 
-
-def test_unicode2():
-    if six.PY2:
-        a = u"unicode test"
-        dump(a, 'test.hkl', mode='w')
-
-        z = load('test.hkl')
-        assert a == z
-        assert type(a) == type(z) == unicode
-        pprint(z)
-    else:
-        pass
 
 def test_list():
     """ Dumping and loading a list """
@@ -124,10 +164,8 @@ def test_list():
     list_obj = [1, 2, 3, 4, 5]
     dump(list_obj, filename, mode=mode)
     list_hkl = load(filename)
-    #print(f'Initial list: {list_obj}')
-    #print(f'Unhickled data: {list_hkl}')
     try:
-        assert type(list_obj) == type(list_hkl) == list
+        assert isinstance(list_hkl, list)
         assert list_obj == list_hkl
         import h5py
         a = h5py.File(filename, 'r')
@@ -137,7 +175,7 @@ def test_list():
         print("ERR:", list_obj, list_hkl)
         import h5py
 
-        raise()
+        raise
 
 
 def test_set():
@@ -146,15 +184,12 @@ def test_set():
     list_obj = set([1, 0, 3, 4.5, 11.2])
     dump(list_obj, filename, mode)
     list_hkl = load(filename)
-    #print "Initial list:   %s"%list_obj
-    #print "Unhickled data: %s"%list_hkl
     try:
-        assert type(list_obj) == type(list_hkl) == set
+        assert isinstance(list_hkl, set)
         assert list_obj == list_hkl
     except AssertionError:
         print(type(list_obj))
         print(type(list_hkl))
-        #os.remove(filename)
         raise
 
 
@@ -179,7 +214,7 @@ def test_numpy():
 def test_masked():
     """ Test masked numpy array """
     filename, mode = 'test.h5', 'w'
-    a = np.ma.array([1,2,3,4], dtype='float32', mask=[0,1,0,0])
+    a = np.ma.array([1, 2, 3, 4], dtype='float32', mask=[0, 1, 0, 0])
 
     dump(a, filename, mode)
     a_hkl = load(filename)
@@ -198,15 +233,13 @@ def test_dict():
     filename, mode = 'test.h5', 'w'
 
     dd = {
-        'name'   : b'Danny',
-        'age'    : 28,
-        'height' : 6.1,
-        'dork'   : True,
-        'nums'   : [1, 2, 3],
-        'narr'   : np.array([1,2,3]),
-        #'unic'   : u'dan[at]thetelegraphic.com'
+        'name': b'Danny',
+        'age': 28,
+        'height': 6.1,
+        'dork': True,
+        'nums': [1, 2, 3],
+        'narr': np.array([1, 2, 3]),
     }
-
 
     dump(dd, filename, mode)
     dd_hkl = load(filename)
@@ -215,12 +248,11 @@ def test_dict():
         try:
             assert k in dd_hkl.keys()
 
-            if type(dd[k]) is type(np.array([1])):
+            if isinstance(dd[k], np.ndarray):
                 assert np.all((dd[k], dd_hkl[k]))
             else:
-                #assert dd_hkl[k] == dd[k]
                 pass
-            assert type(dd_hkl[k]) == type(dd[k])
+            assert isinstance(dd_hkl[k], dd[k].__class__)
         except AssertionError:
             print(k)
             print(dd_hkl[k])
@@ -229,8 +261,26 @@ def test_dict():
             raise
 
 
+def test_odict():
+    """ Test ordered dictionary dumping and loading
+
+    https://github.com/telegraphic/hickle/issues/65"""
+    filename, mode = 'test.hdf5', 'w'
+
+    od = odict(((3, [3, 0.1]), (7, [5, 0.1]), (5, [3, 0.1])))
+    dump(od, filename, mode)
+    od_hkl = load(filename)
+
+    assert od.keys() == od_hkl.keys()
+
+    for od_item, od_hkl_item in zip(od.items(), od_hkl.items()):
+        assert od_item == od_hkl_item
+
+
 def test_empty_dict():
-    """ Test empty dictionary dumping and loading """
+    """ Test empty dictionary dumping and loading
+
+    https://github.com/telegraphic/hickle/issues/91"""
     filename, mode = 'test.h5', 'w'
 
     dump({}, filename, mode)
@@ -270,7 +320,7 @@ def test_dict_int_key():
     }
 
     dump(dd, filename, mode)
-    dd_hkl = load(filename)
+    load(filename)
 
 
 def test_dict_nested():
@@ -283,7 +333,7 @@ def test_dict_nested():
     dd_hkl = load(filename)
 
     ll_hkl = dd_hkl["level1_3"]["level2_1"]["level3_1"]
-    ll     = dd["level1_3"]["level2_1"]["level3_1"]
+    ll = dd["level1_3"]["level2_1"]["level3_1"]
     assert ll == ll_hkl
 
 
@@ -293,8 +343,8 @@ def test_masked_dict():
     filename, mode = 'test.h5', 'w'
 
     dd = {
-        "data"  : np.ma.array([1,2,3], mask=[True, False, False]),
-        "data2" : np.array([1,2,3,4,5])
+        "data": np.ma.array([1, 2, 3], mask=[True, False, False]),
+        "data2": np.array([1, 2, 3, 4, 5])
     }
 
     dump(dd, filename, mode)
@@ -303,15 +353,15 @@ def test_masked_dict():
     for k in dd.keys():
         try:
             assert k in dd_hkl.keys()
-            if type(dd[k]) is type(np.array([1])):
+            if isinstance(dd[k], np.ndarray):
                 assert np.all((dd[k], dd_hkl[k]))
-            elif type(dd[k]) is type(np.ma.array([1])):
+            elif isinstance(dd[k], np.ma.MaskedArray):
                 print(dd[k].data)
                 print(dd_hkl[k].data)
                 assert np.allclose(dd[k].data, dd_hkl[k].data)
                 assert np.allclose(dd[k].mask, dd_hkl[k].mask)
 
-            assert type(dd_hkl[k]) == type(dd[k])
+            assert isinstance(dd_hkl[k], dd[k].__class__)
 
         except AssertionError:
             print(k)
@@ -354,7 +404,7 @@ def md5sum(filename, blocksize=65536):
     hash = hashlib.md5()
 
     with open(filename, "r+b") as f:
-        for block in iter(lambda: f.read(blocksize), ""):
+        for block in iter(lambda: f.read(blocksize), b""):
             hash.update(block)
     return hash.hexdigest()
 
@@ -362,7 +412,7 @@ def md5sum(filename, blocksize=65536):
 def caching_dump(obj, filename, *args, **kwargs):
     """ Save arguments of all dump calls """
     DUMP_CACHE.append((obj, filename, args, kwargs))
-    return hickle_dump(obj, filename, *args, **kwargs)
+    return dump(obj, filename, *args, **kwargs)
 
 
 def test_track_times():
@@ -370,7 +420,7 @@ def test_track_times():
     hashes = []
     for obj, filename, mode, kwargs in DUMP_CACHE:
         if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.file_name)
+            filename = str(filename.filename)
         kwargs['track_times'] = False
         caching_dump(obj, filename, mode, **kwargs)
         hashes.append(md5sum(filename))
@@ -379,7 +429,7 @@ def test_track_times():
 
     for hash1, (obj, filename, mode, kwargs) in zip(hashes, DUMP_CACHE):
         if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.file_name)
+            filename = str(filename.filename)
         caching_dump(obj, filename, mode, **kwargs)
         hash2 = md5sum(filename)
         print(hash1, hash2)
@@ -403,17 +453,16 @@ def test_comp_kwargs():
                 for sh in shuffles:
                     for so in scaleoffsets:
                         kwargs = {
-                            'compression' : cc,
+                            'compression': cc,
                             'dtype': dt,
                             'chunks': ch,
                             'shuffle': sh,
                             'scaleoffset': so
                         }
-                        #array_obj = np.random.random_integers(low=-8192, high=8192, size=(1000, 1000)).astype(dt)
                         array_obj = NESTED_DICT
                         dump(array_obj, filename, mode, compression=cc)
                         print(kwargs, os.path.getsize(filename))
-                        array_hkl = load(filename)
+                        load(filename)
 
 
 def test_list_numpy():
@@ -452,6 +501,15 @@ def test_tuple_numpy():
     assert isinstance(dd_hkl[0], np.ndarray)
 
 
+def test_numpy_dtype():
+    """ Dumping and loading a NumPy dtype """
+
+    dtype = np.dtype('float16')
+    dump(dtype, 'test.hdf5')
+    dtype_hkl = load('test.hdf5')
+    assert dtype == dtype_hkl
+
+
 def test_none():
     """ Test None type hickling """
 
@@ -467,21 +525,6 @@ def test_none():
     assert isinstance(dd_hkl, type(None))
 
 
-def test_dict_none():
-    """ Test None type hickling """
-
-    filename, mode = 'test.h5', 'w'
-
-    a = {'a': 1, 'b' : None}
-
-    dump(a, filename, mode)
-    dd_hkl = load(filename)
-    print(a)
-    print(dd_hkl)
-
-    assert isinstance(a['b'], type(None))
-
-
 def test_file_open_close():
     """ https://github.com/telegraphic/hickle/issues/20 """
     import h5py
@@ -495,15 +538,42 @@ def test_file_open_close():
     f.close()
     try:
         dump(a, f, mode='w')
-    except hickle.hickle.ClosedFileError:
+    except hickle.ClosedFileError:
         print("Tests: Closed file exception caught")
+
+
+def test_hdf5_group():
+    import h5py
+    file = h5py.File('test.hdf5', 'w')
+    group = file.create_group('test_group')
+    a = np.arange(5)
+    dump(a, group)
+    file.close()
+
+    a_hkl = load('test.hdf5', path='/test_group')
+    assert np.allclose(a_hkl, a)
+
+    file = h5py.File('test.hdf5', 'r+')
+    group = file.create_group('test_group2')
+    b = np.arange(8)
+
+    dump(b, group, path='deeper/and_deeper')
+    file.close()
+
+    b_hkl = load('test.hdf5', path='/test_group2/deeper/and_deeper')
+    assert np.allclose(b_hkl, b)
+
+    file = h5py.File('test.hdf5', 'r')
+    b_hkl2 = load(file['test_group2'], path='deeper/and_deeper')
+    assert np.allclose(b_hkl2, b)
+    file.close()
 
 
 def test_list_order():
     """ https://github.com/telegraphic/hickle/issues/26 """
     d = [np.arange(n + 1) for n in range(20)]
-    hickle.dump(d, 'test.h5')
-    d_hkl = hickle.load('test.h5')
+    dump(d, 'test.h5')
+    d_hkl = load('test.h5')
 
     try:
         for ii, xx in enumerate(d):
@@ -518,9 +588,10 @@ def test_list_order():
 def test_embedded_array():
     """ See https://github.com/telegraphic/hickle/issues/24 """
 
-    d_orig = [[np.array([10., 20.]), np.array([10, 20, 30])], [np.array([10, 2]), np.array([1.])]]
-    hickle.dump(d_orig, 'test.h5')
-    d_hkl = hickle.load('test.h5')
+    d_orig = [[np.array([10., 20.]), np.array([10, 20, 30])],
+              [np.array([10, 2]), np.array([1.])]]
+    dump(d_orig, 'test.h5')
+    d_hkl = load('test.h5')
 
     for ii, xx in enumerate(d_orig):
         for jj, yy in enumerate(xx):
@@ -530,20 +601,18 @@ def test_embedded_array():
     print(d_orig)
 
 
-################
-## NEW TESTS  ##
-################
-
-
+##############
+# NEW TESTS  #
+###############
 def generate_nested():
     a = [1, 2, 3]
     b = [a, a, a]
     c = [a, b, 's']
     d = [a, b, c, c, a]
     e = [d, d, d, d, 1]
-    f = {'a' : a, 'b' : b, 'e' : e}
-    g = {'f' : f, 'a' : e, 'd': d}
-    h = {'h': g, 'g' : f}
+    f = {'a': a, 'b': b, 'e': e}
+    g = {'f': f, 'a': e, 'd': d}
+    h = {'h': g, 'g': f}
     z = [f, a, b, c, d, e, f, g, h, g, h]
     a = np.array([1, 2, 3, 4])
     b = set([1, 2, 3, 4, 5])
@@ -557,23 +626,22 @@ def test_is_iterable():
     a = [1, 2, 3]
     b = 1
 
-    assert check_is_iterable(a) == True
-    assert check_is_iterable(b) == False
+    assert helpers.check_is_iterable(a)
+    assert not helpers.check_is_iterable(b)
 
 
 def test_check_iterable_item_type():
-
     a = [1, 2, 3]
     b = [a, a, a]
     c = [a, b, 's']
 
-    type_a = check_iterable_item_type(a)
-    type_b = check_iterable_item_type(b)
-    type_c = check_iterable_item_type(c)
+    type_a = helpers.check_iterable_item_type(a)
+    type_b = helpers.check_iterable_item_type(b)
+    type_c = helpers.check_iterable_item_type(c)
 
     assert type_a is int
     assert type_b is list
-    assert type_c == False
+    assert not type_c
 
 
 def test_dump_nested():
@@ -583,24 +651,22 @@ def test_dump_nested():
     dump(z, 'test.hkl', mode='w')
 
 
-def test_with_dump():
+def test_with_open_file():
+    """
+    Testing dumping and loading to an open file
+
+    https://github.com/telegraphic/hickle/issues/92"""
+
     lst = [1]
-    tpl = (1)
+    tpl = (1,)
     dct = {1: 1}
     arr = np.array([1])
 
-    with h5py.File('test.hkl', 'r+') as file:
+    with h5py.File('test.hkl', 'w') as file:
         dump(lst, file, path='/lst')
         dump(tpl, file, path='/tpl')
         dump(dct, file, path='/dct')
         dump(arr, file, path='/arr')
-
-
-def test_with_load():
-    lst = [1]
-    tpl = (1)
-    dct = {1: 1}
-    arr = np.array([1])
 
     with h5py.File('test.hkl', 'r') as file:
         assert load(file, '/lst') == lst
@@ -610,7 +676,6 @@ def test_with_load():
 
 
 def test_load():
-
     a = set([1, 2, 3, 4])
     b = set([5, 6, 7, 8])
     c = set([9, 10, 11, 12])
@@ -633,13 +698,12 @@ def test_sort_keys():
 
     print(keys)
     print(keys_sorted)
-    assert sort_keys(keys) == keys_sorted
+    assert helpers.sort_keys(keys) == keys_sorted
 
 
 def test_ndarray():
-
-    a = np.array([1,2,3])
-    b = np.array([2,3,4])
+    a = np.array([1, 2, 3])
+    b = np.array([2, 3, 4])
     z = (a, b)
 
     print("Original:")
@@ -652,9 +716,8 @@ def test_ndarray():
 
 
 def test_ndarray_masked():
-
-    a = np.ma.array([1,2,3])
-    b = np.ma.array([2,3,4], mask=[True, False, True])
+    a = np.ma.array([1, 2, 3])
+    b = np.ma.array([2, 3, 4], mask=[True, False, True])
     z = (a, b)
 
     print("Original:")
@@ -678,13 +741,8 @@ def test_simple_dict():
 
 def test_complex_dict():
     a = {'akey': 1, 'akey2': 2}
-    if six.PY2:
-        # NO LONG TYPE IN PY3!
-        b = {'bkey': 2.0, 'bkey3': long(3.0)}
-    else:
-        b = a
     c = {'ckey': "hello", "ckey2": "hi there"}
-    z = {'zkey1': a, 'zkey2': b, 'zkey3': c}
+    z = {'zkey1': a, 'zkey2': a, 'zkey3': c}
 
     print("Original:")
     pprint(z)
@@ -694,7 +752,12 @@ def test_complex_dict():
     z = load('test.hkl')
     pprint(z)
 
+
 def test_multi_hickle():
+    """ Dumping to and loading from the same file several times
+
+    https://github.com/telegraphic/hickle/issues/20"""
+
     a = {'a': 123, 'b': [1, 2, 4]}
 
     if os.path.exists("test.hkl"):
@@ -704,55 +767,54 @@ def test_multi_hickle():
     dump(a, "test.hkl", path="/test3", mode="r+")
     dump(a, "test.hkl", path="/test4", mode="r+")
 
-    a = load("test.hkl", path="/test")
-    b = load("test.hkl", path="/test2")
-    c = load("test.hkl", path="/test3")
-    d = load("test.hkl", path="/test4")
+    load("test.hkl", path="/test")
+    load("test.hkl", path="/test2")
+    load("test.hkl", path="/test3")
+    load("test.hkl", path="/test4")
+
 
 def test_complex():
     """ Test complex value dtype is handled correctly
 
     https://github.com/telegraphic/hickle/issues/29 """
 
-    data = {"A":1.5, "B":1.5 + 1j, "C":np.linspace(0,1,4) + 2j}
+    data = {"A": 1.5, "B": 1.5 + 1j, "C": np.linspace(0, 1, 4) + 2j}
     dump(data, "test.hkl")
     data2 = load("test.hkl")
     for key in data.keys():
-        assert type(data[key]) == type(data2[key])
+        assert isinstance(data[key], data2[key].__class__)
+
 
 def test_nonstring_keys():
     """ Test that keys are reconstructed back to their original datatypes
     https://github.com/telegraphic/hickle/issues/36
     """
-    if six.PY2:
-        u = unichr(233) + unichr(0x0bf2) + unichr(3972) + unichr(6000)
 
-        data = {u'test': 123,
-                'def': 456,
-                'hik' : np.array([1,2,3]),
-                u: u,
-                0: 0,
-                True: 'hi',
-                1.1 : 'hey',
-                #2L : 'omg',
-                1j: 'complex_hashable',
-                (1, 2): 'boo',
-                ('A', 17.4, 42): [1, 7, 'A'],
-                (): '1313e was here',
-                '0': 0
-                }
-        #data = {'0': 123, 'def': 456}
-        print(data)
-        dump(data, "test.hkl")
-        data2 = load("test.hkl")
-        print(data2)
+    data = {
+            u'test': 123,
+            'def': [b'test'],
+            'hik': np.array([1, 2, 3]),
+            0: 0,
+            True: ['test'],
+            1.1: 'hey',
+            1j: 'complex_hashable',
+            (1, 2): 'boo',
+            ('A', 17.4, 42): [1, 7, 'A'],
+            (): '1313e was here',
+            '0': 0,
+            None: None
+            }
 
-        for key in data.keys():
-            assert key in data2.keys()
+    print(data)
+    dump(data, "test.hkl")
+    data2 = load("test.hkl")
+    print(data2)
 
-        print(data2)
-    else:
-        pass
+    for key in data.keys():
+        assert key in data2.keys()
+
+    print(data2)
+
 
 def test_scalar_compression():
     """ Test bug where compression causes a crash on scalar datasets
@@ -760,30 +822,28 @@ def test_scalar_compression():
     (Scalars are incompressible!)
     https://github.com/telegraphic/hickle/issues/37
     """
-    data = {'a' : 0, 'b' : np.float(2), 'c' : True}
+    data = {'a': 0, 'b': np.float(2), 'c': True}
 
     dump(data, "test.hkl", compression='gzip')
     data2 = load("test.hkl")
 
     print(data2)
     for key in data.keys():
-        assert type(data[key]) == type(data2[key])
+        assert isinstance(data[key], data2[key].__class__)
+
 
 def test_bytes():
     """ Dumping and loading a string. PYTHON3 ONLY """
-    if six.PY3:
-        filename, mode = 'test.h5', 'w'
-        string_obj = b"The quick brown fox jumps over the lazy dog"
-        dump(string_obj, filename, mode)
-        string_hkl = load(filename)
-        #print "Initial list:   %s"%list_obj
-        #print "Unhickled data: %s"%list_hkl
-        print(type(string_obj))
-        print(type(string_hkl))
-        assert type(string_obj) == type(string_hkl) == bytes
-        assert string_obj == string_hkl
-    else:
-        pass
+
+    filename, mode = 'test.h5', 'w'
+    string_obj = b"The quick brown fox jumps over the lazy dog"
+    dump(string_obj, filename, mode)
+    string_hkl = load(filename)
+    print(type(string_obj))
+    print(type(string_hkl))
+    assert isinstance(string_hkl, bytes)
+    assert string_obj == string_hkl
+
 
 def test_np_scalar():
     """ Numpy scalar datatype
@@ -791,13 +851,34 @@ def test_np_scalar():
     https://github.com/telegraphic/hickle/issues/50
     """
 
-    fid='test.h5py'
-    r0={'test':  np.float64(10.)}
-    s = dump(r0, fid)
+    fid = 'test.h5py'
+    r0 = {'test': np.float64(10.)}
+    dump(r0, fid)
     r = load(fid)
     print(r)
-    assert type(r0['test']) == type(r['test'])
+    assert isinstance(r0['test'], r['test'].__class__)
 
+
+def test_slash_dict_keys():
+    """ Support for having slashes in dict keys
+
+    https://github.com/telegraphic/hickle/issues/124"""
+    dct = {'a/b': [1, '2'], 1.4: 3}
+
+    dump(dct, 'test.hdf5', 'w')
+    dct_hkl = load('test.hdf5')
+
+    assert isinstance(dct_hkl, dict)
+    for key, val in dct_hkl.items():
+        assert val == dct.get(key)
+
+    # Check that having backslashes in dict keys will fail
+    dct2 = {'a\\b': [1, '2'], 1.4: 3}
+    with pytest.raises(ValueError):
+        dump(dct2, 'test.hdf5')
+
+
+# %% MAIN SCRIPT
 if __name__ == '__main__':
     """ Some tests and examples """
     test_sort_keys()
@@ -806,13 +887,14 @@ if __name__ == '__main__':
     test_scalar_compression()
     test_complex()
     test_file_open_close()
-    test_dict_none()
+    test_hdf5_group()
     test_none()
     test_masked_dict()
     test_list()
     test_set()
     test_numpy()
     test_dict()
+    test_odict()
     test_empty_dict()
     test_compression()
     test_masked()
@@ -824,23 +906,15 @@ if __name__ == '__main__':
     test_list_order()
     test_embedded_array()
     test_np_float()
-
-    if six.PY2:
-        test_unicode()
-        test_unicode2()
-        test_string()
-        test_nonstring_keys()
-
-    if six.PY3:
-        test_bytes()
-
+    test_string()
+    test_nonstring_keys()
+    test_bytes()
 
     # NEW TESTS
     test_is_iterable()
     test_check_iterable_item_type()
     test_dump_nested()
-    test_with_dump()
-    test_with_load()
+    test_with_open_file()
     test_load()
     test_sort_keys()
     test_ndarray()
@@ -851,6 +925,11 @@ if __name__ == '__main__':
     test_dict_int_key()
     test_local_func()
     test_binary_file()
+    test_state_obj()
+    test_slash_dict_keys()
+    test_invalid_file()
+    test_non_empty_group()
+    test_numpy_dtype()
 
     # Cleanup
     print("ALL TESTS PASSED!")

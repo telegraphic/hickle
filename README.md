@@ -1,14 +1,16 @@
-[![Build Status](https://travis-ci.org/telegraphic/hickle.svg?branch=master)](https://travis-ci.org/telegraphic/hickle)
-[![Build status](https://ci.appveyor.com/api/projects/status/8cwrkjpwxet5jmgp?svg=true)](https://ci.appveyor.com/project/telegraphic/hickle)
-[![codecov](https://codecov.io/gh/telegraphic/hickle/branch/master/graph/badge.svg)](https://codecov.io/gh/telegraphic/hickle)
+[![PyPI - Latest Release](https://img.shields.io/pypi/v/hickle.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.python.org/pypi/hickle)
+[![PyPI - Python Versions](https://img.shields.io/pypi/pyversions/hickle.svg?logo=python&logoColor=white&label=Python)](https://pypi.python.org/pypi/hickle)
+[![Travis CI - Build Status](https://img.shields.io/travis/com/telegraphic/hickle/master.svg?logo=travis%20ci&logoColor=white&label=Travis%20CI)](https://travis-ci.com/telegraphic/hickle)
+[![AppVeyor - Build Status](https://img.shields.io/appveyor/ci/telegraphic/hickle/master.svg?logo=appveyor&logoColor=white&label=AppVeyor)](https://ci.appveyor.com/project/telegraphic/hickle)
+[![CodeCov - Coverage Status](https://img.shields.io/codecov/c/github/telegraphic/hickle/master.svg?logo=codecov&logoColor=white&label=Coverage)](https://codecov.io/gh/telegraphic/hickle/branches/master)
 [![JOSS Status](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847)
 
 
 Hickle
 ======
 
-Hickle is a [HDF5](https://www.hdfgroup.org/solutions/hdf5/) based clone of `pickle`, with a twist: instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file (Hierarchical Data Format). It is designed to be a "drop-in" replacement for pickle (for common data objects), but is
+Hickle is an [HDF5](https://www.hdfgroup.org/solutions/hdf5/) based clone of `pickle`, with a twist: instead of serializing to a pickle file,
+Hickle dumps to an HDF5 file (Hierarchical Data Format). It is designed to be a "drop-in" replacement for pickle (for common data objects), but is
 really an amalgam of `h5py` and `dill`/`pickle` with extended functionality.
 
 That is: `hickle` is a neat little way of dumping python variables to HDF5 files that can be read in most programming
@@ -96,6 +98,7 @@ These file-level options are abstracted away from the data model.
 Recent changes
 --------------
 
+* June 2020: Major refactor to version 4, and removal of support for Python 2.
 * December 2018: Accepted to Journal of Open-Source Software (JOSS).
 * June 2018: Major refactor and support for Python 3.
 * Aug 2016: Added support for scipy sparse matrices `bsr_matrix`, `csr_matrix` and `csc_matrix`.
@@ -154,7 +157,7 @@ Install with `pip` by running `pip install hickle` from the command line.
 
 ### Manual install
 
-1. You should have Python 2.7 and above installed
+1. You should have Python 3.5 and above installed
 
 2. Install h5py
 (Official page: http://docs.h5py.org/en/latest/build.html)

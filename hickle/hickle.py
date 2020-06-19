@@ -4,9 +4,9 @@
 
 Created by Danny Price 2016-02-03.
 
-Hickle is a HDF5 based clone of Pickle. Instead of serializing to a pickle
-file, Hickle dumps to a HDF5 file. It is designed to be as similar to pickle in
-usage as possible, providing a load() and dump() function.
+Hickle is an HDF5 based clone of Pickle. Instead of serializing to a pickle
+file, Hickle dumps to an HDF5 file. It is designed to be as similar to pickle
+in usage as possible, providing a load() and dump() function.
 
 ## Notes
 
@@ -22,96 +22,50 @@ h5py installed.
 
 """
 
-from __future__ import absolute_import, division, print_function
-import sys
-import os
-from pkg_resources import get_distribution, DistributionNotFound
-from ast import literal_eval
 
-import numpy as np
-import h5py as h5
-
-
-from .__version__ import __version__
-from .helpers import get_type, sort_keys, check_is_iterable, check_iterable_item_type
-from .lookup import (types_dict, hkl_types_dict, types_not_to_sort,
-    container_types_dict, container_key_types_dict, check_is_ndarray_like)
-
-try:
-    from exceptions import Exception
-    from types import NoneType
-except ImportError:
-    pass        # above imports will fail in python3
-
-from six import PY2, PY3, string_types, integer_types
+# %% IMPORTS
+# Built-in imports
 import io
-
-# Make several aliases for Python2/Python3 compatibility
-if PY3:
-    file = io.TextIOWrapper
-
-# Import dill as pickle
-import dill as pickle
-
-try:
-    from pathlib import Path
-    string_like_types = string_types + (Path,)
-except ImportError:
-    # Python 2 does not have pathlib
-    string_like_types = string_types
-
+from pathlib import Path
+import sys
 import warnings
 
+# Package imports
+import dill as pickle
+import h5py as h5
+import numpy as np
+
+# hickle imports
+from hickle import __version__
+from hickle.helpers import (
+    get_type, sort_keys, check_is_iterable, check_iterable_item_type)
+from hickle.lookup import (
+    types_dict, hkl_types_dict, types_not_to_sort, dict_key_types_dict,
+    check_is_ndarray_like, load_loader)
+
+# All declaration
+__all__ = ['dump', 'load']
+
+
+# %% CLASS DEFINITIONS
 ##################
 # Error handling #
 ##################
 
 class FileError(Exception):
     """ An exception raised if the file is fishy """
-    def __init__(self):
-        return
-
-    def __str__(self):
-        return ("Cannot open file. Please pass either a filename "
-                "string, a file object, or a h5py.File")
+    pass
 
 
 class ClosedFileError(Exception):
     """ An exception raised if the file is fishy """
-    def __init__(self):
-        return
-
-    def __str__(self):
-        return ("HDF5 file has been closed. Please pass either "
-                "a filename string, a file object, or an open h5py.File")
+    pass
 
 
-class NoMatchError(Exception):
-    """ An exception raised if the object type is not understood (or
-    supported)"""
-    def __init__(self):
-        return
-
-    def __str__(self):
-        return ("Error: this type of python object cannot be converted into a "
-                "hickle.")
-
-
-class ToDoError(Exception):
+class ToDoError(Exception):     # pragma: no cover
     """ An exception raised for non-implemented functionality"""
-    def __init__(self):
-        return
-
     def __str__(self):
         return "Error: this functionality hasn't been implemented yet."
-
-
-class SerializedWarning(UserWarning):
-    """ An object type was not understood
-
-    The data will be serialized using pickle.
-    """
-    pass
 
 
 ######################
@@ -141,9 +95,6 @@ class H5FileWrapper(h5.File):
     track_times is a boolean flag that can be set to False, so that two
     files created at different times will have identical MD5 hashes.
     """
-    def create_dataset(self, *args, **kwargs):
-        kwargs['track_times'] = getattr(self, 'track_times', True)
-        return super(H5FileWrapper, self).create_dataset(*args, **kwargs)
 
     def create_group(self, *args, **kwargs):
         group = super(H5FileWrapper, self).create_group(*args, **kwargs)
@@ -152,67 +103,100 @@ class H5FileWrapper(h5.File):
         return group
 
 
-def file_opener(f, mode='r', track_times=True):
-    """ A file opener helper function with some error handling.  This can open
-    files through a file object, a h5py file, or just the filename.
+# %% FUNCTION DEFINITIONS
+def file_opener(f, path, mode='r', track_times=True):
+    """
+    A file opener helper function with some error handling.
+    This can open files through a file object, an h5py file, or just the
+    filename.
 
-    Args:
-        f (file, h5py.File, or string): File-identifier, e.g. filename or file object.
-        mode (str): File open mode. Only required if opening by filename string.
-        track_times (bool): Track time in HDF5; turn off if you want hickling at
-                 different times to produce identical files (e.g. for MD5 hash check).
+    Parameters
+    ----------
+    f : file object, str or :obj:`~h5py.Group` object
+        File to open for dumping or loading purposes.
+        If str, `file_obj` provides the path of the HDF5-file that must be
+        used.
+        If :obj:`~h5py._hl.group.Group`, the group (or file) in an open
+        HDF5-file that must be used.
+    path : str
+        Path within HDF5-file or group to dump to/load from.
+    mode : str, optional
+        Accepted values are 'r' (read only), 'w' (write; default) or 'a'
+        (append).
+        Ignored if file is a file object.
+    track_times : bool, optional
+        If set to *True* (default), repeated hickling will produce different
+        files.
 
     """
 
     # Assume that we will have to close the file after dump or load
     close_flag = True
 
+    # Make sure that the given path always starts with '/'
+    if not path.startswith('/'):
+        path = '/%s' % (path)
+
     # Were we handed a file object or just a file name string?
-    if isinstance(f, (file, io.TextIOWrapper, io.BufferedWriter)):
+    if isinstance(f, (io.TextIOWrapper, io.BufferedWriter)):
         filename, mode = f.name, f.mode
         f.close()
         mode = mode.replace('b', '')
         h5f = h5.File(filename, mode)
-    elif isinstance(f, string_like_types):
+    elif isinstance(f, (str, Path)):
         filename = f
         h5f = h5.File(filename, mode)
-    elif isinstance(f, (H5FileWrapper, h5._hl.files.File)):
+    elif isinstance(f, h5._hl.group.Group):
         try:
-            filename = f.filename
+            filename = f.file.filename
         except ValueError:
-            raise ClosedFileError
+            raise ClosedFileError("HDF5 file has been closed. Please pass "
+                                  "either a filename string, a file object, or"
+                                  "an open HDF5-file")
+        path = ''.join([f.name, path])
         h5f = f
+
+        if path.endswith('/'):
+            path = path[:-1]
+
         # Since this file was already open, do not close the file afterward
         close_flag = False
+
     else:
         print(f.__class__)
-        raise FileError
+        raise FileError("Cannot open file. Please pass either a filename "
+                        "string, a file object, or a h5py.File")
 
-    h5f.__class__ = H5FileWrapper
+    if isinstance(h5f, h5._hl.files.File):
+        h5f.__class__ = H5FileWrapper
+    else:
+        h5f.__class__ = H5GroupWrapper
     h5f.track_times = track_times
-    return(h5f, close_flag)
+    return(h5f, path, close_flag)
 
 
 ###########
 # DUMPERS #
 ###########
 
+# Get list of dumpable dtypes
+dumpable_dtypes = [bool, complex, bytes, float, int, str]
 
-def _dump(py_obj, h_group, call_id=0, **kwargs):
-    """ Dump a python object to a group within a HDF5 file.
+
+def _dump(py_obj, h_group, call_id=None, **kwargs):
+    """ Dump a python object to a group within an HDF5 file.
 
     This function is called recursively by the main dump() function.
 
     Args:
         py_obj: python object to dump.
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
     """
 
-    # Get list of dumpable dtypes
-    dumpable_dtypes = []
-    for lst in [[bool, complex, bytes, float], string_types, integer_types]:
-        dumpable_dtypes.extend(lst)
+    # Check if we have a unloaded loader for the provided py_obj
+    load_loader(py_obj)
 
     # Firstly, check if item is a numpy array. If so, just dump it.
     if check_is_ndarray_like(py_obj):
@@ -233,8 +217,8 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
                 _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)
 
         # otherwise, subitems have same type. Check if subtype is an iterable
-        # (e.g. list of lists), or not (e.g. list of ints, which should be treated
-        # as a single dataset).
+        # (e.g. list of lists), or not (e.g. list of ints, which should be
+        # treated as a single dataset).
         else:
             if item_type in dumpable_dtypes:
                 create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
@@ -248,21 +232,34 @@ def _dump(py_obj, h_group, call_id=0, **kwargs):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
 
-def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
-    """ Write a pickled representation of obj to the open file object file.
+def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
+    """
+    Write a hickled representation of `py_obj` to the provided `file_obj`.
 
-    Args:
-    obj (object): python object o store in a Hickle
-    file: file object, filename string, or h5py.File object
-            file in which to store the object. A h5py.File or a filename is also
-            acceptable.
-    mode (str): optional argument, 'r' (read only), 'w' (write) or 'a' (append).
-            Ignored if file is a file object.
-    compression (str): optional argument. Applies compression to dataset. Options: None, gzip,
-            lzf (+ szip, if installed)
-    track_times (bool): optional argument. If set to False, repeated hickling will produce
-            identical files.
-    path (str): path within hdf5 file to save data to. Defaults to root /
+    Parameters
+    ----------
+    py_obj : object
+        Python object to hickle to HDF5.
+    file_obj : file object, str or :obj:`~h5py.Group` object
+        File in which to store the object.
+        If str, `file_obj` provides the path of the HDF5-file that must be
+        used.
+        If :obj:`~h5py._hl.group.Group`, the group (or file) in an open
+        HDF5-file that must be used.
+    mode : str, optional
+        Accepted values are 'r' (read only), 'w' (write; default) or 'a'
+        (append).
+        Ignored if file is a file object.
+    path : str, optional
+        Path within HDF5-file or group to save data to.
+        Defaults to root ('/').
+    track_times : bool, optional
+        If set to *True* (default), repeated hickling will produce different
+        files.
+    kwargs : keyword arguments
+        Additional keyword arguments that must be provided to the
+        :meth:`~h5py._hl.group.Group.create_dataset` method.
+
     """
 
     # Make sure that file is not closed unless modified
@@ -271,40 +268,37 @@ def dump(py_obj, file_obj, mode='w', track_times=True, path='/', **kwargs):
 
     try:
         # Open the file
-        h5f, close_flag = file_opener(file_obj, mode, track_times)
-        h5f.attrs["CLASS"] = b'hickle'
-        h5f.attrs["VERSION"] = __version__
-        h5f.attrs["type"] = [b'hickle']
+        h5f, path, close_flag = file_opener(file_obj, path, mode, track_times)
+
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
         py_ver = "%i.%i.%i" % (pv[0], pv[1], pv[2])
-        h5f.attrs["PYTHON_VERSION"] = py_ver
 
-        h_root_group = h5f.get(path)
-
-        if h_root_group is None:
+        # Try to create the root group
+        try:
             h_root_group = h5f.create_group(path)
-            h_root_group.attrs["type"] = [b'hickle']
+
+        # If that is not possible, check if it is empty
+        except ValueError as error:
+            # Raise error if this group is not empty
+            if len(h5f[path]):
+                raise error
+            else:
+                h_root_group = h5f.get(path)
+
+        h_root_group.attrs["HICKLE_VERSION"] = __version__
+        h_root_group.attrs["HICKLE_PYTHON_VERSION"] = py_ver
 
         _dump(py_obj, h_root_group, **kwargs)
-    except NoMatchError:
-        fname = h5f.filename
-        h5f.close()
-        try:
-            os.remove(fname)
-        except OSError:
-            warnings.warn("Dump failed. Could not remove %s" % fname)
-        finally:
-            raise NoMatchError
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
-            h5f.close()
+            h5f.file.close()
 
 
 def create_dataset_lookup(py_obj):
-    """ What type of object are we trying to pickle?  This is a python
+    """ What type of object are we trying to hickle?  This is a python
     dictionary based equivalent of a case statement.  It returns the correct
     helper function for a given data type.
 
@@ -313,47 +307,64 @@ def create_dataset_lookup(py_obj):
 
     Returns:
         match: function that should be used to dump data to a new dataset
+        base_type: the base type of the data that will be dumped
     """
-    t = type(py_obj)
-    types_lookup = {dict: create_dict_dataset}
-    types_lookup.update(types_dict)
 
-    match = types_lookup.get(t, no_match)
+    # Obtain the MRO of this object
+    mro_list = py_obj.__class__.mro()
 
-    return match
+    # Create a type_map
+    type_map = map(types_dict.get, mro_list)
+
+    # Loop over the entire type_map until something else than None is found
+    for type_item in type_map:
+        if type_item is not None:
+            return(type_item)
 
 
-
-def create_hkl_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
     """ Create a dataset within the hickle HDF5 file
 
     Args:
         py_obj: python object to dump.
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
 
     """
-    #lookup dataset creator type based on python object type
-    create_dataset = create_dataset_lookup(py_obj)
+    # lookup dataset creator type based on python object type
+    create_dataset, base_type = create_dataset_lookup(py_obj)
+
+    # Set the name of this dataset
+    name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
 
     # do the creation
-    create_dataset(py_obj, h_group, call_id, **kwargs)
+    h_subgroup = create_dataset(py_obj, h_group, name, **kwargs)
+    h_subgroup.attrs['base_type'] = base_type
+    if base_type != b'pickle':
+        h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
 
 
-def create_hkl_group(py_obj, h_group, call_id=0):
+def create_hkl_group(py_obj, h_group, call_id=None):
     """ Create a new group within the hickle file
 
     Args:
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
 
     """
-    h_subgroup = h_group.create_group('data_%i' % call_id)
-    h_subgroup.attrs['type'] = [str(type(py_obj)).encode('ascii', 'ignore')]
+
+    # Set the name of this group
+    name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
+
+    h_subgroup = h_group.create_group(name)
+    h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
+    h_subgroup.attrs['base_type'] = create_dataset_lookup(py_obj)[1]
     return h_subgroup
 
 
-def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
+def create_dict_dataset(py_obj, h_group, name, **kwargs):
     """ Creates a data group for each key in dictionary
 
     Notes:
@@ -365,43 +376,45 @@ def create_dict_dataset(py_obj, h_group, call_id=0, **kwargs):
     Args:
         py_obj: python object to dump; should be dictionary
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
+        call_id (int): index to identify object's relative location in the
+            iterable.
     """
-    h_dictgroup = h_group.create_group('data_%i' % call_id)
-    h_dictgroup.attrs['type'] = [str(type(py_obj)).encode('ascii', 'ignore')]
+    h_dictgroup = h_group.create_group(name)
 
-    for key, py_subobj in py_obj.items():
-        if isinstance(key, string_types):
-            h_subgroup = h_dictgroup.create_group("%r" % (key))
+    for idx, (key, py_subobj) in enumerate(py_obj.items()):
+        # Obtain the string representation of this key
+        if isinstance(key, str):
+            # Get raw string format of string
+            subgroup_key = "%r" % (key)
+
+            # Make sure that the '\\\\' is not in the key, or raise error if so
+            if '\\\\' in subgroup_key:
+                raise ValueError("Dict item keys containing the '\\\\' string "
+                                 "are not supported!")
         else:
-            h_subgroup = h_dictgroup.create_group(str(key))
-        h_subgroup.attrs["type"] = [b'dict_item']
+            subgroup_key = str(key)
 
-        h_subgroup.attrs["key_type"] = [str(type(key)).encode('ascii', 'ignore')]
+        # Replace any forward slashes with double backslashes
+        subgroup_key = subgroup_key.replace('/', '\\\\')
+        h_subgroup = h_dictgroup.create_group(subgroup_key)
+        h_subgroup.attrs['base_type'] = b'dict_item'
 
-        _dump(py_subobj, h_subgroup, call_id=0, **kwargs)
+        h_subgroup.attrs['key_base_type'] = bytes(type(key).__name__, 'ascii')
+        h_subgroup.attrs['key_type'] = np.array(pickle.dumps(key.__class__))
 
+        h_subgroup.attrs['key_idx'] = idx
 
-def no_match(py_obj, h_group, call_id=0, **kwargs):
-    """ If no match is made, raise an exception
-
-    Args:
-        py_obj: python object to dump; default if item is not matched.
-        h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the iterable.
-    """
-    pickled_obj = pickle.dumps(py_obj)
-    d = h_group.create_dataset('data_%i' % call_id, data=[pickled_obj])
-    d.attrs["type"] = [b'pickle']
-
-    warnings.warn("%s type not understood, data have been serialized" % type(py_obj),
-                  SerializedWarning)
+        _dump(py_subobj, h_subgroup, call_id=None, **kwargs)
+    return(h_dictgroup)
 
 
+# Add create_dict_dataset to types_dict
+types_dict[dict] = (create_dict_dataset, b"dict")
 
-#############
-## LOADERS ##
-#############
+
+###########
+# LOADERS #
+###########
 
 class PyContainer(list):
     """ A group-like object into which to load datasets.
@@ -414,8 +427,10 @@ class PyContainer(list):
     def __init__(self):
         super(PyContainer, self).__init__()
         self.container_type = None
+        self.container_base_type = None
         self.name = None
         self.key_type = None
+        self.key_base_type = None
 
     def convert(self):
         """ Convert from PyContainer to python core data type.
@@ -424,29 +439,47 @@ class PyContainer(list):
                  (or other type specified in lookup.py)
         """
 
-        if self.container_type in container_types_dict.keys():
-            convert_fn = container_types_dict[self.container_type]
-            return convert_fn(self)
-        if self.container_type == str(dict).encode('ascii', 'ignore'):
-            keys = []
+        # If this container is a dict, convert its items properly
+        if self.container_base_type == b"dict":
+            # Create empty list of items
+            items = [[]]*len(self)
+
+            # Loop over all items in the container
             for item in self:
-                key = item.name.split('/')[-1]
-                key_type = item.key_type[0]
-                if key_type in container_key_types_dict.keys():
-                    to_type_fn = container_key_types_dict[key_type]
+                # Obtain the name of this item
+                key = item.name.split('/')[-1].replace('\\\\', '/')
+
+                # Obtain the base type and index of this item's key
+                key_base_type = item.key_base_type
+                key_idx = item.key_idx
+
+                # If this key has a type that must be converted, do so
+                if key_base_type in dict_key_types_dict.keys():
+                    to_type_fn = dict_key_types_dict[key_base_type]
                     key = to_type_fn(key)
-                keys.append(key)
 
-            items = [item[0] for item in self]
-            return dict(zip(keys, items))
+                # Insert item at the correct index into the list
+                items[key_idx] = [key, item[0]]
+
+            # Initialize dict using its true type and return
+            return(self.container_type(items))
+
+        # In all other cases, return container
         else:
-            return self
+            # If container has a true type defined, convert to that first
+            if self.container_type is not None:
+                return(self.container_type(self))
 
-def no_match_load(key):
+            # If not, return the container itself
+            else:
+                return(self)
+
+
+def no_match_load(key):     # pragma: no cover
     """ If no match is made when loading, need to raise an exception
     """
     raise RuntimeError("Cannot load %s data type" % key)
-    #pass
+
 
 def load_dataset_lookup(key):
     """ What type of object are we trying to unpickle?  This is a python
@@ -464,81 +497,97 @@ def load_dataset_lookup(key):
 
     return match
 
-def load(fileobj, path='/', safe=True):
-    """ Load a hickle file and reconstruct a python object
 
-    Args:
-        fileobj: file object, h5py.File, or filename string
-            safe (bool): Disable automatic depickling of arbitrary python objects.
-            DO NOT set this to False unless the file is from a trusted source.
-            (see http://www.cs.jhu.edu/~s/musings/pickle.html for an explanation)
+def load(file_obj, path='/', safe=True):
+    """
+    Load the Python object stored in `file_obj` at `path` and return it.
 
-        path (str): path within hdf5 file to save data to. Defaults to root /
+    Parameters
+    ----------
+    file_obj : file object, str or :obj:`~h5py.Group` object
+        File from which to load the object.
+        If str, `file_obj` provides the path of the HDF5-file that must be
+        used.
+        If :obj:`~h5py._hl.group.Group`, the group (or file) in an open
+        HDF5-file that must be used.
+    path : str, optional
+        Path within HDF5-file or group to load data from.
+        Defaults to root ('/').
+    safe : bool, optional
+        Disable automatic depickling of arbitrary python objects.
+        DO NOT set this to False unless the file is from a trusted source.
+        (See https://docs.python.org/3/library/pickle.html for an explanation)
+
+    Returns
+    -------
+    py_obj : object
+        The unhickled Python object.
+
     """
 
     # Make sure that the file is not closed unless modified
     # This is to avoid trying to close a file that was never opened
     close_flag = False
 
+    # Try to read the provided file_obj as a hickle file
     try:
-        h5f, close_flag = file_opener(fileobj)
+        h5f, path, close_flag = file_opener(file_obj, path)
         h_root_group = h5f.get(path)
-        try:
-            assert 'CLASS' in h5f.attrs.keys()
-            assert 'VERSION' in h5f.attrs.keys()
-            VER = h5f.attrs['VERSION']
-            try:
-                VER_MAJOR = int(VER)
-            except ValueError:
-                VER_MAJOR = int(VER[0])
-            if VER_MAJOR == 1:
-                if PY2:
-                    warnings.warn("Hickle file versioned as V1, attempting legacy loading...")
-                    from . import hickle_legacy
-                    return hickle_legacy.load(fileobj, safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            elif VER_MAJOR == 2:
-                if PY2:
-                    warnings.warn("Hickle file appears to be old version (v2), attempting "
-                                  "legacy loading...")
-                    from . import hickle_legacy2
-                    return hickle_legacy2.load(fileobj, path=path, safe=safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            # There is an unfortunate period of time where hickle 2.1.0 claims VERSION = int(3)
-            # For backward compatibility we really need to catch this.
-            # Actual hickle v3 files are versioned as A.B.C (e.g. 3.1.0)
-            elif VER_MAJOR == 3 and VER == VER_MAJOR:
-                if PY2:
-                    warnings.warn("Hickle file appears to be old version (v2.1.0), attempting "
-                                  "legacy loading...")
-                    from . import hickle_legacy2
-                    return hickle_legacy2.load(fileobj, path=path, safe=safe)
-                else:
-                    raise RuntimeError("Cannot open file. This file was likely"
-                                       " created with Python 2 and an old hickle version.")
-            elif VER_MAJOR >= 3:
-                py_container = PyContainer()
-                py_container.container_type = 'hickle'
-                py_container = _load(py_container, h_root_group)
-                return py_container[0][0]
 
-        except AssertionError:
-            if PY2:
-                warnings.warn("Hickle file is not versioned, attempting legacy loading...")
-                from . import hickle_legacy
-                return hickle_legacy.load(fileobj, safe)
+        # Define attributes h_root_group must have
+        v3_attrs = ['CLASS', 'VERSION', 'PYTHON_VERSION']
+        v4_attrs = ['HICKLE_VERSION', 'HICKLE_PYTHON_VERSION']
+
+        # Check if the proper attributes for v3 loading are available
+        if all(map(h_root_group.attrs.get, v3_attrs)):
+            # Check if group attribute 'CLASS' has value 'hickle
+            if(h_root_group.attrs.get('CLASS') != b'hickle'):
+                # If not, raise error
+                raise AttributeError("HDF5-file attribute 'CLASS' does not "
+                                     "have value 'hickle'!")
+
+            # Obtain version with which the file was made
+            try:
+                major_version = int(h_root_group.attrs['VERSION'][0])
+
+            # If this cannot be done, then this is not a v3 file
+            except Exception:
+                raise Exception("This file does not appear to be a hickle v3 "
+                                "file.")
+
+            # Else, if the major version is not 3, it is not a v3 file either
             else:
-                raise RuntimeError("Cannot open file. This file was likely"
-                                   " created with Python 2 and an old hickle version.")
+                if(major_version != 3):
+                    raise Exception("This file does not appear to be a hickle "
+                                    "v3 file.")
+
+            # Load file
+            from hickle import legacy_v3
+            warnings.warn("Input argument 'file_obj' appears to be a file made"
+                          " with hickle v3. Using legacy load...")
+            return(legacy_v3.load(file_obj, path, safe))
+
+        # Else, check if the proper attributes for v4 loading are available
+        elif all(map(h_root_group.attrs.get, v4_attrs)):
+            # Load file
+            py_container = PyContainer()
+            py_container = _load(py_container, h_root_group['data'])
+            return(py_container[0])
+
+        # Else, raise error
+        else:
+            raise FileError("HDF5-file does not have the proper attributes!")
+
+    # If this fails, raise error and provide user with caught error message
+    except Exception as error:
+        raise ValueError("Provided argument 'file_obj' does not appear to be a"
+                         " valid hickle file! (%s)" % (error))
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
-            h5f.close()
+            h5f.file.close()
+
 
 def load_dataset(h_node):
     """ Load a dataset, converting into its correct python type
@@ -549,14 +598,17 @@ def load_dataset(h_node):
     Returns:
         data: reconstructed python object from loaded data
     """
-    py_type = get_type(h_node)
+    py_type, base_type = get_type(h_node)
+    load_loader(py_type)
 
-    try:
-        load_fn = load_dataset_lookup(py_type)
-        return load_fn(h_node)
-    except:
-        raise
-        #raise RuntimeError("Hickle type %s not understood." % py_type)
+    load_fn = load_dataset_lookup(base_type)
+    data = load_fn(h_node)
+
+    # If data is not py_type yet, convert to it (unless it is pickle)
+    if base_type != b'pickle' and type(data) != py_type:
+        data = py_type(data)
+    return data
+
 
 def _load(py_container, h_group):
     """ Load a hickle file
@@ -566,27 +618,30 @@ def _load(py_container, h_group):
     Args:
         py_container (PyContainer): Python container to load data into
         h_group (h5 group or dataset): h5py object, group or dataset, to spider
-                and load all datasets.
+            and load all datasets.
     """
 
-    group_dtype   = h5._hl.group.Group
-    dataset_dtype = h5._hl.dataset.Dataset
-
-    #either a file, group, or dataset
-    if isinstance(h_group, (H5FileWrapper, group_dtype)):
+    # Either a file, group, or dataset
+    if isinstance(h_group, h5._hl.group.Group):
 
         py_subcontainer = PyContainer()
-        try:
-            py_subcontainer.container_type = bytes(h_group.attrs['type'][0])
-        except KeyError:
-            raise
-            #py_subcontainer.container_type = ''
+        py_subcontainer.container_base_type = bytes(h_group.attrs['base_type'])
+
         py_subcontainer.name = h_group.name
 
-        if py_subcontainer.container_type == b'dict_item':
-            py_subcontainer.key_type = h_group.attrs['key_type']
+        if py_subcontainer.container_base_type == b'dict_item':
+            py_subcontainer.key_base_type = h_group.attrs['key_base_type']
+            py_obj_type = pickle.loads(h_group.attrs['key_type'])
+            py_subcontainer.key_type = py_obj_type
+            py_subcontainer.key_idx = h_group.attrs['key_idx']
+        else:
+            py_obj_type = pickle.loads(h_group.attrs['type'])
+            py_subcontainer.container_type = py_obj_type
 
-        if py_subcontainer.container_type not in types_not_to_sort:
+        # Check if we have an unloaded loader for the provided py_obj
+        load_loader(py_obj_type)
+
+        if py_subcontainer.container_base_type not in types_not_to_sort:
             h_keys = sort_keys(h_group.keys())
         else:
             h_keys = h_group.keys()
