@@ -1,6 +1,7 @@
 # %% IMPORTS
 # Built-in imports
 import glob
+from os import path
 import warnings
 
 # Package imports
@@ -12,7 +13,8 @@ import hickle as hkl
 
 # %% FUNCTION DEFINITIONS
 def test_legacy_load():
-    filelist = sorted(glob.glob('legacy_hkls/*.hkl'))
+    dirpath = path.dirname(__file__)
+    filelist = sorted(glob.glob(path.join(dirpath, 'legacy_hkls/*.hkl')))
 
     # Make all warnings show
     warnings.simplefilter("always")

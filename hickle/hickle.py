@@ -290,10 +290,7 @@ def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
     create_dataset, base_type = create_dataset_lookup(py_obj)
 
     # Set the name of this dataset
-    if isinstance(call_id, str):
-        name = call_id
-    else:
-        name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
+    name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
 
     # do the creation
     h_subgroup = create_dataset(py_obj, h_group, name, **kwargs)
@@ -501,7 +498,7 @@ def load(file_obj, path='/', safe=True):
         # Check if the proper attributes for v3 loading are available
         if all(map(h_root_group.attrs.get, v3_attrs)):
             # Check if group attribute 'CLASS' has value 'hickle
-            if(h_root_group.attrs.get('CLASS') != b'hickle'):
+            if(h_root_group.attrs['CLASS'] != b'hickle'):  # pragma: no cover
                 # If not, raise error
                 raise AttributeError("HDF5-file attribute 'CLASS' does not "
                                      "have value 'hickle'!")
@@ -511,13 +508,13 @@ def load(file_obj, path='/', safe=True):
                 major_version = int(h_root_group.attrs['VERSION'][0])
 
             # If this cannot be done, then this is not a v3 file
-            except Exception:
+            except Exception:  # pragma: no cover
                 raise Exception("This file does not appear to be a hickle v3 "
                                 "file.")
 
             # Else, if the major version is not 3, it is not a v3 file either
             else:
-                if(major_version != 3):
+                if(major_version != 3):  # pragma: no cover
                     raise Exception("This file does not appear to be a hickle "
                                     "v3 file.")
 
@@ -535,11 +532,11 @@ def load(file_obj, path='/', safe=True):
             return(py_container[0])
 
         # Else, raise error
-        else:
+        else:  # pragma: no cover
             raise FileError("HDF5-file does not have the proper attributes!")
 
     # If this fails, raise error and provide user with caught error message
-    except Exception as error:
+    except Exception as error:  # pragma: no cover
         raise ValueError("Provided argument 'file_obj' does not appear to be a"
                          " valid hickle file! (%s)" % (error))
     finally:

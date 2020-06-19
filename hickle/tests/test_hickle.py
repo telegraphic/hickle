@@ -230,11 +230,36 @@ def test_object_numpy():
     https://github.com/telegraphic/hickle/issues/90"""
 
     arr = np.array([[NESTED_DICT], ('What is this?',), {1, 2, 3, 7, 1}])
-
     dump(arr, 'test.hdf5')
     arr_hkl = load('test.hdf5')
-
     assert np.all(arr == arr_hkl)
+
+    arr2 = np.array(NESTED_DICT)
+    dump(arr2, 'test.hdf5')
+    arr_hkl2 = load('test.hdf5')
+    assert np.all(arr2 == arr_hkl2)
+
+
+def test_string_numpy():
+    """ Dumping and loading NumPy arrays containing Python 3 strings. """
+
+    arr = np.array(["1313e", "was", "maybe?", "here"])
+    dump(arr, 'test.hdf5')
+    arr_hkl = load('test.hdf5')
+    assert np.all(arr == arr_hkl)
+
+
+def test_list_object_numpy():
+    """ Dumping and loading a list of NumPy arrays with objects.
+
+    https://github.com/telegraphic/hickle/issues/90"""
+
+    lst = [np.array(NESTED_DICT), np.array([('What is this?',),
+                                            {1, 2, 3, 7, 1}])]
+    dump(lst, 'test.hdf5')
+    lst_hkl = load('test.hdf5')
+    assert np.all(lst[0] == lst_hkl[0])
+    assert np.all(lst[1] == lst_hkl[1])
 
 
 def test_dict():
@@ -902,6 +927,8 @@ if __name__ == '__main__':
     test_non_empty_group()
     test_numpy_dtype()
     test_object_numpy()
+    test_string_numpy()
+    test_list_object_numpy()
 
     # Cleanup
     print("ALL TESTS PASSED!")
