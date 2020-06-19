@@ -11,10 +11,8 @@ Unit tests for hickle module.
 # %% IMPORTS
 # Built-in imports
 from collections import OrderedDict as odict
-import hashlib
 import os
 from pprint import pprint
-import time
 
 # Package imports
 import h5py
@@ -47,8 +45,6 @@ NESTED_DICT = {
         "level2_2": [4, 5, 6]
     }
 }
-
-DUMP_CACHE = []             # Used in test_track_times()
 
 
 # %% HELPER DEFINITIONS
@@ -397,43 +393,6 @@ def test_np_float():
     print(dd)
     for dt in dtype_list:
         assert dd[str(dt)] == dd_hkl[str(dt)]
-
-
-def md5sum(filename, blocksize=65536):
-    """ Compute MD5 sum for a given file """
-    hash = hashlib.md5()
-
-    with open(filename, "r+b") as f:
-        for block in iter(lambda: f.read(blocksize), b""):
-            hash.update(block)
-    return hash.hexdigest()
-
-
-def caching_dump(obj, filename, *args, **kwargs):
-    """ Save arguments of all dump calls """
-    DUMP_CACHE.append((obj, filename, args, kwargs))
-    return dump(obj, filename, *args, **kwargs)
-
-
-def test_track_times():
-    """ Verify that track_times = False produces identical files """
-    hashes = []
-    for obj, filename, mode, kwargs in DUMP_CACHE:
-        if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.filename)
-        kwargs['track_times'] = False
-        caching_dump(obj, filename, mode, **kwargs)
-        hashes.append(md5sum(filename))
-
-    time.sleep(1)
-
-    for hash1, (obj, filename, mode, kwargs) in zip(hashes, DUMP_CACHE):
-        if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.filename)
-        caching_dump(obj, filename, mode, **kwargs)
-        hash2 = md5sum(filename)
-        print(hash1, hash2)
-        assert hash1 == hash2
 
 
 def test_comp_kwargs():
@@ -902,7 +861,6 @@ if __name__ == '__main__':
     test_comp_kwargs()
     test_list_numpy()
     test_tuple_numpy()
-    test_track_times()
     test_list_order()
     test_embedded_array()
     test_np_float()

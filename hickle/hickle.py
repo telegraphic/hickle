@@ -68,43 +68,8 @@ class ToDoError(Exception):     # pragma: no cover
         return "Error: this functionality hasn't been implemented yet."
 
 
-######################
-# H5PY file wrappers #
-######################
-
-class H5GroupWrapper(h5.Group):
-    """ Group wrapper that provides a track_times kwarg.
-
-    track_times is a boolean flag that can be set to False, so that two
-    files created at different times will have identical MD5 hashes.
-    """
-    def create_dataset(self, *args, **kwargs):
-        kwargs['track_times'] = getattr(self, 'track_times', True)
-        return super(H5GroupWrapper, self).create_dataset(*args, **kwargs)
-
-    def create_group(self, *args, **kwargs):
-        group = super(H5GroupWrapper, self).create_group(*args, **kwargs)
-        group.__class__ = H5GroupWrapper
-        group.track_times = getattr(self, 'track_times', True)
-        return group
-
-
-class H5FileWrapper(h5.File):
-    """ Wrapper for h5py File that provides a track_times kwarg.
-
-    track_times is a boolean flag that can be set to False, so that two
-    files created at different times will have identical MD5 hashes.
-    """
-
-    def create_group(self, *args, **kwargs):
-        group = super(H5FileWrapper, self).create_group(*args, **kwargs)
-        group.__class__ = H5GroupWrapper
-        group.track_times = getattr(self, 'track_times', True)
-        return group
-
-
 # %% FUNCTION DEFINITIONS
-def file_opener(f, path, mode='r', track_times=True):
+def file_opener(f, path, mode='r'):
     """
     A file opener helper function with some error handling.
     This can open files through a file object, an h5py file, or just the
@@ -124,9 +89,6 @@ def file_opener(f, path, mode='r', track_times=True):
         Accepted values are 'r' (read only), 'w' (write; default) or 'a'
         (append).
         Ignored if file is a file object.
-    track_times : bool, optional
-        If set to *True* (default), repeated hickling will produce different
-        files.
 
     """
 
@@ -154,7 +116,7 @@ def file_opener(f, path, mode='r', track_times=True):
                                   "either a filename string, a file object, or"
                                   "an open HDF5-file")
         path = ''.join([f.name, path])
-        h5f = f
+        h5f = f.file
 
         if path.endswith('/'):
             path = path[:-1]
@@ -167,11 +129,6 @@ def file_opener(f, path, mode='r', track_times=True):
         raise FileError("Cannot open file. Please pass either a filename "
                         "string, a file object, or a h5py.File")
 
-    if isinstance(h5f, h5._hl.files.File):
-        h5f.__class__ = H5FileWrapper
-    else:
-        h5f.__class__ = H5GroupWrapper
-    h5f.track_times = track_times
     return(h5f, path, close_flag)
 
 
@@ -232,7 +189,7 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
         create_hkl_dataset(py_obj, h_group, call_id, **kwargs)
 
 
-def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
+def dump(py_obj, file_obj, mode='w', path='/', **kwargs):
     """
     Write a hickled representation of `py_obj` to the provided `file_obj`.
 
@@ -253,9 +210,6 @@ def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
     path : str, optional
         Path within HDF5-file or group to save data to.
         Defaults to root ('/').
-    track_times : bool, optional
-        If set to *True* (default), repeated hickling will produce different
-        files.
     kwargs : keyword arguments
         Additional keyword arguments that must be provided to the
         :meth:`~h5py._hl.group.Group.create_dataset` method.
@@ -268,7 +222,7 @@ def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
 
     try:
         # Open the file
-        h5f, path, close_flag = file_opener(file_obj, path, mode, track_times)
+        h5f, path, close_flag = file_opener(file_obj, path, mode)
 
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
@@ -294,7 +248,7 @@ def dump(py_obj, file_obj, mode='w', path='/', track_times=True, **kwargs):
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
-            h5f.file.close()
+            h5f.close()
 
 
 def create_dataset_lookup(py_obj):
@@ -531,7 +485,7 @@ def load(file_obj, path='/', safe=True):
 
     # Try to read the provided file_obj as a hickle file
     try:
-        h5f, path, close_flag = file_opener(file_obj, path)
+        h5f, path, close_flag = file_opener(file_obj, path, 'r')
         h_root_group = h5f.get(path)
 
         # Define attributes h_root_group must have
@@ -586,7 +540,7 @@ def load(file_obj, path='/', safe=True):
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
-            h5f.file.close()
+            h5f.close()
 
 
 def load_dataset(h_node):
