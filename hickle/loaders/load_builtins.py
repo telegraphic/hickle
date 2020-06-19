@@ -65,7 +65,7 @@ def create_listlike_dataset(py_obj, h_group, name, **kwargs):
     # is only called if all elements have same dtype
     py3_str_type = None
     if type(obj[0]) in (str, bytes):
-        py3_str_type = bytes(str(type(obj[0])), 'ascii')
+        py3_str_type = bytes(type(obj[0]).__name__, 'ascii')
 
     if type(obj[0]) is str:
         obj = [bytes(oo, 'utf8') for oo in obj]
@@ -150,10 +150,10 @@ def load_list_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
     py3_str_type = get_py3_string_type(h_node)
 
-    if py3_str_type == b"<class 'bytes'>":
+    if py3_str_type == b'bytes':
         # Yuck. Convert numpy._bytes -> str -> bytes
         return [bytes(str(item, 'utf8'), 'utf8') for item in data]
-    if py3_str_type == b"<class 'str'>":
+    if py3_str_type == b'str':
         return [str(item, 'utf8') for item in data]
     else:
         return list(data)

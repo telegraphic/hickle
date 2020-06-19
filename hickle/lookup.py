@@ -60,7 +60,7 @@ hkl_types_dict = {}
 # Define list of types that should never be sorted
 types_not_to_sort = []
 
-# Empty list of loaded loaders
+# Empty list of loaded loader names
 loaded_loaders = []
 
 # Define dict containing validation functions for ndarray-like objects
@@ -73,7 +73,8 @@ dict_key_types_dict = {
     b'bool': bool,
     b'int': int,
     b'complex': complex,
-    b'tuple': literal_eval
+    b'tuple': literal_eval,
+    b'NoneType': literal_eval,
     }
 
 
@@ -175,12 +176,12 @@ def load_loader(py_obj):
         # If any module is not found, catch error and check it
         except ImportError as error:
             # Check if the error was due to a package in loader not being found
-            if 'hickle' not in error.args[0]:
+            if 'hickle' not in error.args[0]:   # pragma: no cover
                 # If so, reraise the error
                 raise
         # If such a loader does exist, register classes and return
         else:
             list(starmap(register_class, loader.class_register))
             list(map(register_class_exclude, loader.exclude_register))
-            loaded_loaders.append(loader)
+            loaded_loaders.append(loader_name)
             return

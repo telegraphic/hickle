@@ -86,8 +86,17 @@ class with_state(object):
 
 
 # %% FUNCTION DEFINITIONS
+def test_invalid_file():
+    """ Test if trying to use a non-file object fails. """
+
+    with pytest.raises(hickle.FileError):
+        dump('test', ())
+
+
 def test_state_obj():
-    """ Dumping and loading a class object with pickle states """
+    """ Dumping and loading a class object with pickle states
+
+    https://github.com/telegraphic/hickle/issues/125"""
     filename, mode = 'test.h5', 'w'
     obj = with_state()
     with pytest.warns(loaders.load_builtins.SerializedWarning):
@@ -98,7 +107,9 @@ def test_state_obj():
 
 
 def test_local_func():
-    """ Dumping and loading a local function """
+    """ Dumping and loading a local function
+
+    https://github.com/telegraphic/hickle/issues/119"""
     filename, mode = 'test.h5', 'w'
     with pytest.warns(loaders.load_builtins.SerializedWarning):
         dump(func, filename, mode)
@@ -119,17 +130,28 @@ def test_binary_file():
         hickle.dump(None, f)
 
 
+def test_non_empty_group():
+    """ Test if attempting to dump to a group with data fails """
+
+    hickle.dump(None, 'test.hdf5')
+    with pytest.raises(ValueError):
+        dump(None, 'test.hdf5', 'r+')
+
+
 def test_string():
     """ Dumping and loading a string """
     filename, mode = 'test.h5', 'w'
     string_obj = "The quick brown fox jumps over the lazy dog"
     dump(string_obj, filename, mode)
     string_hkl = load(filename)
-    assert type(string_obj) == type(string_hkl) == str
+    assert isinstance(string_hkl, str)
     assert string_obj == string_hkl
 
 
 def test_65bit_int():
+    """ Dumping and loading an integer with arbitrary precision
+
+    https://github.com/telegraphic/hickle/issues/113"""
     i = 2**65-1
     dump(i, 'test.hdf5')
     i_hkl = load('test.hdf5')
@@ -143,7 +165,7 @@ def test_list():
     dump(list_obj, filename, mode=mode)
     list_hkl = load(filename)
     try:
-        assert type(list_obj) == type(list_hkl) == list
+        assert isinstance(list_hkl, list)
         assert list_obj == list_hkl
         import h5py
         a = h5py.File(filename, 'r')
@@ -153,7 +175,7 @@ def test_list():
         print("ERR:", list_obj, list_hkl)
         import h5py
 
-        raise()
+        raise
 
 
 def test_set():
@@ -163,7 +185,7 @@ def test_set():
     dump(list_obj, filename, mode)
     list_hkl = load(filename)
     try:
-        assert type(list_obj) == type(list_hkl) == set
+        assert isinstance(list_hkl, set)
         assert list_obj == list_hkl
     except AssertionError:
         print(type(list_obj))
@@ -240,7 +262,9 @@ def test_dict():
 
 
 def test_odict():
-    """ Test ordered dictionary dumping and loading """
+    """ Test ordered dictionary dumping and loading
+
+    https://github.com/telegraphic/hickle/issues/65"""
     filename, mode = 'test.hdf5', 'w'
 
     od = odict(((3, [3, 0.1]), (7, [5, 0.1]), (5, [3, 0.1])))
@@ -254,7 +278,9 @@ def test_odict():
 
 
 def test_empty_dict():
-    """ Test empty dictionary dumping and loading """
+    """ Test empty dictionary dumping and loading
+
+    https://github.com/telegraphic/hickle/issues/91"""
     filename, mode = 'test.h5', 'w'
 
     dump({}, filename, mode)
@@ -378,7 +404,7 @@ def md5sum(filename, blocksize=65536):
     hash = hashlib.md5()
 
     with open(filename, "r+b") as f:
-        for block in iter(lambda: f.read(blocksize), ""):
+        for block in iter(lambda: f.read(blocksize), b""):
             hash.update(block)
     return hash.hexdigest()
 
@@ -394,7 +420,7 @@ def test_track_times():
     hashes = []
     for obj, filename, mode, kwargs in DUMP_CACHE:
         if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.file_name)
+            filename = str(filename.filename)
         kwargs['track_times'] = False
         caching_dump(obj, filename, mode, **kwargs)
         hashes.append(md5sum(filename))
@@ -403,7 +429,7 @@ def test_track_times():
 
     for hash1, (obj, filename, mode, kwargs) in zip(hashes, DUMP_CACHE):
         if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.file_name)
+            filename = str(filename.filename)
         caching_dump(obj, filename, mode, **kwargs)
         hash2 = md5sum(filename)
         print(hash1, hash2)
@@ -475,6 +501,15 @@ def test_tuple_numpy():
     assert isinstance(dd_hkl[0], np.ndarray)
 
 
+def test_numpy_dtype():
+    """ Dumping and loading a NumPy dtype """
+
+    dtype = np.dtype('float16')
+    dump(dtype, 'test.hdf5')
+    dtype_hkl = load('test.hdf5')
+    assert dtype == dtype_hkl
+
+
 def test_none():
     """ Test None type hickling """
 
@@ -488,21 +523,6 @@ def test_none():
     print(dd_hkl)
 
     assert isinstance(dd_hkl, type(None))
-
-
-def test_dict_none():
-    """ Test None type hickling """
-
-    filename, mode = 'test.h5', 'w'
-
-    a = {'a': 1, 'b': None}
-
-    dump(a, filename, mode)
-    dd_hkl = load(filename)
-    print(a)
-    print(dd_hkl)
-
-    assert isinstance(a['b'], type(None))
 
 
 def test_file_open_close():
@@ -631,24 +651,22 @@ def test_dump_nested():
     dump(z, 'test.hkl', mode='w')
 
 
-def test_with_dump():
+def test_with_open_file():
+    """
+    Testing dumping and loading to an open file
+
+    https://github.com/telegraphic/hickle/issues/92"""
+
     lst = [1]
-    tpl = (1)
+    tpl = (1,)
     dct = {1: 1}
     arr = np.array([1])
 
-    with h5py.File('test.hkl', 'r+') as file:
+    with h5py.File('test.hkl', 'w') as file:
         dump(lst, file, path='/lst')
         dump(tpl, file, path='/tpl')
         dump(dct, file, path='/dct')
         dump(arr, file, path='/arr')
-
-
-def test_with_load():
-    lst = [1]
-    tpl = (1)
-    dct = {1: 1}
-    arr = np.array([1])
 
     with h5py.File('test.hkl', 'r') as file:
         assert load(file, '/lst') == lst
@@ -736,6 +754,10 @@ def test_complex_dict():
 
 
 def test_multi_hickle():
+    """ Dumping to and loading from the same file several times
+
+    https://github.com/telegraphic/hickle/issues/20"""
+
     a = {'a': 123, 'b': [1, 2, 4]}
 
     if os.path.exists("test.hkl"):
@@ -770,16 +792,17 @@ def test_nonstring_keys():
 
     data = {
             u'test': 123,
-            'def': 456,
+            'def': [b'test'],
             'hik': np.array([1, 2, 3]),
             0: 0,
-            True: 'hi',
+            True: ['test'],
             1.1: 'hey',
             1j: 'complex_hashable',
             (1, 2): 'boo',
             ('A', 17.4, 42): [1, 7, 'A'],
             (): '1313e was here',
-            '0': 0
+            '0': 0,
+            None: None
             }
 
     print(data)
@@ -818,7 +841,7 @@ def test_bytes():
     string_hkl = load(filename)
     print(type(string_obj))
     print(type(string_hkl))
-    assert type(string_obj) == type(string_hkl) == bytes
+    assert isinstance(string_hkl, bytes)
     assert string_obj == string_hkl
 
 
@@ -837,8 +860,10 @@ def test_np_scalar():
 
 
 def test_slash_dict_keys():
-    """ Support for having slashes in dict keys """
-    dct = {'a/b': [1, '2'], 'c': 3}
+    """ Support for having slashes in dict keys
+
+    https://github.com/telegraphic/hickle/issues/124"""
+    dct = {'a/b': [1, '2'], 1.4: 3}
 
     dump(dct, 'test.hdf5', 'w')
     dct_hkl = load('test.hdf5')
@@ -846,6 +871,11 @@ def test_slash_dict_keys():
     assert isinstance(dct_hkl, dict)
     for key, val in dct_hkl.items():
         assert val == dct.get(key)
+
+    # Check that having backslashes in dict keys will fail
+    dct2 = {'a\\b': [1, '2'], 1.4: 3}
+    with pytest.raises(ValueError):
+        dump(dct2, 'test.hdf5')
 
 
 # %% MAIN SCRIPT
@@ -858,7 +888,6 @@ if __name__ == '__main__':
     test_complex()
     test_file_open_close()
     test_hdf5_group()
-    test_dict_none()
     test_none()
     test_masked_dict()
     test_list()
@@ -885,8 +914,7 @@ if __name__ == '__main__':
     test_is_iterable()
     test_check_iterable_item_type()
     test_dump_nested()
-    test_with_dump()
-    test_with_load()
+    test_with_open_file()
     test_load()
     test_sort_keys()
     test_ndarray()
@@ -899,5 +927,9 @@ if __name__ == '__main__':
     test_binary_file()
     test_state_obj()
     test_slash_dict_keys()
+    test_invalid_file()
+    test_non_empty_group()
+    test_numpy_dtype()
+
     # Cleanup
     print("ALL TESTS PASSED!")

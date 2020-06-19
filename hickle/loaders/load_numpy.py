@@ -51,13 +51,13 @@ def create_np_dtype(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
-        py_obj: python object to dump; should be a numpy scalar, e.g.
-            np.float16(1)
+        py_obj: python object to dump; should be a numpy dtype, e.g.
+            np.float16
         h_group (h5.File.group): group to dump data into.
         call_id (int): index to identify object's relative location in the
             iterable.
     """
-    d = h_group.create_dataset(name, data=[str(py_obj)])
+    d = h_group.create_dataset(name, data=str(py_obj))
     return(d)
 
 
@@ -108,9 +108,7 @@ def load_ndarray_masked_dataset(h_node):
         mask_path = h_node.name + "_mask"
         h_root = h_node.parent
         mask = h_root.get(mask_path)[:]
-    except IndexError:
-        mask = h_root.get(mask_path)
-    except ValueError:
+    except (ValueError, IndexError):
         mask = h_root.get(mask_path)
     data = np.ma.array(data, mask=mask)
     return data
