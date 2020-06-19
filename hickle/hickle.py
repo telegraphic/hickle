@@ -290,12 +290,15 @@ def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
     create_dataset, base_type = create_dataset_lookup(py_obj)
 
     # Set the name of this dataset
-    name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
+    if isinstance(call_id, str):
+        name = call_id
+    else:
+        name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
 
     # do the creation
     h_subgroup = create_dataset(py_obj, h_group, name, **kwargs)
     h_subgroup.attrs['base_type'] = base_type
-    if base_type != b'pickle':
+    if base_type != b'pickle' and 'type' not in h_subgroup.attrs:
         h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
 
 
@@ -310,7 +313,10 @@ def create_hkl_group(py_obj, h_group, call_id=None):
     """
 
     # Set the name of this group
-    name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
+    if isinstance(call_id, str):
+        name = call_id
+    else:
+        name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
 
     h_subgroup = h_group.create_group(name)
     h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))

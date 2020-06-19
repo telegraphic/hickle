@@ -224,6 +224,19 @@ def test_masked():
         raise
 
 
+def test_object_numpy():
+    """ Dumping and loading a NumPy array containing non-NumPy objects.
+
+    https://github.com/telegraphic/hickle/issues/90"""
+
+    arr = np.array([[NESTED_DICT], ('What is this?',), {1, 2, 3, 7, 1}])
+
+    dump(arr, 'test.hdf5')
+    arr_hkl = load('test.hdf5')
+
+    assert np.all(arr == arr_hkl)
+
+
 def test_dict():
     """ Test dictionary dumping and loading """
     filename, mode = 'test.h5', 'w'
@@ -888,6 +901,7 @@ if __name__ == '__main__':
     test_invalid_file()
     test_non_empty_group()
     test_numpy_dtype()
+    test_object_numpy()
 
     # Cleanup
     print("ALL TESTS PASSED!")

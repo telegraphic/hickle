@@ -13,6 +13,7 @@ import dill as pickle
 
 # hickle imports
 from hickle.helpers import get_type_and_data
+from hickle.hickle import _dump
 
 
 # %% FUNCTION DEFINITIONS
@@ -86,6 +87,22 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
                                    **kwargs)
         m.attrs['type'] = np.array(pickle.dumps(py_obj.mask.__class__))
         m.attrs['base_type'] = b'ndarray_masked_mask'
+    # Check if py_obj contains an object not understood by NumPy
+    elif 'object' in dtype:
+        # If so, convert py_obj to list
+        py_obj = py_obj.tolist()
+
+        # Check if py_obj is a list
+        if isinstance(py_obj, list):
+            # If so, dump py_obj into the current group
+            _dump(py_obj, h_group, name, **kwargs)
+            d = h_group[name]
+            d.attrs['type'] = np.array(pickle.dumps(np.array))
+        else:
+            # If not, create a new group and dump py_obj into that
+            d = h_group.create_group(name)
+            _dump(py_obj, d, **kwargs)
+            d.attrs['type'] = np.array(pickle.dumps(lambda x: np.array(x[0])))
     else:
         d = h_group.create_dataset(name, data=py_obj, **kwargs)
     d.attrs['np_dtype'] = bytes(dtype, 'ascii')
