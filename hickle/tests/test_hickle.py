@@ -869,9 +869,9 @@ def test_slash_dict_keys():
     for key, val in dct_hkl.items():
         assert val == dct.get(key)
 
-    # Check that having backslashes in dict keys will fail
+    # Check that having backslashes in dict keys will serialize the dict
     dct2 = {'a\\b': [1, '2'], 1.4: 3}
-    with pytest.raises(ValueError):
+    with pytest.warns(loaders.load_builtins.SerializedWarning):
         dump(dct2, 'test.hdf5')
 
 

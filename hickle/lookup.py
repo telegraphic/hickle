@@ -27,8 +27,8 @@ object, in HDF5 a unicode/string is required for a dataset name.
 
 Example:
     dict_key_types_dict = {
-        "<class 'str'>": literal_eval,
-        "<class 'float'>": float
+        'str': literal_eval,
+        'float': float
         }
 
 ## Extending hickle to add support for other classes and types

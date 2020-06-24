@@ -292,9 +292,30 @@ def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
     # Set the name of this dataset
     name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
 
-    # do the creation
-    h_subgroup = create_dataset(py_obj, h_group, name, **kwargs)
+    # Try to create the dataset
+    try:
+        h_subgroup = create_dataset(py_obj, h_group, name, **kwargs)
+    # If that fails, pickle the object instead
+    except Exception as error:
+        # Make sure builtins loader is loaded
+        load_loader(object)
+
+        # Obtain the proper dataset creator and base type
+        create_dataset, base_type = types_dict[object]
+
+        # Make sure that a group/dataset with name 'name' does not exist
+        try:
+            del h_group[name]
+        except Exception:
+            pass
+
+        # Create the pickled dataset
+        h_subgroup = create_dataset(py_obj, h_group, name, error, **kwargs)
+
+    # Save base type of py_obj
     h_subgroup.attrs['base_type'] = base_type
+
+    # Save a pickled version of the true type of py_obj if necessary
     if base_type != b'pickle' and 'type' not in h_subgroup.attrs:
         h_subgroup.attrs['type'] = np.array(pickle.dumps(py_obj.__class__))
 
@@ -336,20 +357,18 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
         call_id (int): index to identify object's relative location in the
             iterable.
     """
+
     h_dictgroup = h_group.create_group(name)
 
     for idx, (key, py_subobj) in enumerate(py_obj.items()):
-        # Obtain the string representation of this key
-        if isinstance(key, str):
-            # Get raw string format of string
-            subgroup_key = "%r" % (key)
+        # Obtain the raw string representation of this key
+        subgroup_key = "%r" % (key)
 
-            # Make sure that the '\\\\' is not in the key, or raise error if so
-            if '\\\\' in subgroup_key:
-                raise ValueError("Dict item keys containing the '\\\\' string "
-                                 "are not supported!")
-        else:
-            subgroup_key = str(key)
+        # Make sure that the '\\\\' is not in the key, or raise error if so
+        if '\\\\' in subgroup_key:
+            del h_group[name]
+            raise ValueError("Dict item keys containing the '\\\\' string are "
+                             "not supported!")
 
         # Replace any forward slashes with double backslashes
         subgroup_key = subgroup_key.replace('/', '\\\\')
