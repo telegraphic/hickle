@@ -105,7 +105,7 @@ def create_pickled_dataset(py_obj, h_group, name, reason=None, **kwargs):
         call_id (int): index to identify object's relative location in the
             iterable.
     """
-    reason_str = " (%s)" % (reason) if reason is not None else ""
+    reason_str = " (Reason: %s)" % (reason) if reason is not None else ""
     pickled_obj = pickle.dumps(py_obj)
     d = h_group.create_dataset(name, data=np.array(pickled_obj), **kwargs)
 
