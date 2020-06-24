@@ -11,10 +11,8 @@ Unit tests for hickle module.
 # %% IMPORTS
 # Built-in imports
 from collections import OrderedDict as odict
-import hashlib
 import os
 from pprint import pprint
-import time
 
 # Package imports
 import h5py
@@ -47,8 +45,6 @@ NESTED_DICT = {
         "level2_2": [4, 5, 6]
     }
 }
-
-DUMP_CACHE = []             # Used in test_track_times()
 
 
 # %% HELPER DEFINITIONS
@@ -228,6 +224,44 @@ def test_masked():
         raise
 
 
+def test_object_numpy():
+    """ Dumping and loading a NumPy array containing non-NumPy objects.
+
+    https://github.com/telegraphic/hickle/issues/90"""
+
+    arr = np.array([[NESTED_DICT], ('What is this?',), {1, 2, 3, 7, 1}])
+    dump(arr, 'test.hdf5')
+    arr_hkl = load('test.hdf5')
+    assert np.all(arr == arr_hkl)
+
+    arr2 = np.array(NESTED_DICT)
+    dump(arr2, 'test.hdf5')
+    arr_hkl2 = load('test.hdf5')
+    assert np.all(arr2 == arr_hkl2)
+
+
+def test_string_numpy():
+    """ Dumping and loading NumPy arrays containing Python 3 strings. """
+
+    arr = np.array(["1313e", "was", "maybe?", "here"])
+    dump(arr, 'test.hdf5')
+    arr_hkl = load('test.hdf5')
+    assert np.all(arr == arr_hkl)
+
+
+def test_list_object_numpy():
+    """ Dumping and loading a list of NumPy arrays with objects.
+
+    https://github.com/telegraphic/hickle/issues/90"""
+
+    lst = [np.array(NESTED_DICT), np.array([('What is this?',),
+                                            {1, 2, 3, 7, 1}])]
+    dump(lst, 'test.hdf5')
+    lst_hkl = load('test.hdf5')
+    assert np.all(lst[0] == lst_hkl[0])
+    assert np.all(lst[1] == lst_hkl[1])
+
+
 def test_dict():
     """ Test dictionary dumping and loading """
     filename, mode = 'test.h5', 'w'
@@ -397,43 +431,6 @@ def test_np_float():
     print(dd)
     for dt in dtype_list:
         assert dd[str(dt)] == dd_hkl[str(dt)]
-
-
-def md5sum(filename, blocksize=65536):
-    """ Compute MD5 sum for a given file """
-    hash = hashlib.md5()
-
-    with open(filename, "r+b") as f:
-        for block in iter(lambda: f.read(blocksize), b""):
-            hash.update(block)
-    return hash.hexdigest()
-
-
-def caching_dump(obj, filename, *args, **kwargs):
-    """ Save arguments of all dump calls """
-    DUMP_CACHE.append((obj, filename, args, kwargs))
-    return dump(obj, filename, *args, **kwargs)
-
-
-def test_track_times():
-    """ Verify that track_times = False produces identical files """
-    hashes = []
-    for obj, filename, mode, kwargs in DUMP_CACHE:
-        if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.filename)
-        kwargs['track_times'] = False
-        caching_dump(obj, filename, mode, **kwargs)
-        hashes.append(md5sum(filename))
-
-    time.sleep(1)
-
-    for hash1, (obj, filename, mode, kwargs) in zip(hashes, DUMP_CACHE):
-        if isinstance(filename, hickle.H5FileWrapper):
-            filename = str(filename.filename)
-        caching_dump(obj, filename, mode, **kwargs)
-        hash2 = md5sum(filename)
-        print(hash1, hash2)
-        assert hash1 == hash2
 
 
 def test_comp_kwargs():
@@ -872,9 +869,9 @@ def test_slash_dict_keys():
     for key, val in dct_hkl.items():
         assert val == dct.get(key)
 
-    # Check that having backslashes in dict keys will fail
+    # Check that having backslashes in dict keys will serialize the dict
     dct2 = {'a\\b': [1, '2'], 1.4: 3}
-    with pytest.raises(ValueError):
+    with pytest.warns(loaders.load_builtins.SerializedWarning):
         dump(dct2, 'test.hdf5')
 
 
@@ -902,7 +899,6 @@ if __name__ == '__main__':
     test_comp_kwargs()
     test_list_numpy()
     test_tuple_numpy()
-    test_track_times()
     test_list_order()
     test_embedded_array()
     test_np_float()
@@ -930,6 +926,9 @@ if __name__ == '__main__':
     test_invalid_file()
     test_non_empty_group()
     test_numpy_dtype()
+    test_object_numpy()
+    test_string_numpy()
+    test_list_object_numpy()
 
     # Cleanup
     print("ALL TESTS PASSED!")

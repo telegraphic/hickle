@@ -13,6 +13,7 @@ import dill as pickle
 
 # hickle imports
 from hickle.helpers import get_type_and_data
+from hickle.hickle import _dump
 
 
 # %% FUNCTION DEFINITIONS
@@ -41,7 +42,7 @@ def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
             iterable.
     """
 
-    d = h_group.create_dataset(name, data=py_obj)
+    d = h_group.create_dataset(name, data=py_obj, **kwargs)
 
     d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
     return(d)
@@ -57,7 +58,7 @@ def create_np_dtype(py_obj, h_group, name, **kwargs):
         call_id (int): index to identify object's relative location in the
             iterable.
     """
-    d = h_group.create_dataset(name, data=str(py_obj))
+    d = h_group.create_dataset(name, data=str(py_obj), **kwargs)
     return(d)
 
 
@@ -71,14 +72,40 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
         call_id (int): index to identify object's relative location in the
             iterable.
     """
+
+    # Obtain dtype of py_obj
+    dtype = str(py_obj.dtype)
+
+    # Check if py_obj contains strings
+    if '<U' in dtype:
+        # If so, convert the array to one with bytes
+        py_obj = np.array(py_obj, dtype=dtype.replace('<U', '|S'))
+
     if isinstance(py_obj, np.ma.core.MaskedArray):
         d = h_group.create_dataset(name, data=py_obj, **kwargs)
         m = h_group.create_dataset('%s_mask' % name, data=py_obj.mask,
                                    **kwargs)
         m.attrs['type'] = np.array(pickle.dumps(py_obj.mask.__class__))
         m.attrs['base_type'] = b'ndarray_masked_mask'
+    # Check if py_obj contains an object not understood by NumPy
+    elif 'object' in dtype:
+        # If so, convert py_obj to list
+        py_obj = py_obj.tolist()
+
+        # Check if py_obj is a list
+        if isinstance(py_obj, list):
+            # If so, dump py_obj into the current group
+            _dump(py_obj, h_group, name, **kwargs)
+            d = h_group[name]
+            d.attrs['type'] = np.array(pickle.dumps(np.array))
+        else:
+            # If not, create a new group and dump py_obj into that
+            d = h_group.create_group(name)
+            _dump(py_obj, d, **kwargs)
+            d.attrs['type'] = np.array(pickle.dumps(lambda x: np.array(x[0])))
     else:
         d = h_group.create_dataset(name, data=py_obj, **kwargs)
+    d.attrs['np_dtype'] = bytes(dtype, 'ascii')
     return(d)
 
 
@@ -99,18 +126,20 @@ def load_np_scalar_dataset(h_node):
 
 def load_ndarray_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
-    return np.array(data, copy=False)
+    dtype = h_node.attrs['np_dtype']
+    return np.array(data, copy=False, dtype=dtype)
 
 
 def load_ndarray_masked_dataset(h_node):
     _, _, data = get_type_and_data(h_node)
+    dtype = h_node.attrs['np_dtype']
     try:
         mask_path = h_node.name + "_mask"
         h_root = h_node.parent
         mask = h_root.get(mask_path)[:]
     except (ValueError, IndexError):
         mask = h_root.get(mask_path)
-    data = np.ma.array(data, mask=mask)
+    data = np.ma.array(data, mask=mask, dtype=dtype)
     return data
 
 

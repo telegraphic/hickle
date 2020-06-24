@@ -23,7 +23,8 @@ def create_astropy_quantity(py_obj, h_group, name, **kwargs):
             iterable.
     """
 
-    d = h_group.create_dataset(name, data=py_obj.value, dtype='float64')
+    d = h_group.create_dataset(name, data=py_obj.value, dtype='float64',
+                               **kwargs)
     unit = bytes(str(py_obj.unit), 'ascii')
     d.attrs['unit'] = unit
     return(d)
@@ -40,7 +41,8 @@ def create_astropy_angle(py_obj, h_group, name, **kwargs):
             iterable.
     """
 
-    d = h_group.create_dataset(name, data=py_obj.value, dtype='float64')
+    d = h_group.create_dataset(name, data=py_obj.value, dtype='float64',
+                               **kwargs)
     unit = str(py_obj.unit).encode('ascii')
     d.attrs['unit'] = unit
     return(d)
@@ -61,7 +63,7 @@ def create_astropy_skycoord(py_obj, h_group, name, **kwargs):
     lon = py_obj.data.lon.value
     dd = np.column_stack((lon, lat))
 
-    d = h_group.create_dataset(name, data=dd, dtype='float64')
+    d = h_group.create_dataset(name, data=dd, dtype='float64', **kwargs)
     lon_unit = str(py_obj.data.lon.unit).encode('ascii')
     lat_unit = str(py_obj.data.lat.unit).encode('ascii')
     d.attrs['lon_unit'] = lon_unit
@@ -91,7 +93,7 @@ def create_astropy_time(py_obj, h_group, name, **kwargs):
         for item in py_obj.value:
             data.append(str(item).encode('ascii'))
 
-    d = h_group.create_dataset(name, data=data, dtype=dtype)
+    d = h_group.create_dataset(name, data=data, dtype=dtype, **kwargs)
     fmt = str(py_obj.format).encode('ascii')
     scale = str(py_obj.scale).encode('ascii')
     d.attrs['format'] = fmt
@@ -111,7 +113,8 @@ def create_astropy_constant(py_obj, h_group, name, **kwargs):
             iterable.
     """
 
-    d = h_group.create_dataset(name, data=py_obj.value, dtype='float64')
+    d = h_group.create_dataset(name, data=py_obj.value, dtype='float64',
+                               **kwargs)
     d.attrs["unit"] = str(py_obj.unit)
     d.attrs["abbrev"] = str(py_obj.abbrev)
     d.attrs["name"] = str(py_obj.name)
