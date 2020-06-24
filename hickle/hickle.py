@@ -168,7 +168,7 @@ def _dump(py_obj, h_group, call_id=None, **kwargs):
         item_type = check_iterable_item_type(py_obj)
 
         # item_type == False implies multiple types. Create a dataset
-        if item_type is False:
+        if not item_type:
             h_subgroup = create_hkl_group(py_obj, h_group, call_id)
             for ii, py_subobj in enumerate(py_obj):
                 _dump(py_subobj, h_subgroup, call_id=ii, **kwargs)

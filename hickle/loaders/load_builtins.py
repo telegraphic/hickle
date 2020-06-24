@@ -97,7 +97,7 @@ def create_python_dtype_dataset(py_obj, h_group, name, **kwargs):
         py_obj = bytes(str(py_obj), 'ascii')
 
     # kwarg compression etc does not work on scalars
-    d = h_group.create_dataset(name, data=py_obj)
+    d = h_group.create_dataset(name, data=py_obj, **kwargs)
     d.attrs['python_subdtype'] = subdtype
     return(d)
 
@@ -139,7 +139,7 @@ def create_pickled_dataset(py_obj, h_group, name, **kwargs):
             iterable.
     """
     pickled_obj = pickle.dumps(py_obj)
-    d = h_group.create_dataset(name, data=np.array(pickled_obj))
+    d = h_group.create_dataset(name, data=np.array(pickled_obj), **kwargs)
 
     warnings.warn("%s type not understood, data have been serialized"
                   % (type(py_obj)), SerializedWarning)
