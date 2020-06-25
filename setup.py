@@ -12,7 +12,7 @@ import re
 from setuptools import setup, find_packages
 import sys
 
-author  = "Danny Price, Ellert van der Velden and contributors"
+author = "Danny Price, Ellert van der Velden and contributors"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -38,7 +38,8 @@ setup(name='hickle',
       author=author,
       author_email='dan@thetelegraphic.com',
       url='http://github.com/telegraphic/hickle',
-      download_url='https://github.com/telegraphic/hickle/archive/%s.tar.gz' % version,
+      download_url=('https://github.com/telegraphic/hickle/archive/v%s.zip'
+                    % (version)),
       platforms='Cross platform (Linux, Mac OSX, Windows)',
       classifiers=[
           'Development Status :: 5 - Production/Stable',

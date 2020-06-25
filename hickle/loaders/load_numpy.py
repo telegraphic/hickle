@@ -79,7 +79,7 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
     # Check if py_obj contains strings
     if '<U' in dtype:
         # If so, convert the array to one with bytes
-        py_obj = np.array(py_obj, dtype=dtype.replace('<U', '|S'))
+        py_obj = np.asanyarray(py_obj, dtype=dtype.replace('<U', '|S'))
 
     if isinstance(py_obj, np.ma.core.MaskedArray):
         d = h_group.create_dataset(name, data=py_obj, **kwargs)
