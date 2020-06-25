@@ -41,7 +41,7 @@ setup(name='hickle',
       download_url='https://github.com/telegraphic/hickle/archive/%s.tar.gz' % version,
       platforms='Cross platform (Linux, Mac OSX, Windows)',
       classifiers=[
-          'Development Status :: 5 - Stable',
+          'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Developers',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved',
