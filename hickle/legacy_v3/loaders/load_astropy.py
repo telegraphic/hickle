@@ -55,7 +55,7 @@ def create_astropy_skycoord(py_obj, h_group, call_id=0, **kwargs):
     # kwarg compression etc does not work on scalars
     lat = py_obj.data.lat.value
     lon = py_obj.data.lon.value
-    dd = np.stack((lon, lat), axis=-1)
+    dd = np.column_stack((lon, lat))
 
     d = h_group.create_dataset('data_%i' % call_id, data=dd,
                                dtype='float64')     #, **kwargs)
@@ -171,7 +171,7 @@ def load_astropy_skycoord_dataset(h_node):
     py_type, data = get_type_and_data(h_node)
     lon_unit = h_node.attrs["lon_unit"][0]
     lat_unit = h_node.attrs["lat_unit"][0]
-    q = SkyCoord(data[..., 0], data[..., 1], unit=(lon_unit, lat_unit))
+    q = SkyCoord(data[:,0], data[:, 1], unit=(lon_unit, lat_unit))
     return q
 
 def load_astropy_constant_dataset(h_node):
