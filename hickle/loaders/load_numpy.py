@@ -42,7 +42,7 @@ def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
             iterable.
     """
 
-    d = h_group.create_dataset(name, data=py_obj, **kwargs)
+    d = h_group.create_dataset(name, data=py_obj)
 
     d.attrs["np_dtype"] = bytes(str(d.dtype), 'ascii')
     return(d)
