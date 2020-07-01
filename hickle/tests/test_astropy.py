@@ -120,21 +120,43 @@ def test_astropy_angle_array():
 
 
 def test_astropy_skycoord():
-    ra = Angle(['1d20m', '1d21m'], unit='degree')
-    dec = Angle(['33d0m0s', '33d01m'], unit='degree')
+    ra = Angle('1d20m', unit='degree')
+    dec = Angle('33d0m0s', unit='degree')
     radec = SkyCoord(ra, dec)
     hkl.dump(radec, "test_ap.h5")
     radec2 = hkl.load("test_ap.h5")
-    assert np.allclose(radec.ra.value, radec2.ra.value)
-    assert np.allclose(radec.dec.value, radec2.dec.value)
+    assert radec.ra == radec2.ra
+    assert radec.dec == radec2.dec
 
-    ra = Angle(['1d20m', '1d21m'], unit='hourangle')
-    dec = Angle(['33d0m0s', '33d01m'], unit='degree')
+    ra = Angle('1d20m', unit='hourangle')
+    dec = Angle('33d0m0s', unit='degree')
+    radec = SkyCoord(ra, dec)
+    hkl.dump(radec, "test_ap.h5")
+    radec2 = hkl.load("test_ap.h5")
+    assert radec.ra == radec2.ra
+    assert radec.dec == radec2.dec
+
+
+def test_astropy_skycoord_array():
+    ra = Angle(['1d20m', '0d21m'], unit='degree')
+    dec = Angle(['33d0m0s', '-33d01m'], unit='degree')
     radec = SkyCoord(ra, dec)
     hkl.dump(radec, "test_ap.h5")
     radec2 = hkl.load("test_ap.h5")
     assert np.allclose(radec.ra.value, radec2.ra.value)
     assert np.allclose(radec.dec.value, radec2.dec.value)
+    assert radec.ra.shape == radec2.ra.shape
+    assert radec.dec.shape == radec2.dec.shape
+
+    ra = Angle([['1d20m', '0d21m'], ['1d20m', '0d21m']], unit='hourangle')
+    dec = Angle([['33d0m0s', '33d01m'], ['33d0m0s', '33d01m']], unit='degree')
+    radec = SkyCoord(ra, dec)
+    hkl.dump(radec, "test_ap.h5")
+    radec2 = hkl.load("test_ap.h5")
+    assert np.allclose(radec.ra.value, radec2.ra.value)
+    assert np.allclose(radec.dec.value, radec2.dec.value)
+    assert radec.ra.shape == radec2.ra.shape
+    assert radec.dec.shape == radec2.dec.shape
 
 
 # %% MAIN SCRIPT
@@ -147,3 +169,4 @@ if __name__ == "__main__":
     test_astropy_angle()
     test_astropy_angle_array()
     test_astropy_skycoord()
+    test_astropy_skycoord_array()
