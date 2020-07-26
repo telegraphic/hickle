@@ -56,9 +56,6 @@ import numpy as np
 # hickle imports
 from .helpers import PyContainer,not_dumpable,nobody_is_my_name
 
-# hickle import
-from hickle.helpers import get_mro_list
-
 
 # %% GLOBALS
 # Define dict of all acceptable types

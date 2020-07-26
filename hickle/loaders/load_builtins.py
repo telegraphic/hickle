@@ -52,7 +52,7 @@ def create_scalar_dataset(py_obj, h_group, name, **kwargs):
     """
 
     # If py_obj is an integer and cannot be stored in 64-bits, convert to str
-    if isinstance(py_obj, int) and (py_obj.bit_length() > 64):
+    if isinstance(py_obj, int) and (py_obj.bit_length() > 63) and ( py_obj < -2**63 or py_obj >= 2**63 ) :
         return h_group.create_dataset(name,data = bytearray(str(py_obj), 'ascii'),**kwargs),()
 
     return h_group.create_dataset(name, data=py_obj, **no_compression(kwargs)),()
@@ -260,7 +260,6 @@ def load_none_dataset(h_node,base_type,py_obj_type):
 def load_list_dataset(h_node,base_type,py_obj_type):
     """
     loads any kind of list like dataset
-
     Args:
         h_node (h5py.Dataset): the hdf5 node to load data from
         base_type (bytes): bytes string denoting base_type 

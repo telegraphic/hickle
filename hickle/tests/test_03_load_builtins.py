@@ -74,6 +74,14 @@ def test_scalar_dataset(h5_data):
     assert bytearray(h_dataset[()]) == str(non_mappable_int).encode('utf8')
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == non_mappable_int
+
+    # check that integer larger than 64 bit is stored as ascii byte string
+    non_mappable_neg_int = -int(-2**63-1)
+    h_dataset,subitems = load_builtins.create_scalar_dataset(non_mappable_neg_int,h5_data,"non_mappable_neg_int")
+    assert isinstance(h_dataset,h5.Dataset)
+    assert bytearray(h_dataset[()]) == str(non_mappable_neg_int).encode('utf8')
+    assert not [ item for item in subitems ]
+    assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == non_mappable_neg_int
     
     
 def test_non_dataset(h5_data):
