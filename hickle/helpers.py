@@ -2,140 +2,191 @@
 # Built-in imports
 from inspect import isclass
 import re
+import operator
+import typing
+import types
+import collections
+import numbers
 
 # Package imports
 import dill as pickle
 
 
+# %% EXCEPTION DEFINITIONS
+
+nobody_is_my_name = ()
+
+class NotHicklable(Exception):
+    """
+    object can not be mapped to proper hickle HDF5 file structure and
+    thus shall be converted to pickle string before storing.
+    """
+    pass
+
+# %% CLASS DEFINITIONS
+
+class PyContainer():
+    """
+    Abstract base class for all PyContainer classes acting as proxy between
+    h5py.Group and python object represented by the content of the h5py.Group.
+    Any container type object as well as complex objects are represented
+    in a tree like structure on HDF5 file which PyContainer objects ensure to
+    be properly mapped before beeing converted into the final object.
+
+    Parameters:
+    -----------
+        h5_attrs (h5py.AttributeManager):
+            attributes defined on h5py.Group object represented by this PyContainer
+
+        base_type (bytes):
+            the basic type used for representation on the HDF5 file
+
+        object_type:
+            type of Python object to be restored. Dependent upon container may
+            be used by PyContainer.convert to convert loaded Python object into
+            final one.
+        
+    Attributes:
+    -----------
+        base_type (bytes):
+            the basic type used for representation on the HDF5 file
+
+        object_type:
+            type of Python object to be restored. Dependent upon container may
+            be used by PyContainer.convert to convert loaded Python object into
+            final one.
+        
+    """
+
+    __slots__ = ("base_type", "object_type", "_h5_attrs", "_content","__dict__" )
+
+    def __init__(self,h5_attrs, base_type, object_type,_content = None):
+        """
+        Parameters (protected):
+        -----------------------
+            _content (default: list):
+                container to be used to collect the Python objects representing
+                the sub items or the state of the final Python object. Shall only
+                be set by derived PyContainer classes and not be set by
+
+        """
+        # the base type used to select this PyContainer
+        self.base_type = base_type
+        # class of python object represented by this PyContainer
+        self.object_type = object_type
+        # the h5_attrs structure of the h5_group to load the object_type from
+        # can be used by the append and convert methods to obtain more
+        # information about the container like object to be restored
+        self._h5_attrs = h5_attrs
+        # intermediate list, tuple, dict, etc. used to collect and store the sub items
+        # when calling the append method
+        self._content = _content if _content is not None else []
+
+    def filter(self,items):
+        yield from items
+ 
+    def append(self,name,item,h5_attrs):
+        """
+        adds the passed item (object) to the content of this container.
+       
+        Parameters:
+        -----------
+            name (string):
+                the name of the h5py.Dataset or h5py.Group subitem was loaded from
+
+            item:
+                the Python object of the subitem
+
+            h5_attrs:
+                attributes defined on h5py.Group or h5py.Dataset object sub item
+                was loaded from.
+        """
+        self._content.append(item)
+
+    def convert(self):
+        """
+        creates the final object and populates it with the items stored in the _content slot
+        must be implemented by the derived Container classes
+
+        Returns:
+        --------
+            py_obj: The final Python object loaded from file
+
+        
+        """
+        raise NotImplementedError("convert method must be implemented")
+
+
+class H5NodeFilterProxy():
+    """
+    Proxy class which allows to temporarily modify h5_node.attrs content.
+    Original attributes of underlying h5_node are left unchanged.
+    
+    Parameters:
+    -----------
+        h5_node:
+            node for which attributes shall be replaced by a temporary value
+        
+    """
+
+    __slots__ = ('_h5_node','attrs','__dict__')
+
+    def __init__(self,h5_node):
+        self._h5_node = h5_node
+        self.attrs = collections.ChainMap({},h5_node.attrs)
+
+    def __getattribute__(self,name):
+        # for attrs and wrapped _h5_node return local copy any other request
+        # redirect to wrapped _h5_node
+        if name in {"attrs","_h5_node"}:
+            return super(H5NodeFilterProxy,self).__getattribute__(name)
+        _h5_node = super(H5NodeFilterProxy,self).__getattribute__('_h5_node')
+        return getattr(_h5_node,name)
+        
+    def __setattr__(self,name,value):
+        # if wrapped _h5_node and attrs shall be set store value on local attributes
+        # otherwise pass on to wrapped _h5_node
+        if name in {'_h5_node','attrs'}:
+            super(H5NodeFilterProxy,self).__setattr__(name,value)
+            return
+        _h5_node = super(H5NodeFilterProxy,self).__getattribute__('_h5_node')
+        setattr(_h5_node,name,value)    
+
+    def __getitem__(self,*args,**kwargs):
+        _h5_node = super(H5NodeFilterProxy,self).__getattribute__('_h5_node')
+        return _h5_node.__getitem__(*args,**kwargs)
+    # TODO as needed add more function like __getitem__ to fully proxy h5_node
+    # or consider using metaclass __getattribute__ for handling special methods
+
+
+class no_compression(dict):
+    """
+    subclass of dict which which temporarily removes any compression or data filter related
+    arguments from the passed iterable. 
+    """
+    def __init__(self,mapping,**kwargs):
+        super().__init__((
+            (key,value)
+            for key,value in ( mapping.items() if isinstance(mapping,dict) else mapping )
+            if key not in {"compression","shuffle","compression_opts","chunks","fletcher32","scaleoffset"}
+        ))
+        
+
 # %% FUNCTION DEFINITIONS
-def get_type(h_node):
-    """ Helper function to return the py_type for an HDF node """
-    base_type = h_node.attrs['base_type']
-    if base_type != b'pickle':
-        py_type = pickle.loads(h_node.attrs['type'])
-    else:
-        py_type = None
-    return py_type, base_type
 
+def not_dumpable( py_obj, h_group, name, **kwargs): # pragma: nocover
+    """
+    create_dataset method attached to dummy py_objects used to mimic container
+    groups by older versions of hickle lacking generic PyContainer mapping
+    h5py.Groups to corresponding py_object
 
-def get_type_and_data(h_node):
-    """ Helper function to return the py_type and data block for an HDF node"""
-    py_type, base_type = get_type(h_node)
-    data = h_node[()]
-    return py_type, base_type, data
-
-
-def get_mro_list(py_obj):
-    # Obtain MRO of this object
-    if isclass(py_obj):
-        mro_list = py_obj.mro()
-    else:
-        mro_list = py_obj.__class__.mro()
-
-    # Check if py_obj is a built-in iterable or not an iterable at all
-    if(isinstance(py_obj, (list, set, tuple, dict, str, bytes)) or
-       not hasattr(py_obj, '__iter__')):
-        # If so, use full MRO list
-        pass
-    else:
-        # Else, use reduced MRO list
-        pkg_name = mro_list[0].__module__.split('.')[0]
-
-        mro_list = [x for x in mro_list
-                    if x.__module__.split('.')[0] == pkg_name]
-        mro_list.append(object)
-
-    # Return mro_list
-    return(mro_list)
-
-
-def sort_keys(key_list):
-    """ Take a list of strings and sort it by integer value within string
-
-    Args:
-        key_list (list): List of keys
-
-    Returns:
-        key_list_sorted (list): List of keys, sorted by integer
+        
+    Raises:
+    -------
+        RuntimeError:
+            in any case as this function shall never be called    
     """
 
-    # Py3 h5py returns an irritating KeysView object
-    # Py3 also complains about bytes and strings, convert all keys to bytes
-    key_list2 = []
-    for key in key_list:
-        if isinstance(key, str):
-            key = bytes(key, 'ascii')
-        key_list2.append(key)
-    key_list = key_list2
-
-    # Check which keys contain a number
-    numbered_keys = [re.search(br'\d+', key) for key in key_list]
-
-    # Sort the keys on number if they have it, or normally if not
-    if(len(key_list) and not numbered_keys.count(None)):
-        return(sorted(key_list,
-                      key=lambda x: int(re.search(br'\d+', x).group(0))))
-    else:
-        return(sorted(key_list))
+    raise RuntimeError("types defined by loaders not dumpable")
 
 
-def check_is_iterable(py_obj):
-    """ Check whether a python object is a built-in iterable.
-
-    Note: this treats unicode and string as NON ITERABLE
-
-    Args:
-        py_obj: python object to test
-
-    Returns:
-        iter_ok (bool): True if item is iterable, False is item is not
-    """
-
-    # Check if py_obj is an accepted iterable and return
-    return(isinstance(py_obj, (tuple, list, set)))
-
-
-def check_is_hashable(py_obj):
-    """ Check if a python object is hashable
-
-    Note: this function is currently not used, but is useful for future
-          development.
-
-    Args:
-        py_obj: python object to test
-    """
-
-    try:
-        py_obj.__hash__()
-        return True
-    except TypeError:
-        return False
-
-
-def check_iterable_item_type(iter_obj):
-    """ Check if all items within an iterable are the same type.
-
-    Args:
-        iter_obj: iterable object
-
-    Returns:
-        iter_type: type of item contained within the iterable. If
-            the iterable has many types, a boolean False is returned instead.
-
-    References:
-    http://stackoverflow.com/questions/13252333
-    """
-
-    iseq = iter(iter_obj)
-
-    try:
-        first_type = type(next(iseq))
-    except StopIteration:
-        return False
-    except Exception:   # pragma: no cover
-        return False
-    else:
-        if all([type(x) is first_type for x in iseq]):
-            return(first_type)
-        else:
-            return(False)

@@ -3,34 +3,18 @@
 import dill as pickle
 import numpy as np
 import scipy
+import copy
 from scipy import sparse
 
 # hickle imports
-from hickle.helpers import get_type_and_data
+from hickle.helpers import PyContainer,H5NodeFilterProxy
+from hickle.loaders.load_numpy import load_ndarray_dataset,create_np_array_dataset
 
 
 # %% FUNCTION DEFINITIONS
-def return_first(x):
+def return_first(x): # pragma: nocover
     """ Return first element of a list """
     return x[0]
-
-
-def check_is_scipy_sparse_array(py_obj):
-    """ Check if a python object is a scipy sparse array
-
-    Args:
-        py_obj: python object to check whether it is a sparse array
-
-    Returns
-        is_numpy (bool): Returns True if it is a sparse array, else False if it
-            isn't
-    """
-    t_csr = sparse.csr_matrix
-    t_csc = sparse.csc_matrix
-    t_bsr = sparse.bsr_matrix
-    is_sparse = type(py_obj) in (t_csr, t_csc, t_bsr)
-
-    return is_sparse
 
 
 def create_sparse_dataset(py_obj, h_group, name, **kwargs):
@@ -40,72 +24,91 @@ def create_sparse_dataset(py_obj, h_group, name, **kwargs):
         py_obj: python object to dump; should be a numpy array or np.ma.array
             (masked)
         h_group (h5.File.group): group to dump data into.
-        call_id (int): index to identify object's relative location in the
-            iterable.
+        name (str): the name of the resulting dataset
+
+    Returns:
+        Group and list of subitems to dump into
     """
     h_sparsegroup = h_group.create_group(name)
-    data = h_sparsegroup.create_dataset('data', data=py_obj.data, **kwargs)
-    indices = h_sparsegroup.create_dataset('indices', data=py_obj.indices,
-                                           **kwargs)
-    indptr = h_sparsegroup.create_dataset('indptr', data=py_obj.indptr,
-                                          **kwargs)
-    shape = h_sparsegroup.create_dataset('shape', data=py_obj.shape, **kwargs)
+    return h_sparsegroup,(
+        ('data',py_obj.data,{},kwargs),
+        ('indices',py_obj.indices,{},kwargs),
+        ('indptr',py_obj.indptr,{},kwargs),
+        ('shape',py_obj.shape,{},kwargs)
+    )
 
-    if isinstance(py_obj, sparse.csr_matrix):
-        type_str = 'csr'
-    elif isinstance(py_obj, sparse.csc_matrix):
-        type_str = 'csc'
-    elif isinstance(py_obj, sparse.bsr_matrix):
-        type_str = 'bsr'
+ndarray_type_string = pickle.dumps(np.ndarray)
+tuple_type_string = pickle.dumps(tuple)
 
-    NoneType = type(None)
-    h_sparsegroup.attrs['type'] = np.array(pickle.dumps(return_first))
-    h_sparsegroup.attrs['base_type'] = ('%s_matrix' % type_str).encode('ascii')
-    indices.attrs['type'] = np.array(pickle.dumps(NoneType))
-    indices.attrs['base_type'] =\
-        ("%s_matrix_indices" % type_str).encode('ascii')
-    indptr.attrs['type'] = np.array(pickle.dumps(NoneType))
-    indptr.attrs['base_type'] = ("%s_matrix_indptr" % type_str).encode('ascii')
-    shape.attrs['type'] = np.array(pickle.dumps(NoneType))
-    shape.attrs['base_type'] = ("%s_matrix_shape" % type_str).encode('ascii')
+            
+class SparseMatrixContainer(PyContainer):
+    """
+    PyContainer used to restore sparse Matrix
+    """
 
-    return(data)
+    # instance attribute shadowing class method of same name
+    # points per default to shadowed method
+    __slots__ = ('filter',)
+    
+    _index_name_map = {
+        'data':0,
+        'indices':1,
+        'indptr':2,
+        'shape':3
+    }
 
+    def __init__(self,h5_attrs, base_type, object_type):
+        super(SparseMatrixContainer,self).__init__(h5_attrs,base_type,object_type,_content = [None]*4)
+        
+        # in case object type is return_first (hickle 4.0.0 file) than switch filter
+        # to redirect loading of sub items to numpy ndarray type. Otherwise set to 
+        # PyContainer.filter method
+        if object_type is return_first:
+            self.filter = self._redirect_to_ndarray
+        else:
+            self.filter = super(SparseMatrixContainer,self).filter
 
-def load_sparse_matrix_data(h_node):
-    _, base_type, data = get_type_and_data(h_node)
-    h_root = h_node.parent
-    indices = h_root.get('indices')[:]
-    indptr = h_root.get('indptr')[:]
-    shape = h_root.get('shape')[:]
+    def _redirect_to_ndarray(self,items):
+        """
+        iterates through items and extracts effective object and basetype
+        of sparse matrix from data subitem and remaps all subitems to 
+        ndarray type exempt shape which is remapped to tuple
+        """
 
-    if base_type == b'csc_matrix':
-        smat = sparse.csc_matrix((data, indices, indptr), dtype=data.dtype,
-                                 shape=shape)
-    elif base_type == b'csr_matrix':
-        smat = sparse.csr_matrix((data, indices, indptr), dtype=data.dtype,
-                                 shape=shape)
-    elif base_type == b'bsr_matrix':
-        smat = sparse.bsr_matrix((data, indices, indptr), dtype=data.dtype,
-                                 shape=shape)
-    return smat
+        for name,item in items:
+            item = H5NodeFilterProxy(item)
+            if name == 'data':
+                self.object_type = pickle.loads(item.attrs['type'])
+                self.base_type = item.attrs['base_type']
+                np_dtype = item.attrs.get('np_dtype',None)
+                if np_dtype is None:
+                    item.attrs['np_dtype'] = item.dtype.str.encode('ascii')
+            elif name not in self._index_name_map.keys():
+                continue # ignore name
+            if name == "shape":
+                item.attrs['type'] = np.array(tuple_type_string)
+                item.attrs['base_type'] = b'tuple'
+            else:
+                item.attrs['type'] = np.array(ndarray_type_string)
+                item.attrs['base_type'] = b'ndarray'
+                np_dtype = item.attrs.get('np_dtype',None)
+                if np_dtype is None:
+                    item.attrs['np_dtype'] = item.dtype.str.encode('ascii')
+            yield name,item
 
+    def append(self,name,item,h5_attrs):
+        index = self._index_name_map.get(name,None)
+        self._content[index] = item
+
+    def convert(self):
+        return self.object_type(tuple(self._content[:3]),dtype=self._content[0].dtype,shape=self._content[3])
 
 # %% REGISTERS
 class_register = [
-    [scipy.sparse.csr_matrix, b'csr_matrix', create_sparse_dataset,
-     load_sparse_matrix_data, check_is_scipy_sparse_array, False],
-    [scipy.sparse.csc_matrix, b'csc_matrix', create_sparse_dataset,
-     load_sparse_matrix_data, check_is_scipy_sparse_array, False],
-    [scipy.sparse.bsr_matrix, b'bsr_matrix', create_sparse_dataset,
-     load_sparse_matrix_data, check_is_scipy_sparse_array, False],
+    [scipy.sparse.csr_matrix, b'csr_matrix', create_sparse_dataset, None, SparseMatrixContainer],
+    [scipy.sparse.csc_matrix, b'csc_matrix', create_sparse_dataset, None, SparseMatrixContainer],
+    [scipy.sparse.bsr_matrix, b'bsr_matrix', create_sparse_dataset, None, SparseMatrixContainer]
 ]
 
 exclude_register = []
 
-# Need to ignore things like csc_matrix_indices which are loaded automatically
-for mat_type in ('csr', 'csc', 'bsr'):
-    for attrib in ('indices', 'indptr', 'shape'):
-        hkl_key = "%s_matrix_%s" % (mat_type, attrib)
-        hkl_key = hkl_key.encode('ascii')
-        exclude_register.append(hkl_key)
