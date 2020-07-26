@@ -189,8 +189,8 @@ def test_65bit_int(test_file_name):
     assert i == i_hkl
 
     j = -2**63-1
-    dump(j, 'test.hdf5')
-    j_hkl = load('test.hdf5')
+    dump(j, test_file_name)
+    j_hkl = load(test_file_name)
     assert j == j_hkl
 
 

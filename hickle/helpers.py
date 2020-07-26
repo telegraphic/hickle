@@ -1,6 +1,5 @@
 # %% IMPORTS
 # Built-in imports
-from inspect import isclass
 import re
 import operator
 import typing
