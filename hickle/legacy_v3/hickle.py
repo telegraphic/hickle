@@ -171,6 +171,7 @@ def file_opener(f, mode='r', track_times=True):
     if isinstance(f, (file, io.TextIOWrapper, io.BufferedWriter)):
         filename, mode = f.name, f.mode
         f.close()
+        mode = mode.replace('b', '')
         h5f = h5.File(filename, mode)
     elif isinstance(f, string_like_types):
         filename = f
