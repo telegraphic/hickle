@@ -61,7 +61,7 @@ def create_astropy_skycoord(py_obj, h_group, name, **kwargs):
 
     lat = py_obj.data.lat.value
     lon = py_obj.data.lon.value
-    dd = np.column_stack((lon, lat))
+    dd = np.stack((lon, lat), axis=-1)
 
     d = h_group.create_dataset(name, data=dd, dtype='float64', **kwargs)
     lon_unit = str(py_obj.data.lon.unit).encode('ascii')
@@ -172,7 +172,7 @@ def load_astropy_skycoord_dataset(h_node):
     py_type, _, data = get_type_and_data(h_node)
     lon_unit = h_node.attrs["lon_unit"]
     lat_unit = h_node.attrs["lat_unit"]
-    q = py_type(data[:, 0], data[:, 1], unit=(lon_unit, lat_unit))
+    q = py_type(data[..., 0], data[..., 1], unit=(lon_unit, lat_unit))
     return q
 
 
