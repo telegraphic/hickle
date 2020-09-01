@@ -821,7 +821,11 @@ def test_scalar_compression():
     """
     data = {'a': 0, 'b': np.float(2), 'c': True}
 
-    dump(data, "test.hkl", compression='gzip')
+    with pytest.warns(
+        UserWarning,
+        match = r"HDF5\s+compressed\s+datasets\s+currently\s+not\s+supported\s+by\s+hickle\s+!!"
+    ):
+        dump(data, "test.hkl", compression='gzip')
     data2 = load("test.hkl")
 
     print(data2)

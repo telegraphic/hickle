@@ -243,6 +243,16 @@ def dump(py_obj, file_obj, mode='w', path='/', **kwargs):
         h_root_group.attrs["HICKLE_VERSION"] = __version__
         h_root_group.attrs["HICKLE_PYTHON_VERSION"] = py_ver
 
+        no_compression_args = {
+            key:value
+            for key,value in kwargs.items()
+            if key not in {
+                "compression","shuffle","compression_opts","chunks","fletcher32","scaleoffset"
+            }
+        }
+        if len(no_compression_args) != len(kwargs):
+            warnings.warn("HDF5 compressed datasets currently not supported by hickle !!")
+            kwargs = no_compression_args
         _dump(py_obj, h_root_group, **kwargs)
     finally:
         # Close the file if requested.
