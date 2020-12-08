@@ -68,14 +68,14 @@ class SparseMatrixContainer(PyContainer):
         else:
             self.filter = super(SparseMatrixContainer,self).filter
 
-    def _redirect_to_ndarray(self,items):
+    def _redirect_to_ndarray(self,h_parent):
         """
         iterates through items and extracts effective object and basetype
         of sparse matrix from data subitem and remaps all subitems to 
         ndarray type exempt shape which is remapped to tuple
         """
 
-        for name,item in items:
+        for name,item in h_parent.items():
             item = H5NodeFilterProxy(item)
             if name == 'data':
                 self.object_type = pickle.loads(item.attrs['type'])

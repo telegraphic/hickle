@@ -103,7 +103,7 @@ def test_create_sparse_dataset(h5_data):
     # check that dataset representin hickle 4.0.0 representaiton of sparse matrix
     # is properly recognized by SparseMatrixContainer.filter method and sub items of
     # sparse matrix group are properly adjusted to be safely loaded by SparseMatrixContainer
-    for name,h_dataset in sparse_container.filter(h_datagroup.items()):
+    for name,h_dataset in sparse_container.filter(h_datagroup):
         if name == "shape":
             sparse_container.append(name,tuple(h_dataset[()]),h_dataset.attrs)
         else:
@@ -114,7 +114,7 @@ def test_create_sparse_dataset(h5_data):
     # verify that SparseMatrixContainer.filter method ignores any items which
     # are not recognized by SparseMatrixContainer update or convert method
     h_datagroup.create_dataset("ignoreme",data=12)
-    for name,h_dataset in sparse_container.filter(h_datagroup.items()):
+    for name,h_dataset in sparse_container.filter(h_datagroup):
         if name == "shape":
             sparse_container.append(name,tuple(h_dataset[()]),h_dataset.attrs)
         else:

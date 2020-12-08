@@ -43,7 +43,8 @@ from hickle import __version__
 from .helpers import PyContainer, NotHicklable, nobody_is_my_name
 from .lookup import (
     hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
-    create_pickled_dataset, load_nothing, fix_lambda_obj_type
+    create_pickled_dataset, load_nothing, fix_lambda_obj_type,ReferenceManager,
+    link_dtype
 )
 
 
@@ -68,11 +69,6 @@ class ToDoError(Exception):     # pragma: no cover
     """ An exception raised for non-implemented functionality"""
     def __str__(self):
         return "Error: this functionality hasn't been implemented yet."
-
-class SerializedWarning(UserWarning):
-    """ An object type was not understood
-    The data will be serialized using pickle.
-    """
 
 # %% FUNCTION DEFINITIONS
 def file_opener(f, path, mode='r'):
@@ -142,49 +138,65 @@ def file_opener(f, path, mode='r'):
 # DUMPERS #
 ###########
 
-def _dump(py_obj, h_group, name, attrs={} , **kwargs):
+def _dump(py_obj, h_group, name, memo, attrs={} , **kwargs):
     """ Dump a python object to a group within an HDF5 file.
 
     This function is called recursively by the main dump() function.
 
-    Args:
+    Parameters:
+    -----------
         py_obj: python object to dump.
         h_group (h5.File.group): group to dump data into.
         name (bytes): name of resultin hdf5 group or dataset 
+        memo (ReferenceManager): the ReferenceManager object
+            responsible for handling all object and type memoisation
+            related issues
+        attrs (dict): addtional attributes to be stored along with the
+            resulting hdf5 group or hdf5 dataset
+        kwargs (dict): keyword arguments to be passed to create_dataset
+            function
     """
 
+    py_obj_id = id(py_obj)
+    py_obj_ref = memo.get(py_obj_id,None)
+    if py_obj_ref is not None:
+        # reference data sets do not have any base_type and no py_obj_type set
+        # as they can be distinguished from pickled data due to their dtype 
+        # of type ref_dtype and thus load implicitly will be assigned b'!node-reference!'
+        # base_type and hickle.lookup.NodeReference as their py_obj_type
+        h_link = h_group.create_dataset(name,data = py_obj_ref[0].ref,dtype = link_dtype)
+        h_link.attrs.update(attrs)
+        return
+
     # Check if we have a unloaded loader for the provided py_obj and 
-    # retrive the most apropriate method for crating the corresponding
+    # retrive the most apropriate method for creating the corresponding
     # representation within HDF5 file
-    if isinstance(
-         py_obj,
-         (types.FunctionType, types.BuiltinFunctionType, types.MethodType, types.BuiltinMethodType, type)
-    ):
-        py_obj_type,create_dataset,base_type = object,create_pickled_dataset,b'pickle'
-    else:
-        py_obj_type, (create_dataset, base_type) = load_loader(py_obj.__class__)
+    py_obj_type, (create_dataset, base_type,memoise) = load_loader(py_obj.__class__)
     try:
         h_node,h_subitems = create_dataset(py_obj, h_group, name, **kwargs)
-
-        # loop through list of all subitems and recursively dump them
-        # to HDF5 file
-        for h_subname,py_subobj,h_subattrs,sub_kwargs in h_subitems:
-            _dump(py_subobj,h_node,h_subname,h_subattrs,**sub_kwargs)
-        # add addtional attributes and set 'base_type' and 'type'
-        # attributes accordingly
-        h_node.attrs.update(attrs)
-
-        # only explicitly store base_type and type if not dumped by
-        # create_pickled_dataset
-        if create_dataset is not create_pickled_dataset:
-            h_node.attrs['base_type'] = base_type
-            h_node.attrs['type'] = np.array(pickle.dumps(py_obj_type))
-        return
     except NotHicklable:
-
-        # ask pickle to try to store
         h_node,h_subitems = create_pickled_dataset(py_obj, h_group, name, reason = str(NotHicklable), **kwargs)
-        h_node.attrs.update(attrs)
+    else:
+        # store base_type and type unless py_obj had to be picled by create_pickled_dataset
+        memo.store_type(h_node,py_obj_type,base_type,**kwargs)
+
+    # add addtional attributes and set 'base_type' and 'type'
+    # attributes accordingly
+    h_node.attrs.update((name,attr) for name,attr in attrs.items() if name != 'type' )
+
+    # ask pickle to try to store
+    # if h_node shall be memoised for representing multiple references
+    # to the same py_obj instance in the hdf5 file store h_node
+    # in the memo dictionary. Store py_obj along with h_node to ensure
+    # py_obj_id which represents the memory address of py_obj referrs
+    # to py_obj until the whole structure is stored within hickle file.
+    if memoise:
+        memo[py_obj_id] = (h_node,py_obj)
+
+    # loop through list of all subitems and recursively dump them
+    # to HDF5 file
+    for h_subname,py_subobj,h_subattrs,sub_kwargs in h_subitems:
+        _dump(py_subobj,h_node,h_subname,memo,h_subattrs,**sub_kwargs)
 
 
 def dump(py_obj, file_obj, mode='w', path='/', **kwargs):
@@ -235,7 +247,8 @@ def dump(py_obj, file_obj, mode='w', path='/', **kwargs):
         h_root_group.attrs["HICKLE_VERSION"] = __version__
         h_root_group.attrs["HICKLE_PYTHON_VERSION"] = py_ver
 
-        _dump(py_obj, h_root_group,'data', **kwargs)
+        with ReferenceManager.create_manager(h_root_group) as memo:
+            _dump(py_obj, h_root_group,'data', memo ,**kwargs)
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems
@@ -268,7 +281,7 @@ class NoMatchContainer(PyContainer): # pragma: no cover
         raise RuntimeError("Cannot load container proxy for %s data type " % base_type)
         
 
-def no_match_load(key):     # pragma: no cover
+def no_match_load(key,*args,**kwargs):     # pragma: no cover
     """ 
     If no match is made when loading dataset , need to raise an exception
     """
@@ -355,11 +368,12 @@ def load(file_obj, path='/', safe=True):
                 # eventhough stated otherwise in documentation. Activate workarrounds
                 # just in case issues arrise. Especially as corresponding lambdas in
                 # load_numpy are not needed anymore and thus have been removed.
-                pickle_loads = fix_lambda_obj_type
-                _load(py_container, 'data',h_root_group['data'],pickle_loads = fix_lambda_obj_type,load_loader = load_legacy_loader)
+                with ReferenceManager.create_manager(h_root_group,fix_lambda_obj_type) as memo:
+                    _load(py_container, 'data',h_root_group['data'],memo,load_loader = load_legacy_loader)
                 return py_container.convert()
             # 4.1.x file and newer
-            _load(py_container, 'data',h_root_group['data'],pickle_loads = pickle.loads,load_loader = load_loader)
+            with ReferenceManager.create_manager(h_root_group,pickle_loads) as memo:
+                _load(py_container, 'data',h_root_group['data'],memo,load_loader = load_loader)
             return py_container.convert()
 
         # Else, raise error
@@ -376,7 +390,7 @@ def load(file_obj, path='/', safe=True):
 
 
 
-def _load(py_container, h_name, h_node,pickle_loads=pickle.loads,load_loader = load_loader):
+def _load(py_container, h_name, h_node,memo,load_loader = load_loader):
     """ Load a hickle file
 
     Recursive funnction to load hdf5 data into a PyContainer()
@@ -386,33 +400,29 @@ def _load(py_container, h_name, h_node,pickle_loads=pickle.loads,load_loader = l
         h_name (string): the name of the resulting h5py object group or dataset
         h_node (h5 group or dataset): h5py object, group or dataset, to spider
             and load all datasets.
-        pickle_loads (FunctionType,MethodType): defaults to pickle.loads and will
-            be switched to fix_lambda_obj_type if file to be loaded was created by
-            hickle 4.0.x version
+        memo (ReferenceManager): the ReferenceManager object
+            responsible for handling all object and type memoisation
+            related issues
         load_loader (FunctionType,MethodType): defaults to lookup.load_loader and
             will be switched to load_legacy_loader if file to be loaded was
             created by hickle 4.0.x version
     """
 
-    # load base_type of node. if not set assume that it contains
-    # pickled object data to be restored through load_pickled_data or
-    # PickledContainer object in case of group.
-    base_type = h_node.attrs.get('base_type',b'pickle')
-    if base_type == b'pickle':
-        # pickled dataset or group assume its object_type to be object
-        # as true object type is anyway handled by load_pickled_data or
-        # PickledContainer
-        py_obj_type = object
-    else:
-        # extract object_type and ensure loader beeing able to handle is loaded
-        # loading is controlled through base_type, object_type is just required
-        # to allow load_fn or py_subcontainer to properly restore and cast
-        # py_obj to proper object type
-        py_obj_type = pickle_loads(h_node.attrs.get('type',None))
-        py_obj_type,_ = load_loader(py_obj_type)
+    # if h_node has already been loaded cause a reference to it was encountered earlier
+    # direcctly append it to its parent container and return
+    node_ref = memo.get(h_node.id,h_node)
+    if node_ref is not h_node:
+        py_container.append(h_name,node_ref,h_node.attrs)
+        return
+
+    # load the type information of node.
+    py_obj_type,base_type,is_container = memo.resolve_type(h_node)
+    py_obj_type,(_,_,memoise) = load_loader(py_obj_type)
     
-    # Either a file, group, or dataset
-    if isinstance(h_node, h5.Group):
+    if is_container:
+        # Either a h5py.Group representing the structure of complex objects or
+        # a h5py.Dataset representing a h5py.Reference to the node of an object
+        # referred to from multiple places within the objet structure to be dumped 
 
         py_container_class = hkl_container_dict.get(base_type,NoMatchContainer)
         py_subcontainer = py_container_class(h_node.attrs,base_type,py_obj_type)
@@ -421,16 +431,18 @@ def _load(py_container, h_name, h_node,pickle_loads=pickle.loads,load_loader = l
         #       to be handled by container class provided by loader only
         #       as loader has all the knowledge required to properly decide
         #       if sort is necessary and how to sort and at what stage to sort 
-        for h_key,h_subnode in py_subcontainer.filter(h_node.items()):
-            _load(py_subcontainer, h_key, h_subnode, pickle_loads, load_loader)
+        for h_key,h_subnode in py_subcontainer.filter(h_node):
+            _load(py_subcontainer, h_key, h_subnode, memo , load_loader)
 
-        # finalize subitem and append to parent container.
+        # finalize subitem
         sub_data = py_subcontainer.convert()
         py_container.append(h_name,sub_data,h_node.attrs)
-
     else:
         # must be a dataset load it and append to parent container
         load_fn = hkl_types_dict.get(base_type, no_match_load)
-        data = load_fn(h_node,base_type,py_obj_type)
-        py_container.append(h_name,data,h_node.attrs)
+        sub_data = load_fn(h_node,base_type,py_obj_type)
+        py_container.append(h_name,sub_data,h_node.attrs)
+    # store loaded object for properly restoring addtional references to it
+    if memoise:
+        memo[h_node.id] = sub_data
 

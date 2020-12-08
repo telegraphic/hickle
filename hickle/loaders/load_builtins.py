@@ -68,7 +68,7 @@ def create_none_dataset(py_obj, h_group, name, **kwargs):
     Returns:
         correspoinding h5py.Dataset and empty subitems list
     """
-    return h_group.create_dataset(name, data=bytearray(b'None'),**kwargs),()
+    return h_group.create_dataset(name, shape = None,dtype = 'V1',**no_compression(kwargs)),()
 
 
 def check_iterable_item_type(first_item,iter_obj):
@@ -118,17 +118,16 @@ def create_listlike_dataset(py_obj, h_group, name,list_len = -1,item_dtype = Non
 
     if isinstance(py_obj,(str,bytes)):
         # strings and bytes are stored as array of bytes with strings encoded using utf8 encoding
-        dataset = h_group.create_dataset(
-            name,
-            data = bytearray(py_obj,"utf8") if isinstance(py_obj,str) else bytearray(py_obj),
-            **kwargs 
-        )
+        string_data = bytearray(py_obj,"utf8") if isinstance(py_obj,str) else memoryview(py_obj)
+        string_data = np.array(string_data,copy=False)
+        string_data.dtype = 'S1'
+        dataset = h_group.create_dataset( name, data = string_data,shape = (1,string_data.size), **kwargs)
         dataset.attrs["str_type"] = py_obj.__class__.__name__.encode("ascii")
         return dataset,()
         
     if len(py_obj) < 1:
         # listlike object is empty just store empty dataset
-        return h_group.create_dataset(name,shape=None,dtype=int,**no_compression(kwargs)),()
+        return h_group.create_dataset(name,shape=None,dtype='int',**no_compression(kwargs)),()
 
     if list_len < 0:
         # neither length nor dtype of items is know compute them now
@@ -246,14 +245,14 @@ def load_scalar_dataset(h_node,base_type,py_obj_type):
     Returns:
         resulting python object of type py_obj_type
     """
-    data = h_node[()] if h_node.size < 2 else bytearray(h_node[()])
+    data = h_node[()] if h_node.size < 2 else memoryview(h_node[()])
 
 
     return py_obj_type(data) if data.__class__ is not py_obj_type else data
 
 def load_none_dataset(h_node,base_type,py_obj_type):
     """
-    returns None value as represented by underlying dataset
+    returns None value as represented by underlying empty dataset
     """
     return None
     
@@ -275,8 +274,8 @@ def load_list_dataset(h_node,base_type,py_obj_type):
     str_type = h_node.attrs.get('str_type', None)
     content = h_node[()]
     if str_type == b'str':
-
-        if "bytes" in h_node.dtype.name:
+        # decode bytes representing python string before final conversion
+        if h_node.dtype.itemsize > 1 and 'bytes' in h_node.dtype.name:
             # string dataset 4.0.x style convert it back to python string
             content = np.array(content, copy=False, dtype=str).tolist()
         else:
@@ -397,11 +396,11 @@ class_register = [
     [set, b"set", create_setlike_dataset, load_list_dataset,SetLikeContainer],
     [bytes, b"bytes", create_listlike_dataset, load_list_dataset],
     [str, b"str", create_listlike_dataset, load_list_dataset],
-    [int, b"int", create_scalar_dataset, load_scalar_dataset],
-    [float, b"float", create_scalar_dataset, load_scalar_dataset],
-    [complex, b"complex", create_scalar_dataset, load_scalar_dataset],
-    [bool, b"bool", create_scalar_dataset, load_scalar_dataset],
-    [None.__class__, b"None", create_none_dataset, load_none_dataset]
+    [int, b"int", create_scalar_dataset, load_scalar_dataset, None, False],
+    [float, b"float", create_scalar_dataset, load_scalar_dataset, None, False],
+    [complex, b"complex", create_scalar_dataset, load_scalar_dataset, None, False],
+    [bool, b"bool", create_scalar_dataset, load_scalar_dataset, None, False],
+    [None.__class__, b"None", create_none_dataset, load_none_dataset, None, False]
 ]
 
 exclude_register = []

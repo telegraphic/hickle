@@ -73,7 +73,10 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
     if "str" in dtype.name:
         if py_obj.ndim < 1:
             # convert string to utf8 encoded bytearray
-            h_node = h_group.create_dataset(name,data = bytearray(py_obj.tolist(),"utf8"),**kwargs)
+            string_data = bytearray(py_obj.item(),"utf8") if 'bytes' not in dtype.name else memoryview(py_obj.item())
+            string_data = np.array(string_data,copy = False)
+            string_data.dtype = 'S1'
+            h_node = h_group.create_dataset(name,data = string_data,shape=(1,string_data.size),**kwargs)
             sub_items = ()
         else:
             # store content as list of strings
@@ -138,8 +141,14 @@ def load_ndarray_dataset(h_node,base_type,py_obj_type):
     restores ndarray like object from dataset
     """
     dtype = np.dtype(h_node.attrs['np_dtype'].decode('ascii'))
-    if "str" in dtype.name and "bytes" not in h_node.dtype.name:
-        return np.array(bytes(h_node[()]).decode("utf8"),dtype=dtype)
+    if "str" in dtype.name:
+        string_data = h_node[()]
+        if h_node.dtype.itemsize <= 1 or 'bytes' not in h_node.dtype.name:
+            # in hickle 4.0.X np.arrays containing multiple strings are 
+            # not converted to list of string but saved as ar consequently
+            # itemsize of dtype is > 1
+            string_data = bytes(string_data).decode("utf8")
+        return np.array(string_data,copy=False,dtype=dtype)
     if issubclass(py_obj_type,np.matrix):
         return py_obj_type(data=h_node[()],dtype=dtype)
     # TODO how to restore other ndarray derived object_types
@@ -209,11 +218,11 @@ class NDMaskedArrayContainer(PyContainer):
 # %% REGISTERS
 class_register = [
     [np.dtype, b"np_dtype", create_np_dtype, load_np_dtype_dataset],
-    [np.number, b"np_scalar", create_np_scalar_dataset, load_np_scalar_dataset],
+    [np.number, b"np_scalar", create_np_scalar_dataset, load_np_scalar_dataset,None,False],
 
     # for all scalars which are not derived from np.number which itself is np.generic subclass
     # to properly catch and handle they will be caught by the following
-    [np.generic, b"np_scalar", create_np_scalar_dataset, load_np_scalar_dataset],
+    [np.generic, b"np_scalar", create_np_scalar_dataset, load_np_scalar_dataset,None,False],
 
     [np.ndarray, b"ndarray", create_np_array_dataset, load_ndarray_dataset,NDArrayLikeContainer],
     [np.ma.core.MaskedArray, b"ndarray_masked", create_np_masked_array_dataset, None,NDMaskedArrayContainer],

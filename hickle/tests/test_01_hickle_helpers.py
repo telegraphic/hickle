@@ -99,7 +99,7 @@ def test_py_container(h5_data):
     # test default implementation of PyContainer.filter method which
     # simply shall yield from passed in itrator
     assert [ item for item in dummy_data ] == list(dummy_data)
-    assert dict(container.filter(h5_data.items())) == {'somedata':h5_data['somedata']}
+    assert dict(container.filter(h5_data)) == {'somedata':h5_data['somedata']}
 
 
 def test_H5NodeFilterProxy(h5_data):

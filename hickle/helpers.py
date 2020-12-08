@@ -81,8 +81,20 @@ class PyContainer():
         # when calling the append method
         self._content = _content if _content is not None else []
 
-    def filter(self,items):
-        yield from items
+    def filter(self,h_parent):
+        """
+        PyContainer type child chasses may overload this function to
+        filter and preprocess the content of h_parent h5py.Group or 
+        h5py.Dataset to ensure it can be properly processed by recursive
+        calls to hickle._load function.
+
+        Per default yields from h_parent.items(). 
+
+        For examples see: 
+            hickle.lookup.ExpandReferenceContainer.filter
+            hickle.loaders.load_scipy.SparseMatrixContainer.filter
+        """
+        yield from h_parent.items()
  
     def append(self,name,item,h5_attrs):
         """
@@ -160,7 +172,7 @@ class H5NodeFilterProxy():
 
 class no_compression(dict):
     """
-    subclass of dict which which temporarily removes any compression or data filter related
+    named dict comprehension which which temporarily removes any compression or data filter related
     arguments from the passed iterable. 
     """
     def __init__(self,mapping,**kwargs):

@@ -74,11 +74,15 @@ def func(a, b, c=0):
 pickle_dumps = pickle.dumps
 pickle_loads = pickle.loads
 
+types_to_hide = set() 
+
 def make_visible_to_dumps(obj,protocol=None,*,fix_imports=True):
     """
     simulate loader functions defined outside hickle package
     """
-    if obj.__class__ in {with_state}:
+    if obj in types_to_hide:
+        obj.__module__ = re.sub(r'^\s*(?!hickle\.)','hickle.',obj.__module__)
+    elif obj.__class__ in types_to_hide:
         obj.__class__.__module__ = re.sub(r'^\s*(?!hickle\.)','hickle.',obj.__class__.__module__)
     return pickle_dumps(obj,protocol,fix_imports=fix_imports)
 
@@ -87,7 +91,9 @@ def hide_from_hickle(bytes_obj,*,fix_imports=True,encoding="ASCII",errors="stric
     simulat loader function defined outside hickle package
     """
     obj = pickle_loads(bytes_obj,fix_imports = fix_imports, encoding = encoding, errors = errors)
-    if obj.__class__ in {with_state}:
+    if obj in types_to_hide:
+        obj.__module__ = re.sub(r'^\s*hickle\.','',obj.__module__)
+    elif obj.__class__ in types_to_hide:
         obj.__class__.__module__ = re.sub(r'^\s*hickle\.','',obj.__class__.__module__)
     return obj
 
@@ -121,6 +127,7 @@ class with_state(object):
             raise ValueError("index unknown")
         return(self.b['love'])
 
+types_to_hide.add(with_state)
 
 # %% FUNCTION DEFINITIONS
 def test_invalid_file():

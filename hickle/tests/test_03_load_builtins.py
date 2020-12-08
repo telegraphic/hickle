@@ -89,7 +89,7 @@ def test_non_dataset(h5_data):
      that None value is properly stored
     """
     h_dataset,subitems = load_builtins.create_none_dataset(None,h5_data,"None_value")
-    assert isinstance(h_dataset,h5.Dataset) and bytearray(h_dataset[()]) == b'None'
+    assert isinstance(h_dataset,h5.Dataset) and h_dataset.shape is None and h_dataset.dtype == 'V1'
     assert not [ item for item in subitems ]
     assert load_builtins.load_none_dataset(h_dataset,b'None',None.__class__) is None
 

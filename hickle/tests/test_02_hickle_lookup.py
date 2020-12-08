@@ -10,7 +10,9 @@ Unit tests for hickle module -- lookup functions.
 # %% IMPORTS
 import pytest
 import sys
+import shutil
 import types
+import weakref
 
 # Package imports
 import numpy as np
@@ -37,8 +39,8 @@ dummy_data = (1,2,3)
 @pytest.fixture
 def h5_data(request):
     """
-    create dummy hdf5 test data file for testing PyContainer and H5NodeFilterProxy
-    uses name of executed test as part of filename
+    create dummy hdf5 test data file for testing PyContainer, H5NodeFilterProxy and
+    ReferenceManager. Uses name of executed test as part of filename
     """
 
     dummy_file = h5py.File('hickle_lookup_{}.hdf5'.format(request.function.__name__),'w')
@@ -107,8 +109,8 @@ def loader_table():
 
     # provide the table
     yield [
-        (int,b'int',create_test_dataset,load_test_dataset,None),
-        (list,b'list',create_test_dataset,None,TestContainer),
+        (int,b'int',create_test_dataset,load_test_dataset,None,False),
+        (list,b'list',create_test_dataset,None,TestContainer,True),
         (tuple,b'tuple',None,load_test_dataset,TestContainer),
         (lookup._DictItem,b'dict_item',None,None,NotHicklePackage),
         (lookup._DictItem,b'pickle',None,None,HickleLoadersModule),
@@ -297,7 +299,7 @@ def test_register_class(loader_table):
     # and retrieve its contents from types_dict and hkl_types_dict
     loader_spec = loader_table[0]
     lookup.register_class(*loader_spec)
-    assert lookup.types_dict[loader_spec[0]] == loader_spec[2:0:-1]
+    assert lookup.types_dict[loader_spec[0]] == (*loader_spec[2:0:-1],loader_spec[5])
     assert lookup.hkl_types_dict[loader_spec[1]] == loader_spec[3]
     with pytest.raises(KeyError):
         lookup.hkl_container_dict[loader_spec[1]] is None
@@ -306,7 +308,7 @@ def test_register_class(loader_table):
     # and retrive its contents from types_dict and hkl_contianer_dict
     loader_spec = loader_table[1]
     lookup.register_class(*loader_spec)
-    assert lookup.types_dict[loader_spec[0]] == loader_spec[2:0:-1]
+    assert lookup.types_dict[loader_spec[0]] == (*loader_spec[2:0:-1],loader_spec[5])
     with pytest.raises(KeyError):
         lookup.hkl_types_dict[loader_spec[1]] is None
     assert lookup.hkl_container_dict[loader_spec[1]] == loader_spec[4]
@@ -388,7 +390,7 @@ def test_load_loader(loader_table,monkeypatch):
         moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_no_spec)
         moc_import_lib.delitem(sys.modules,"hickle.loaders.load_builtins",raising=False)
         py_obj_type,nopickleloader = lookup.load_loader(py_object.__class__)
-        assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle')
+        assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
 
         # redirect load_builtins loader to tests/hickle_loader path
         moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_spec)
@@ -397,21 +399,21 @@ def test_load_loader(loader_table,monkeypatch):
         # preload dataset only loader and check that it can be resolved directly
         loader_spec = loader_table[0]
         lookup.register_class(*loader_spec)
-        assert lookup.load_loader((12).__class__) == (loader_spec[0],loader_spec[2:0:-1])
+        assert lookup.load_loader((12).__class__) == (loader_spec[0],(*loader_spec[2:0:-1],loader_spec[5]))
 
         # try to find appropriate loader for dict object, a moc of this
         # loader should be provided by hickle/tests/hickle_loaders/load_builtins
         # module ensure that this module is the one found by load_loader function
         import hickle.tests.hickle_loaders.load_builtins as load_builtins
         moc_import_lib.setitem(sys.modules,loader_name,load_builtins)
-        assert lookup.load_loader(py_object.__class__) == (dict,(load_builtins.create_package_test,b'dict'))
+        assert lookup.load_loader(py_object.__class__) == (dict,(load_builtins.create_package_test,b'dict',True))
 
         # remove loader again and undo redirection again. dict should now be
         # processed by create_pickled_dataset
         moc_import_lib.delitem(sys.modules,loader_name)
         del lookup.types_dict[dict]
         py_obj_type,nopickleloader = lookup.load_loader(py_object.__class__)
-        assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle')
+        assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
         
         # check that load_loader prevenst redefinition of loaders to be predefined by hickle core
         with pytest.raises(
@@ -430,25 +432,27 @@ def test_load_loader(loader_table,monkeypatch):
         ):
             py_obj_type,nopickleloader = lookup.load_loader(ToBeInLoadersOrNotToBe)
             assert py_obj_type is ToBeInLoadersOrNotToBe
-            assert nopickleloader == (lookup.create_pickled_dataset,b'pickle')
+            assert nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
 
         # check that loader definitions for dummy objets defined by loaders work as expected
         # by loader module 
         monkeypatch.setattr(ToBeInLoadersOrNotToBe,'__module__',loader_name)
-        py_obj_type,(create_dataset,base_type) = lookup.load_loader(ToBeInLoadersOrNotToBe)
+        py_obj_type,(create_dataset,base_type,memoise) = lookup.load_loader(ToBeInLoadersOrNotToBe)
         assert py_obj_type is ToBeInLoadersOrNotToBe and base_type == b'NotHicklable'
         assert create_dataset is not_dumpable
+        assert memoise == False
 
         # remove loader_name from list of loaded loaders and check that loader is loaded anew
         # and that values returned for dict object correspond to loader 
         # provided by freshly loaded loader module
         lookup.loaded_loaders.remove(loader_name)
-        py_obj_type,(create_dataset,base_type) = lookup.load_loader(py_object.__class__)
+        py_obj_type,(create_dataset,base_type,memoise) = lookup.load_loader(py_object.__class__)
         load_builtins_moc = sys.modules.get(loader_name,None)
         assert load_builtins_moc is not None
         loader_spec = load_builtins_moc.class_register[0]
         assert py_obj_type is dict and create_dataset is loader_spec[2]
         assert base_type is loader_spec[1]
+        assert memoise == True
 
 def test_type_legacy_mro():
     """
@@ -516,7 +520,300 @@ def test_fix_lambda_obj_type():
     assert lookup.fix_lambda_obj_type(None) is object
     picklestring = pickle.dumps(SimpleClass)
     assert lookup.fix_lambda_obj_type(picklestring) is SimpleClass
-    assert lookup.fix_lambda_obj_type('') is lookup._moc_numpy_array_object_lambda
+    with pytest.warns(lookup.MockedLambdaWarning):
+        assert lookup.fix_lambda_obj_type('') is lookup._moc_numpy_array_object_lambda
+
+def test_ReferenceManager_get_root(h5_data):
+    """
+    tests the static ReferenceManager._get_root method
+    """
+
+    # create an artivicial 'hickle_types_table' with some entries
+    # and link their h5py.Reference objects to the 'type' attributes 
+    # of some data such that ReferenceManager._get_root can resolve
+    # h5_data root_group independent which node it was passed
+    
+    root_group = h5_data['/root_group']
+    data_group = root_group.create_group('data')
+    content = data_group.create_dataset('mydata',data=12)
+    type_table = root_group.create_group('hickle_types_table')
+    int_pickle_string = bytearray(pickle.dumps(int))
+    int_np_entry = np.array(int_pickle_string,copy=False)
+    int_np_entry.dtype = 'S1'
+    int_entry = type_table.create_dataset(str(len(type_table)),data = int_np_entry,shape =(1,int_np_entry.size))
+    int_base_type = b'int'
+    int_base_type = type_table.create_dataset(int_base_type,shape=None,dtype="S1")
+    int_entry.attrs['base_type'] = int_base_type.ref
+    content.attrs['type'] = int_entry.ref
+    # try to reslove root_group from various kinds of nodes including 
+    # root_group it self.
+    assert lookup.ReferenceManager.get_root(content).id == root_group.id
+    assert lookup.ReferenceManager.get_root(root_group).id == root_group.id
+    assert lookup.ReferenceManager.get_root(data_group).id == data_group.id
+
+    # check fallbacks to passe in group or file in case resolution via
+    # 'type' attribute reference fails
+    list_group = data_group.create_group('somelist')
+    some_list_item = list_group.create_dataset('0',data=13)
+    assert lookup.ReferenceManager.get_root(some_list_item).id == some_list_item.file.id
+    assert lookup.ReferenceManager.get_root(list_group).id == list_group.id
+
+    # test indirect resolution through 'type' reference of parent group
+    # which should have an already properly assigned 'type' attribute
+    # unless reading hickle 4.0.X file or referred to 'hickle_types_table' entry
+    # is missing. In both cases file shall be returned as fallback
+    list_pickle_string = bytearray(pickle.dumps(list))
+    list_np_entry = np.array(list_pickle_string,copy = False)
+    list_np_entry.dtype = 'S1'
+    list_entry = type_table.create_dataset(str(len(type_table)),data = list_np_entry,shape=(1,list_np_entry.size))
+    list_base_type = b'list'
+    list_base_type = type_table.create_dataset(list_base_type,shape=None,dtype="S1")
+    list_entry.attrs['base_type'] = list_base_type.ref
+    list_group.attrs['type'] = list_pickle_string
+    assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.file.id
+    list_group.attrs['type'] = list_entry.ref
+    assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.id
+    del type_table[str(len(type_table)-2)]
+    assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.file.id
+        
+
+def test_ReferenceManager(h5_data):
+    """
+    test for creation of ReferenceManager object (__init__)
+    to be run before testing ReferenceManager.create_manager
+    """
+    
+    reference_manager = lookup.ReferenceManager(h5_data)
+    type_table = h5_data['hickle_types_table']
+    assert isinstance(type_table,h5py.Group)
+    reference_manager = lookup.ReferenceManager(h5_data)
+    assert reference_manager._py_obj_type_table.id == type_table.id
+    false_root = h5_data.file.create_group('false_root')
+    false_root.create_dataset('hickle_types_table',data=12)
+    with pytest.raises(lookup.ReferenceError):
+        reference_manager = lookup.ReferenceManager(false_root)
+    int_pickle_string = bytearray(pickle.dumps(int))
+    int_np_entry = np.array(int_pickle_string,copy=False)
+    int_np_entry.dtype = 'S1'
+    int_entry = type_table.create_dataset(str(len(type_table)),data = int_np_entry,shape =(1,int_np_entry.size))
+    int_base_type = b'int'
+    int_base_type = type_table.create_dataset(int_base_type,shape=None,dtype="S1")
+    int_entry.attrs['base_type'] = int_base_type.ref
+    list_pickle_string = bytearray(pickle.dumps(list))
+    list_np_entry = np.array(list_pickle_string,copy = False)
+    list_np_entry.dtype = 'S1'
+    list_entry = type_table.create_dataset(str(len(type_table)),data = list_np_entry,shape=(1,list_np_entry.size))
+    list_base_type = b'list'
+    list_base_type = type_table.create_dataset(list_base_type,shape=None,dtype="S1")
+    list_entry.attrs['base_type'] = list_base_type.ref
+    reference_manager = lookup.ReferenceManager(h5_data)
+    assert reference_manager._py_obj_type_link[id(int)] == int_entry
+    assert reference_manager._py_obj_type_link[int_entry.id] == (id(int),b'int')
+    assert reference_manager._base_type_link[b'int'] == int_base_type
+    assert reference_manager._base_type_link[int_base_type.id] == b'int'
+    assert reference_manager._py_obj_type_link[id(list)] == list_entry
+    assert reference_manager._py_obj_type_link[list_entry.id] == (id(list),b'list')
+    assert reference_manager._base_type_link[b'list'] == list_base_type
+    assert reference_manager._base_type_link[list_base_type.id] == b'list'
+    backup_attr = list_entry.attrs['base_type']
+    list_entry.attrs.pop('base_type',None)
+    with pytest.raises(lookup.ReferenceError):
+        reference_manager = lookup.ReferenceManager(h5_data)
+    list_entry.attrs['base_type']=b'list'
+    with pytest.raises(lookup.ReferenceError):
+        reference_manager = lookup.ReferenceManager(h5_data)
+    stale_ref_entry = type_table.create_dataset("stale",shape=None,dtype = 'S1')
+    list_entry.attrs['base_type']=stale_ref_entry.ref
+    type_table.pop("stale",None)
+    with pytest.raises(lookup.ReferenceError):
+        reference_manager = lookup.ReferenceManager(h5_data)
+    list_entry.attrs['base_type']=backup_attr
+    old_hickle_file_root = h5_data.file.create_group('old_root')
+    h5_data.file.flush()
+    base_name,ext = h5_data.file.filename.split('.')
+    file_name = "{}_ro.{}".format(base_name,ext)
+    shutil.copyfile(h5_data.file.filename,file_name)
+    data_name = h5_data.name
+    read_only_handle = h5py.File(file_name,'r')
+    h5_read_data = read_only_handle[data_name]
+    h5_read_old = read_only_handle['old_root']
+    reference_manager = lookup.ReferenceManager(h5_read_old)
+    assert isinstance(reference_manager._overlay,weakref.finalize)
+    overlay_file = reference_manager._py_obj_type_table.file
+    assert overlay_file.mode == 'r+' and overlay_file.driver == 'core'
+    assert overlay_file.id != read_only_handle.id
+    reference_manager = lookup.ReferenceManager(h5_read_data)
+    read_only_handle.close()
+
+    class SubReferenceManager(lookup.ReferenceManager):
+        __managers__ = ()
+    assert SubReferenceManager.__managers__ is lookup.ReferenceManager.__managers__
+
+    with pytest.raises(TypeError):
+        invalid_instance = lookup.BaseManager()
+
+    class OtherManager(lookup.BaseManager):
+        pass
+
+    with pytest.raises(NotImplementedError):
+        with OtherManager() as invalid_manager:
+            pass
+
+    
+def test_ReferenceManager_drop_manager(h5_data):
+    """
+    test static ReferenceManager._drop_table method
+    """
+    reference_manager = lookup.ReferenceManager(h5_data)
+    lookup.ReferenceManager.__managers__[h5_data.file.id] = (reference_manager,h5_data)
+    some_other_file = h5py.File('someother.hdf5','w')
+    some_other_root = some_other_file.create_group('root')
+    lookup.ReferenceManager._drop_manager(some_other_root.file.id)
+    lookup.ReferenceManager.__managers__[some_other_file.file.id] = (lookup.ReferenceManager(some_other_root),some_other_root)
+    assert lookup.ReferenceManager.__managers__.get(h5_data.file.id,None) == (reference_manager,h5_data)
+    lookup.ReferenceManager._drop_manager(h5_data.file.id)
+    assert lookup.ReferenceManager.__managers__.get(h5_data.file.id,None) is None
+    lookup.ReferenceManager._drop_manager(some_other_root.file.id)
+    assert not lookup.ReferenceManager.__managers__
+    some_other_file.close()
+    
+
+def test_ReferenceManager_create_manager(h5_data):
+    """
+    test public static ReferenceManager.create_manager function
+    """
+    second_tree = h5_data.file.create_group('seondary_root')
+    h5_data_table = lookup.ReferenceManager.create_manager(h5_data)
+    assert lookup.ReferenceManager.__managers__[h5_data.file.id][0] is h5_data_table
+    with pytest.raises(lookup.ReferenceError):
+        second_table = lookup.ReferenceManager.create_manager(second_tree)
+
+def test_ReferenceManager_context(h5_data):
+    """
+    test use of ReferenceManager as context manager
+    """
+    with lookup.ReferenceManager.create_manager(h5_data) as memo:
+        assert lookup.ReferenceManager.__managers__[h5_data.file.id][0] is memo
+    assert memo._py_obj_type_table is None
+    with pytest.raises(RuntimeError):
+        with memo as memo2:
+            pass
+    memo.__exit__(None,None,None)
+    old_hickle_file_root = h5_data.file.create_group('old_root')
+    h5_data.file.flush()
+    base_name,ext = h5_data.file.filename.split('.')
+    file_name = "{}_ro.{}".format(base_name,ext)
+    shutil.copyfile(h5_data.file.filename,file_name)
+    data_name = old_hickle_file_root.name
+    read_only_handle = h5py.File(file_name,'r')
+    h5_read_data = read_only_handle[data_name]
+    with lookup.ReferenceManager.create_manager(h5_read_data) as memo:
+        assert isinstance(memo._overlay,weakref.finalize)
+    assert memo._overlay is None
+    read_only_handle.close()
+        
+def test_ReferenceManager_store_type(h5_data):
+    """
+    test ReferenceManager.store_type method which sets 'type' attribute
+    reference to appropriate py_obj_type entry within 'hickle_types_table'
+    """
+    h_node = h5_data.create_group('some_list')
+    with lookup.ReferenceManager.create_manager(h5_data) as memo:
+        memo.store_type(h_node,object,None)
+        assert len(memo._py_obj_type_table) == 0 and not memo._py_obj_type_link and not memo._base_type_link
+        with pytest.raises(lookup.LookupError):
+            memo.store_type(h_node,list,None)
+        with pytest.raises(ValueError):
+            memo.store_type(h_node,list,b'')
+        memo.store_type(h_node,list,b'list')
+        assert isinstance(h_node.attrs['type'],h5py.Reference)
+        type_table_entry = h5_data.file[h_node.attrs['type']]
+        assert pickle.loads(type_table_entry[()]) is list
+        assert isinstance(type_table_entry.attrs['base_type'],h5py.Reference)
+        assert h5_data.file[type_table_entry.attrs['base_type']].name.split('/')[-1].encode('ascii') == b'list'
+
+def test_ReferenceManager_resolve_type(h5_data):
+    """
+    test ReferenceManager.reslove_type method which tries to resolve
+    content of 'type' attribute of passed in node and return appropriate pair of
+    py_obj_type,base_type and a boolean flag indicating whether node represents
+    a h5py.Group or h5py.Reference both of which are to be handled by PyContainer
+    objects.
+    """
+    invalid_pickle_and_ref = h5_data.create_group('invalid_pickle_and_ref')
+    pickled_data = h5_data.create_dataset('pickled_data',data = bytearray())
+    shared_ref = h5_data.create_dataset('shared_ref',data = pickled_data.ref,dtype = lookup.link_dtype)
+    old_style_typed = h5_data.create_dataset('old_style_typed',data = 12)
+    old_style_typed.attrs['type'] = np.array(pickle.dumps(int))
+    old_style_typed.attrs['base_type'] = b'int'
+    broken_old_style = h5_data.create_dataset('broken_old_style',data = 12)
+    broken_old_style.attrs['type'] = 12
+    broken_old_style.attrs['base_type'] = b'int'
+    new_style_typed = h5_data.create_dataset('new_style_typed',data = 12)
+    stale_new_style = h5_data.create_dataset('stale_new_style',data = 12)
+    new_style_typed_no_link = h5_data.create_dataset('new_style_typed_no_link',data = 12.5)
+    with lookup.ReferenceManager.create_manager(h5_data) as memo:
+        with pytest.raises(lookup.ReferenceError):
+            memo.resolve_type(invalid_pickle_and_ref)
+        assert memo.resolve_type(pickled_data) == (object,b'pickle',False)
+        assert memo.resolve_type(shared_ref) == (lookup.NodeReference,b'!node-reference!',True)
+        assert memo.resolve_type(old_style_typed) == (int,b'int',False)
+        with pytest.raises(lookup.ReferenceError):
+            info = memo.resolve_type(broken_old_style)
+        memo.store_type(new_style_typed,int,b'int')
+        entry_id = len(memo._py_obj_type_table)
+        memo.store_type(stale_new_style,list,b'list')
+        assert pickle.loads(memo._py_obj_type_table[str(entry_id)][()]) is list
+        stale_list_base = memo._py_obj_type_table['list'].ref
+        del memo._py_obj_type_table[str(entry_id)]
+        del memo._py_obj_type_table['list']
+        with pytest.raises(lookup.ReferenceError):
+            memo.resolve_type(stale_new_style)
+        entry_id = len(memo._py_obj_type_table)
+        memo.store_type(new_style_typed_no_link,float,b'float')
+        float_entry = memo._py_obj_type_table[str(entry_id)]
+        assert pickle.loads(float_entry[()]) is float
+        float_base = float_entry.attrs['base_type']
+        del memo._py_obj_type_link[float_entry.id]
+        del memo._py_obj_type_link[id(float)]
+        del float_entry.attrs['base_type']
+        assert memo.resolve_type(new_style_typed_no_link) == (float,b'pickle',False)
+        del memo._py_obj_type_link[float_entry.id]
+        del memo._py_obj_type_link[id(float)]
+        float_entry.attrs['base_type'] = stale_list_base
+        with pytest.raises(lookup.ReferenceError):
+            info = memo.resolve_type(new_style_typed_no_link)
+        memo._py_obj_type_link.pop(float_entry.id,None)
+        memo._py_obj_type_link.pop(id(float),None)
+        del memo._base_type_link[memo._py_obj_type_table[float_base].id]
+        del memo._base_type_link[b'float']
+        float_entry.attrs['base_type'] = float_base
+        assert memo.resolve_type(new_style_typed_no_link) == (float,b'float',False)
+        
+        assert memo.resolve_type(new_style_typed_no_link) 
+    
+def test_ExpandReferenceContainer(h5_data):
+    """
+    test ExpandReferenceContainer which resolves object link stored as h5py.Refernce
+    type dataset
+    """
+    expected_data = np.random.randint(-13,13,12)
+    referred_data = h5_data.create_dataset('referred_data',data = expected_data)
+    referring_node = h5_data.create_dataset('referring_node',data = referred_data.ref,dtype = lookup.link_dtype)
+    sub_container = lookup.ExpandReferenceContainer(referring_node.attrs,b'!node-reference!',lookup.NodeReference)
+    content = None
+    for name,subitem in sub_container.filter(referring_node):
+        assert name == 'referred_data' and subitem.id == referred_data.id
+        content = np.array(subitem[()])
+        sub_container.append(name,content,subitem.attrs)
+    assert np.all(sub_container.convert()==expected_data)
+    del h5_data[referred_data.name]
+    with pytest.raises(lookup.ReferenceError):
+        for name,subitem in sub_container.filter(referring_node):
+            content = np.array(subitem[()])
+            sub_container.append(name,content,subitem.attrs)
+
+
     
 # %% MAIN SCRIPT
 if __name__ == "__main__":
@@ -526,8 +823,9 @@ if __name__ == "__main__":
         test_register_class(table)
     for table in loader_table():
         test_register_class_exclude(table)
-    for monkey in  monkeypatch():
-        test_load_loader(table,monkey)
+    for monkey in monkeypatch():
+        for table in loader_table():
+            test_load_loader(table,monkey)
     test_type_legacy_mro()
     for h5_root in h5_data(FixtureRequest(test_create_pickled_dataset)):
         test_create_pickled_dataset(h5_root)
@@ -535,6 +833,22 @@ if __name__ == "__main__":
     test__moc_numpy_array_object_lambda()
     test_fix_lambda_obj_type()
     test_fix_lambda_obj_type()
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_get_root)):
+        test_ReferenceManager_get_root(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager)):
+        test_ReferenceManager(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_drop_table)):
+        test_ReferenceManager_drop_table(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_create_manager)):
+        test_ReferenceManager_create_manager(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_context)):
+        test_ReferenceManager_context(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_store_type)):
+        test_ReferenceManager_store_type(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_resolve_type)):
+        test_ReferenceManager_resolve_type(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ExpandReferenceContainer)):
+        test_ExpandReferenceContainer(h5_root)
 
 
     

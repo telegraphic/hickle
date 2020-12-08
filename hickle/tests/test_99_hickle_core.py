@@ -100,64 +100,68 @@ def test_recursive_dump(h5_data):
     # check that dump function properly creates a list dataset and
     # sets appropriate values for 'type' and 'base_type' attributes
     data = simple_list = [1,2,3,4]
-    hickle._dump(data, h5_data, "simple_list")
-    dumped_data = h5_data["simple_list"]
-    assert dumped_data.attrs['type'] == pickle.dumps(data.__class__)
-    assert dumped_data.attrs['base_type'] == b'list'
-    assert np.all(dumped_data[()] == simple_list)
-
-    # check that dump function properly creats a group representing
-    # a dictionary and its keys and values and sets appropriate values
-    # for 'type', 'base_type' and 'key_base_type' attributes
-    data = {
-        '12':12,
-        (1,2,3):'hallo'
-    }
-    hickle._dump(data, h5_data, "some_dict")
-    dumped_data = h5_data["some_dict"]
-    assert dumped_data.attrs['type'] == pickle.dumps(data.__class__)
-
-    # check that the name of the resulting dataset for the first dict item
-    # resembles double quouted string key and 'type', 'base_type 'key_base_type'
-    # attributes the resulting dataset are set accordingly
-    assert dumped_data.attrs['base_type'] == b'dict'
-    first_item = dumped_data['"12"']
-    assert first_item[()] == 12 and first_item.attrs['key_base_type'] == b'str'
-    assert first_item.attrs['base_type'] == b'int'
-    assert first_item.attrs['type'] == pickle.dumps(data['12'].__class__) 
+    with lookup.ReferenceManager.create_manager(h5_data) as memo:
+        hickle._dump(data, h5_data, "simple_list",memo)
+        dumped_data = h5_data["simple_list"]
+        assert memo.resolve_type(dumped_data) == (data.__class__,b'list',False)
+        assert np.all(dumped_data[()] == simple_list)
     
-    # check that second item is converted into key value pair group, that
-    # the name of that group reads 'data0' and that 'type', 'base_type' and
-    # 'key_base_type' attributes are set accordingly
-    second_item = dumped_data.get("data0",None)
-    if second_item is None:
-        second_item = dumped_data["data1"]
-    assert second_item.attrs['key_base_type'] == b'key_value'
-    assert second_item.attrs['base_type'] == b'tuple'
-    assert second_item.attrs['type'] == pickle.dumps(tuple)
-
-    # check that content of key value pair group resembles key and value of
-    # second dict item
-    key = second_item['data0']
-    value = second_item['data1']
-    assert np.all(key[()] == (1,2,3)) and key.attrs['base_type'] == b'tuple'
-    assert key.attrs['type'] == pickle.dumps(tuple)
-    assert bytes(value[()]) == 'hallo'.encode('utf8') and value.attrs['base_type'] == b'str'
-    assert value.attrs['type'] == pickle.dumps(str)
-
-    # check that objects for which no loader has been registred or for which
-    # available loader raises NotHicklable exception are handled by 
-    # create_pickled_dataset function 
-    backup_dict_loader = lookup.types_dict[dict]
-    def fail_create_dict(py_obj,h_group,name,**kwargs):
-        raise helpers.NotHicklable("test loader shrugg")
-    lookup.types_dict[dict] = fail_create_dict,backup_dict_loader[1]
-    with pytest.warns(lookup.SerializedWarning):
-        hickle._dump(data, h5_data, "pickled_dict")
-    dumped_data = h5_data["pickled_dict"]
-    lookup.types_dict[dict] = backup_dict_loader
-    assert bytes(dumped_data[()]) == pickle.dumps(data)
-
+        # check that dump function properly creats a group representing
+        # a dictionary and its keys and values and sets appropriate values
+        # for 'type', 'base_type' and 'key_base_type' attributes
+        data = {
+            '12':12,
+            (1,2,3):'hallo'
+        }
+        hickle._dump(data, h5_data, "some_dict",memo)
+        dumped_data = h5_data["some_dict"]
+        assert memo.resolve_type(dumped_data) == (data.__class__,b'dict',True)
+    
+        # check that the name of the resulting dataset for the first dict item
+        # resembles double quouted string key and 'type', 'base_type 'key_base_type'
+        # attributes the resulting dataset are set accordingly
+        first_item = dumped_data['"12"']
+        assert first_item[()] == 12 and first_item.attrs['key_base_type'] == b'str'
+        assert memo.resolve_type(first_item) == (data['12'].__class__,b'int',False)
+        #assert first_item.attrs['base_type'] == b'int'
+        #assert first_item.attrs['type'] == pickle.dumps(data['12'].__class__) 
+        
+        # check that second item is converted into key value pair group, that
+        # the name of that group reads 'data0' and that 'type', 'base_type' and
+        # 'key_base_type' attributes are set accordingly
+        second_item = dumped_data.get("data0",None)
+        if second_item is None:
+            second_item = dumped_data["data1"]
+        assert second_item.attrs['key_base_type'] == b'key_value'
+        assert memo.resolve_type(second_item) == (tuple,b'tuple',True)
+        #assert second_item.attrs['type'] == pickle.dumps(tuple)
+    
+        # check that content of key value pair group resembles key and value of
+        # second dict item
+        key = second_item['data0']
+        value = second_item['data1']
+        assert np.all(key[()] == (1,2,3))
+        # and key.attrs['base_type'] == b'tuple'
+        assert memo.resolve_type(key) == (tuple,b'tuple',False)
+        assert bytes(value[()]) == 'hallo'.encode('utf8')
+        # and value.attrs['base_type'] == b'str'
+        assert memo.resolve_type(value) == (str,b'str',False)
+    
+        # check that objects for which no loader has been registred or for which
+        # available loader raises NotHicklable exception are handled by 
+        # create_pickled_dataset function 
+        backup_dict_loader = lookup.types_dict[dict]
+        def fail_create_dict(py_obj,h_group,name,**kwargs):
+            raise helpers.NotHicklable("test loader shrugg")
+        lookup.types_dict[dict] = (fail_create_dict,*backup_dict_loader[1:])
+        memo_backup = memo.pop(id(data),None)
+        with pytest.warns(lookup.SerializedWarning):
+            hickle._dump(data, h5_data, "pickled_dict",memo)
+        dumped_data = h5_data["pickled_dict"]
+        lookup.types_dict[dict] = backup_dict_loader
+        assert bytes(dumped_data[()]) == pickle.dumps(data)
+        memo[id(data)] = memo_backup
+    
 def test_recursive_load(h5_data):
     """
     test _load function and that it properly calls itself recursively 
@@ -167,33 +171,36 @@ def test_recursive_load(h5_data):
     # corresponding dataset
     data = 42
     data_name = "the_answer"
-    hickle._dump(data, h5_data, data_name)
-    py_container = hickle.RootContainer(h5_data.attrs,b'hickle_root',hickle.RootContainer)
-    hickle._load(py_container, data_name, h5_data[data_name])
-    assert py_container.convert() == data
-
-    # check that dict object is properly restored on load from corresponding group
-    data = {'question':None,'answer':42}
-    data_name = "not_formulated"
-    hickle._dump(data, h5_data, data_name)
-    py_container = hickle.RootContainer(h5_data.attrs,b'hickle_root',hickle.RootContainer)
-    hickle._load(py_container, data_name, h5_data[data_name])
-    assert py_container.convert() == data
-
+    with lookup.ReferenceManager.create_manager(h5_data) as memo:
+        hickle._dump(data, h5_data, data_name,memo)
+        py_container = hickle.RootContainer(h5_data.attrs,b'hickle_root',hickle.RootContainer)
+        hickle._load(py_container, data_name, h5_data[data_name],memo)
+        assert py_container.convert() == data
     
-    # check that objects for which no loader has been registred or for which
-    # available loader raises NotHicklable exception are properly restored on load
-    # from corresponding copy protocol group or pickled data string 
-    backup_dict_loader = lookup.types_dict[dict]
-    def fail_create_dict(py_obj,h_group,name,**kwargs):
-        raise helpers.NotHicklable("test loader shrugg")
-    lookup.types_dict[dict] = fail_create_dict,backup_dict_loader[1]
-    data_name = "pickled_dict"
-    with pytest.warns(lookup.SerializedWarning):
-        hickle._dump(data, h5_data, data_name)
-    hickle._load(py_container, data_name, h5_data[data_name])
-    assert py_container.convert() == data
-    lookup.types_dict[dict] = backup_dict_loader
+        # check that dict object is properly restored on load from corresponding group
+        data = {'question':None,'answer':42}
+        data_name = "not_formulated"
+        hickle._dump(data, h5_data, data_name,memo)
+        py_container = hickle.RootContainer(h5_data.attrs,b'hickle_root',hickle.RootContainer)
+        hickle._load(py_container, data_name, h5_data[data_name],memo)
+        assert py_container.convert() == data
+    
+        
+        # check that objects for which no loader has been registred or for which
+        # available loader raises NotHicklable exception are properly restored on load
+        # from corresponding copy protocol group or pickled data string 
+        backup_dict_loader = lookup.types_dict[dict]
+        def fail_create_dict(py_obj,h_group,name,**kwargs):
+            raise helpers.NotHicklable("test loader shrugg")
+        lookup.types_dict[dict] = (fail_create_dict,backup_dict_loader[1],False)
+        data_name = "pickled_dict"
+        memo_backup = memo.pop(id(data),None)
+        with pytest.warns(lookup.SerializedWarning):
+            hickle._dump(data, h5_data, data_name,memo)
+        hickle._load(py_container, data_name, h5_data[data_name],memo)
+        assert py_container.convert() == data
+        lookup.types_dict[dict] = backup_dict_loader
+        memo[id(data)] = memo_backup
 
 # %% ISSUE RELATED TESTS
 
