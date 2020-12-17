@@ -76,7 +76,7 @@ def create_scalar_dataset(py_obj, h_group, name, **kwargs):
     kwargs.pop('compression', None)
 
     # If py_obj is an integer and cannot be stored in 64-bits, convert to str
-    if isinstance(py_obj, int) and (py_obj.bit_length() > 64):
+    if isinstance(py_obj, int) and not (-2**63 <= py_obj < 2**64):
         py_obj = bytes(str(py_obj), 'ascii')
 
     d = h_group.create_dataset(name, data=py_obj, **kwargs)

@@ -148,10 +148,15 @@ def test_65bit_int():
     """ Dumping and loading an integer with arbitrary precision
 
     https://github.com/telegraphic/hickle/issues/113"""
-    i = 2**65-1
+    i = 2**64
     dump(i, 'test.hdf5')
     i_hkl = load('test.hdf5')
     assert i == i_hkl
+
+    j = -2**63-1
+    dump(j, 'test.hdf5')
+    j_hkl = load('test.hdf5')
+    assert j == j_hkl
 
 
 def test_list():
