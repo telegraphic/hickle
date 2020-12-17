@@ -23,5 +23,5 @@ dd = {
 }
 
 print("Dumping %s..." % fn_out)
-hkl.dump(dd, fn_out)
+hkl.dump(dd, fn_out, path='test')
 

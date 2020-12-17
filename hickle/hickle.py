@@ -508,23 +508,23 @@ def load(file_obj, path='/', safe=True):
     # Try to read the provided file_obj as a hickle file
     try:
         h5f, path, close_flag = file_opener(file_obj, path, 'r')
-        h_root_group = h5f.get(path)
+        h_root_group = h5f.get(path)   # Solely used by v4
 
         # Define attributes h_root_group must have
         v3_attrs = ['CLASS', 'VERSION', 'PYTHON_VERSION']
         v4_attrs = ['HICKLE_VERSION', 'HICKLE_PYTHON_VERSION']
 
         # Check if the proper attributes for v3 loading are available
-        if all(map(h_root_group.attrs.get, v3_attrs)):
+        if all(map(h5f.attrs.get, v3_attrs)):
             # Check if group attribute 'CLASS' has value 'hickle
-            if(h_root_group.attrs['CLASS'] != b'hickle'):  # pragma: no cover
+            if(h5f.attrs['CLASS'] != b'hickle'):  # pragma: no cover
                 # If not, raise error
                 raise AttributeError("HDF5-file attribute 'CLASS' does not "
                                      "have value 'hickle'!")
 
             # Obtain version with which the file was made
             try:
-                major_version = int(h_root_group.attrs['VERSION'][0])
+                major_version = int(h5f.attrs['VERSION'][0])
 
             # If this cannot be done, then this is not a v3 file
             except Exception:  # pragma: no cover

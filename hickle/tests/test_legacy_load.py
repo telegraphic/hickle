@@ -22,7 +22,7 @@ def test_legacy_load():
     for filename in filelist:
         try:
             print(filename)
-            a = hkl.load(filename)
+            a = hkl.load(filename, path='test')
         except Exception:
             with h5py.File(filename) as a:
                 print(a.attrs.items())
