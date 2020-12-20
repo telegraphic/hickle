@@ -26,8 +26,6 @@ h5py installed.
 # %% IMPORTS
 # Built-in imports
 import io
-import os.path as os_path
-from pathlib import Path
 import sys
 import warnings
 import types
@@ -40,7 +38,10 @@ import numpy as np
 
 # hickle imports
 from hickle import __version__
-from .helpers import PyContainer, NotHicklable, nobody_is_my_name
+from .helpers import (
+    PyContainer, NotHicklable, nobody_is_my_name, ToDoError
+)
+from .fileio import ClosedFileError, FileError, file_opener
 from .lookup import (
     #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
     create_pickled_dataset, load_nothing, fix_lambda_obj_type,ReferenceManager,
@@ -52,86 +53,7 @@ from .lookup import (
 __all__ = ['dump', 'load']
 
 
-# %% CLASS DEFINITIONS
-##################
-# Error handling #
-##################
-
-class FileError(Exception):
-    """ An exception raised if the file is fishy """
-
-
-class ClosedFileError(Exception):
-    """ An exception raised if the file is fishy """
-
-
-class ToDoError(Exception):     # pragma: no cover
-    """ An exception raised for non-implemented functionality"""
-    def __str__(self):
-        return "Error: this functionality hasn't been implemented yet."
-
 # %% FUNCTION DEFINITIONS
-def file_opener(f, path, mode='r'):
-    """
-    A file opener helper function with some error handling.
-    This can open files through a file object, an h5py file, or just the
-    filename.
-
-    Parameters
-    ----------
-    f : file object, str or :obj:`~h5py.Group` object
-        File to open for dumping or loading purposes.
-        If str, `file_obj` provides the path of the HDF5-file that must be
-        used.
-        If :obj:`~h5py.Group`, the group (or file) in an open
-        HDF5-file that must be used.
-    path : str
-        Path within HDF5-file or group to dump to/load from.
-    mode : str, optional
-        Accepted values are 'r' (read only), 'w' (write; default) or 'a'
-        (append).
-        Ignored if file is a file object.
-
-    """
-
-    # Assume that we will have to close the file after dump or load
-    close_flag = True
-
-    # Make sure that the given path always starts with '/'
-    if not path.startswith('/'):
-        path = "/%s" % path
-
-    # Were we handed a file object or just a file name string?
-    if isinstance(f, (io.TextIOWrapper, io.BufferedWriter)):
-        filename, mode = f.name, f.mode
-        f.close()
-        mode = mode.replace('b', '')
-        h5f = h5.File(filename, mode)
-    elif isinstance(f, (str, Path)):
-        filename = f
-        h5f = h5.File(filename, mode)
-    elif isinstance(f, h5.Group):
-        try:
-            filename = f.file.filename
-        except ValueError:
-            raise ClosedFileError("HDF5 file has been closed. Please pass "
-                                  "either a filename string, a file object, or"
-                                  "an open HDF5-file")
-        path = ''.join([f.name, path])
-        h5f = f.file
-
-        if path.endswith('/'):
-            path = path[:-1]
-
-        # Since this file was already open, do not close the file afterward
-        close_flag = False
-
-    else:
-        print(f.__class__)
-        raise FileError("Cannot open file. Please pass either a filename "
-                        "string, a file object, or a h5py.File")
-
-    return h5f, path, close_flag
 
 
 ###########
@@ -199,7 +121,7 @@ def _dump(py_obj, h_group, name, memo, loader,attrs={} , **kwargs):
         _dump(py_subobj,h_node,h_subname,memo,loader,h_subattrs,**sub_kwargs)
 
 
-def dump(py_obj, file_obj, mode='w', path='/', options = {},**kwargs):
+def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**kwargs):
     """
     Write a hickled representation of `py_obj` to the provided `file_obj`.
 
@@ -207,20 +129,31 @@ def dump(py_obj, file_obj, mode='w', path='/', options = {},**kwargs):
     ----------
     py_obj : object
         Python object to hickle to HDF5.
-    file_obj : file object, str or :obj:`~h5py.Group` object
+
+    file_obj : file object, str, pathlib.Path or :obj:`~h5py.Group` object
         File in which to store the object.
-        If str, `file_obj` provides the path of the HDF5-file that must be
-        used.
-        If :obj:`~h5py.Group`, the group (or file) in an open
+        If str or pathlib.Path, `file_obj` provides the path of the HDF5-file
+        that must be used.
+        If :file_obj:`~h5py.Group`, the group (or file) in an open
         HDF5-file that must be used.
+        If :file_obj: `file`, `file like`, the file handle of the file to
+        dump :py_obj: to
+
     mode : str, optional
         Accepted values are 'r' (read only), 'w' (write; default) or 'a'
-        (append).
-        Ignored if file is a file object.
+        (append). 
+        Note: A trailing binary mode flag ('b') is ignored
+
     path : str, optional
         Path within HDF5-file or group to save data to.
         Defaults to root ('/').
-    loader_settings (dict):
+
+    filename : str,  optional
+        name of file, file like object of HDF5 file. 
+        Ignored if file_obj is a path string, pathlib.Path object or
+        represents an accesible h5py.File, h5py.Group or h5py.Dataset 
+
+    options (dict):
         Each entry in this dict modifies how hickle dumps data to file.
         For example 
             { compact_expand = True }
@@ -230,10 +163,26 @@ def dump(py_obj, file_obj, mode='w', path='/', options = {},**kwargs):
         would disable compact_expand loader for dumped data even if
         globally turned on. More options may follow.
 
-        
     kwargs : keyword arguments
         Additional keyword arguments that must be provided to the
         :meth:`~h5py.Group.create_dataset` method.
+
+    Raises:
+    -------
+        CloseFileError:
+            If passed h5py.File, h5py.Group or h5py.Dataset object is not
+            accessible which in most cases indicate that unterlying HDF5
+            was closed or if file or file like object has already been 
+            closed.
+
+        FileError
+            If passed file or file like object is not opened for reading or
+            in addtion for writing in case mode corresponds to any
+            of 'w', 'w+', 'x', 'x+' or a.
+
+        ValueError:
+            If anything else than str, bytes or None specified for filename
+             
 
     """
 
@@ -241,9 +190,9 @@ def dump(py_obj, file_obj, mode='w', path='/', options = {},**kwargs):
     # This is to avoid trying to close a file that was never opened
     close_flag = False
 
+    # Open the file
+    h5f, path, close_flag = file_opener(file_obj, path, mode,filename)
     try:
-        # Open the file
-        h5f, path, close_flag = file_opener(file_obj, path, mode)
 
         # Log which version of python was used to generate the hickle file
         pv = sys.version_info
@@ -299,31 +248,56 @@ def no_match_load(key,*args,**kwargs):     # pragma: no cover
     """
     raise RuntimeError("Cannot load %s data type" % key)
 
-def load(file_obj, path='/', safe=True):
+def load(file_obj, path='/', safe=True, filename = None):
     """
     Load the Python object stored in `file_obj` at `path` and return it.
 
     Parameters
     ----------
-    file_obj : file object, str or :obj:`~h5py.Group` object
-        File from which to load the object.
-        If str, `file_obj` provides the path of the HDF5-file that must be
-        used.
-        If :obj:`~h5py.Group`, the group (or file) in an open
+
+    file_obj : file object, str, pathlib.Path or :obj:`~h5py.Group` object
+        File in which to store the object.
+        If str or pathlib.Path, `file_obj` provides the path of the HDF5-file
+        that must be used.
+        If :file_obj:`~h5py.Group`, the group (or file) in an open
         HDF5-file that must be used.
+        If :file_obj: `file`, `file like`, the file handle of the file to
+        load :py_obj: from.
+
     path : str, optional
         Path within HDF5-file or group to load data from.
         Defaults to root ('/').
+
     safe : bool, optional
         Disable automatic depickling of arbitrary python objects.
         DO NOT set this to False unless the file is from a trusted source.
         (See https://docs.python.org/3/library/pickle.html for an explanation)
+
+    filename : str,  optional
+        name of file, file like object of HDF5 file. 
+        Ignored if file_obj is a path string, pathlib.Path object or
+        represents an accesible h5py.File, h5py.Group or h5py.Dataset 
 
     Returns
     -------
     py_obj : object
         The unhickled Python object.
 
+    Raises:
+    -------
+        CloseFileError:
+            If passed h5py.File, h5py.Group or h5py.Dataset object is not
+            accessible which in most cases indicate that unterlying HDF5
+            was closed or if file or file like object has already been 
+            closed.
+
+        FileError
+            If passed file or file like object is not opened for reading or
+            in addtion for writing in case mode corresponds to any
+            of 'w', 'w+', 'x', 'x+' or a.
+
+        ValueError:
+            If anything else than str, bytes or None specified for filename
     """
 
     # Make sure that the file is not closed unless modified
@@ -331,9 +305,11 @@ def load(file_obj, path='/', safe=True):
     close_flag = False
 
     # Try to read the provided file_obj as a hickle file
+    h5f, path, close_flag = file_opener(file_obj, path, 'r')
     try:
-        h5f, path, close_flag = file_opener(file_obj, path, 'r')
-        h_root_group = h5f.get(path)   # Solely used by v4
+        h_root_group = h5f.get(path,None) # Soley used by v4
+        if not isinstance(h_root_group,h5.Group):
+            raise FileError("file '{}': path '{}' not exising".format(h5f.filename,path))
 
         # Define attributes h_root_group must have
         v3_attrs = ['CLASS', 'VERSION', 'PYTHON_VERSION']

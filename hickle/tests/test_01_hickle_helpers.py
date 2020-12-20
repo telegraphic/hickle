@@ -14,9 +14,12 @@ import pytest
 import numpy as np
 import dill as pickle
 import operator
+import numpy as np
+import h5py
 
 # hickle imports
 from hickle.helpers import PyContainer,H5NodeFilterProxy,no_compression
+from hickle.fileio import FileError,ClosedFileError,file_opener,not_io_base_like
 from py.path import local
 
 # Set current working directory to the temporary directory
@@ -55,6 +58,10 @@ def h5_data(request):
     # provide the file and close afterwards
     yield dummy_file
     dummy_file.close()
+    
+@pytest.fixture
+def test_file_name(request):
+    yield "{}.hkl".format(request.function.__name__)
     
 # %% FUNCTION DEFINITIONS
 
@@ -138,6 +145,96 @@ def test_H5NodeFilterProxy(h5_data):
     with pytest.raises(AttributeError,match = r"can't\s+set\s+attribute"):
         h5_node.dtype = np.float32
 
+def test_not_io_base_like(test_file_name):
+    """
+    test not_io_base_like function for creating replacement methods
+    for IOBase.isreadable, IOBase.isseekable and IOBase.writeable
+    """
+    # def not_io_base_like(f,*args):
+    with open(test_file_name,'w') as f:
+        assert not not_io_base_like(f)()
+        assert not not_io_base_like(f,'strange_read',0)()
+        assert not not_io_base_like(f,'seek',0,'strange_tell')()
+    with open(test_file_name,'r') as f:
+        assert not_io_base_like(f,'seek',0,'tell')()
+        assert not not_io_base_like(f,'seek',0,'tell',())()
+        assert not_io_base_like(f,'read',0)()
+        assert not not_io_base_like(f,'tell',())()
+        assert not_io_base_like(f,'tell')()
+    
+
+def test_file_opener(h5_data,test_file_name):
+    """
+    test file opener function
+    """
+
+    # check that file like object is properly initialized for writing
+    filename = test_file_name.replace(".hkl","_{}.{}")
+    with open(filename.format("w",".hdf5"),"w") as f:
+        with pytest.raises(FileError):
+            h5_file,path,close_flag = file_opener(f,"root","w",filename="filename")
+    with open(filename.format("w",".hdf5"),"w+b") as f:
+        h5_file,path,close_flag = file_opener(f,"root","w+")
+        assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r+'
+        h5_file.close()
+
+    # check that file like object is properly initialized for reading
+    with open(filename.format("w",".hdf5"),"rb") as f:
+        h5_file,path,close_flag = file_opener(f,"root","r")
+        assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r'
+        assert close_flag
+        h5_file.close()
+        with pytest.raises(ValueError):
+            h5_file,path,close_flag = file_opener(f,"root","r",filename=12)
+        h5_file,path,close_flag = file_opener((f,"not me"),"root","r")
+        assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r'
+        assert close_flag
+        h5_file.close()
+        h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","r")
+        assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r'
+        assert close_flag
+        h5_file.close()
+        with pytest.raises(FileError):
+            h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","r+")
+        with pytest.raises(FileError):
+            h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","w")
+        with pytest.raises(ValueError):
+            h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","+")
+    with open(filename.format("w",".hdf5"),"w") as f:
+        with pytest.raises(FileError):
+            h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","w")
+
+    with pytest.raises(ClosedFileError):
+        h5_file,path,close_flag = file_opener(f,"root","r")
+        
+
+    # check that h5py.File object is properly intialized for writing
+    with pytest.raises(FileError):
+        h5_file,path,close_flag = file_opener(h5_data,"","w")
+    with h5py.File(filename.format("w",".whkl"),"w") as hdf5_file:
+        h5_file,path,close_flag = file_opener(hdf5_file,"","w")
+        assert isinstance(h5_file,h5py.File) and path == "/"
+        assert h5_file.mode == 'r+' and not close_flag
+        hdf5_group = hdf5_file.create_group("some_group")
+    with pytest.raises(ClosedFileError):
+        h5_file,path,close_flag = file_opener(hdf5_file,"","w")
+    with h5py.File(filename.format("w",".whkl"),"r") as hdf5_file:
+        h5_file,path,close_flag = file_opener(hdf5_file["some_group"],'',"r")
+        assert isinstance(h5_file,h5py.File) and path == "/some_group"
+        assert h5_file.mode == 'r' and not close_flag
+        
+
+    # check that a new file is created for provided filename and properly intialized
+    h5_file,path,close_flag = file_opener(filename.format("w",".hkl"),"root_group","w")
+    assert isinstance(h5_file,h5py.File) and path == "/root_group"
+    assert h5_file.mode == 'r+' and close_flag
+    h5_file.close()
+    
+    # check that any other object not beein a file like object, a h5py.File object or
+    # a filename string triggers an  FileError exception
+    with pytest.raises(FileError):
+        h5_file,path,close_flag = file_opener(object(),"root_group","w")
+
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.fixtures import FixtureRequest
@@ -147,4 +244,14 @@ if __name__ == "__main__":
         test_py_container(data)
     for data in h5_data(FixtureRequest(test_py_container)):
         test_H5NodeFilterProxy(data)
+    for filename in (
+        ( test_file_name(request), )
+        for request in (FixtureRequest(test_not_io_base_like),)
+    ):
+        test_not_io_base_like(filename)
+    for h5_root,filename in (
+        ( h5_data(request),test_file_name(request) )
+        for request in (FixtureRequest(test_file_opener),)
+    ):
+        test_file_opener(h5_root,filename)
 

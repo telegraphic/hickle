@@ -24,7 +24,7 @@ import numpy as np
 from py.path import local
 
 # hickle imports
-from hickle import dump, helpers, hickle, load, lookup
+from hickle import dump, helpers, hickle, load, lookup, fileio
 
 # Set current working directory to the temporary directory
 local.get_temproot().chdir()
@@ -53,44 +53,6 @@ def test_file_name(request):
     yield "{}.hkl".format(request.function.__name__)
 
 # %% FUNCTION DEFINITIONS
-
-def test_file_opener(h5_data,test_file_name):
-    """
-    test file opener function
-    """
-
-    # check that file like object is properly initialized for writing
-    filename = test_file_name.replace(".hkl","_{}.{}")
-    with open(filename.format("w",".hdf5"),"w") as f:
-        h5_file,path,close_flag = hickle.file_opener(f,"root","w")
-        assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r+'
-        h5_file.close()
-
-    # check that file like object is properly initialized for reading
-    with open(filename.format("w",".hdf5"),"r") as f:
-        h5_file,path,close_flag = hickle.file_opener(f,"root","r")
-        assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r'
-        h5_file.close()
-
-    # check that h5py.File object is properly intialized for writing
-    h5_file,path,close_flag = hickle.file_opener(h5_data,"","w")
-    assert isinstance(h5_file,h5py.File) and path == "/root_group"
-    assert h5_file.mode == 'r+' and not close_flag
-
-    # check that a new file is created for provided filename and properly intialized
-    h5_file,path,close_flag = hickle.file_opener(filename.format("w",".hkl"),"root_group","w")
-    assert isinstance(h5_file,h5py.File) and path == "/root_group"
-    assert h5_file.mode == 'r+' and close_flag
-    h5_file.close()
-    
-    # check that any other object not beein a file like object, a h5py.File object or
-    # a filename string triggers an  FileError exception
-    with pytest.raises(
-        hickle.FileError,
-        match = r"Cannot\s+open\s+file.\s+Please\s+pass\s+either\s+a\s+"
-                r"filename\s+string,\s+a\s+file\s+object,\s+or\s+a\s+h5py.File"
-    ):
-        h5_file,path,close_flag = hickle.file_opener(dict(),"root_group","w")
         
 def test_recursive_dump(h5_data):
     """
@@ -218,9 +180,17 @@ def test_binary_file(test_file_name):
 
     filename = test_file_name.replace(".hkl",".hdf5")
     with open(filename, "w") as f:
-        hickle.dump(None, f)
+        with pytest.raises(fileio.FileError):
+            hickle.dump(None, f)
+    with open(filename, "w+") as f:
+        with pytest.raises(fileio.FileError):
+            hickle.dump(None, f)
 
     with open(filename, "wb") as f:
+        with pytest.raises(fileio.FileError):
+            hickle.dump(None, f)
+
+    with open(filename, "w+b") as f:
         hickle.dump(None, f)
 
 
@@ -261,6 +231,8 @@ def test_hdf5_group(test_file_name):
     dump(b, group, path='deeper/and_deeper')
     file.close()
 
+    with pytest.raises(ValueError):
+        b_hkl = load(hdf5_filename, path='/test_group2/deeper_/and_deeper')
     b_hkl = load(hdf5_filename, path='/test_group2/deeper/and_deeper')
     assert np.allclose(b_hkl, b)
 
