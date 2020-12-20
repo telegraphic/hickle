@@ -37,7 +37,7 @@ def h5_data(request):
 
 # %% FUNCTION DEFINITIONS
 
-def test_create_sparse_dataset(h5_data):
+def test_create_sparse_dataset(h5_data,compression_kwargs):
     """
     test creation and loading of sparse matrix 
     """
@@ -55,7 +55,7 @@ def test_create_sparse_dataset(h5_data):
     sm3 = bsr_matrix((data, indices, indptr), shape=(6, 6))
 
     # check that csr type matrix is properly stored and loaded
-    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm1,h5_data,"csr_matrix")
+    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm1,h5_data,"csr_matrix",**compression_kwargs)
     assert isinstance(h_datagroup,h5.Group) and iter(subitems)
     seen_items = dict((key,False) for key in ("data",'indices','indptr','shape'))
     sparse_container = load_scipy.SparseMatrixContainer(h_datagroup.attrs,b'csr_matrix',csr_matrix)
@@ -67,7 +67,7 @@ def test_create_sparse_dataset(h5_data):
     assert np.all(reloaded.data == sm1.data) and reloaded.dtype == sm1.dtype and reloaded.shape == sm1.shape
 
     # check that csc type matrix is properly stored and loaded
-    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm2,h5_data,"csc_matrix")
+    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm2,h5_data,"csc_matrix",**compression_kwargs)
     assert isinstance(h_datagroup,h5.Group) and iter(subitems)
     seen_items = dict((key,False) for key in ("data",'indices','indptr','shape'))
     sparse_container = load_scipy.SparseMatrixContainer(h_datagroup.attrs,b'csc_matrix',csc_matrix)
@@ -79,7 +79,7 @@ def test_create_sparse_dataset(h5_data):
     assert np.all(reloaded.data == sm2.data) and reloaded.dtype == sm2.dtype and reloaded.shape == sm2.shape
 
     # check that bsr type matrix is properly stored and loaded
-    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm3,h5_data,"bsr_matrix")
+    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm3,h5_data,"bsr_matrix",**compression_kwargs)
     assert isinstance(h_datagroup,h5.Group) and iter(subitems)
     seen_items = dict((key,False) for key in ("data",'indices','indptr','shape'))
     sparse_container = load_scipy.SparseMatrixContainer(h_datagroup.attrs,b'bsr_matrix',bsr_matrix)
@@ -91,7 +91,7 @@ def test_create_sparse_dataset(h5_data):
     assert np.all(reloaded.data == sm3.data) and reloaded.dtype == sm3.dtype and reloaded.shape == sm3.shape
 
     # mimic hickle version 4.0.0 format to represent crs type matrix
-    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm1,h5_data,"csr_matrix_filtered")
+    h_datagroup,subitems = load_scipy.create_sparse_dataset(sm1,h5_data,"csr_matrix_filtered",**compression_kwargs)
     sparse_container = load_scipy.SparseMatrixContainer(h_datagroup.attrs,b'csr_matrix',load_scipy.return_first)
     for name,item,attrs,kwargs in subitems:
         h_dataset = h_datagroup.create_dataset(name,data=item)
@@ -126,5 +126,9 @@ def test_create_sparse_dataset(h5_data):
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.fixtures import FixtureRequest
-    for h5_root in h5_data(FixtureRequest(test_create_sparse_dataset)):
-        test_create_sparse_dataset(h5_root)
+    from hickle.tests.conftest import compression_kwargs
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_create_sparse_dataset),)
+    ):
+        test_create_sparse_dataset(h5_root,keywords)

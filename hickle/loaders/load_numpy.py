@@ -94,7 +94,7 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
             h_node = h_group.create_group(name)
             sub_items = ("data",py_obj,{},kwargs),
     else:
-        h_node = h_group.create_dataset(name, data=py_obj, **kwargs)
+        h_node = h_group.create_dataset(name, data=py_obj, **( no_compression(kwargs) if "bytes" in dtype.name else kwargs ))
         sub_items = ()
     h_node.attrs['np_dtype'] = dtype.str.encode('ascii')
     return h_node,sub_items

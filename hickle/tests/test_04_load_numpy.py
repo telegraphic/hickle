@@ -57,7 +57,7 @@ def h5_data(request):
 
 # %% FUNCTION DEFINITIONS
 
-def test_create_np_scalar(h5_data):
+def test_create_np_scalar(h5_data,compression_kwargs):
     """
     tests proper storage and loading of numpy scalars
     """
@@ -65,7 +65,7 @@ def test_create_np_scalar(h5_data):
     # check that scalar dataset is created for nupy scalar
     scalar_data = np.float64(np.pi)
     dtype = scalar_data.dtype
-    h_dataset,subitems = load_numpy.create_np_scalar_dataset(scalar_data,h5_data,"scalar_data")
+    h_dataset,subitems = load_numpy.create_np_scalar_dataset(scalar_data,h5_data,"scalar_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
     assert h_dataset.attrs['np_dtype'] == dtype.str.encode('ascii')
     assert  h_dataset[()] == scalar_data
@@ -74,22 +74,22 @@ def test_create_np_scalar(h5_data):
     # check that numpy.bool_ scarlar is properly stored and reloaded
     scalar_data = np.bool_(True)
     dtype = scalar_data.dtype
-    h_dataset,subitems = load_numpy.create_np_scalar_dataset(scalar_data,h5_data,"generic_data")
+    h_dataset,subitems = load_numpy.create_np_scalar_dataset(scalar_data,h5_data,"generic_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
     assert h_dataset.attrs['np_dtype'] == dtype.str.encode('ascii') and h_dataset[()] == scalar_data
     assert load_numpy.load_np_scalar_dataset(h_dataset,b'np_scalar',scalar_data.__class__) == scalar_data
 
-def test_create_np_dtype(h5_data):
+def test_create_np_dtype(h5_data,compression_kwargs):
     """
     test proper creation and loading of dataset representing numpy dtype
     """ 
     dtype = np.dtype(np.int16)
-    h_dataset,subitems = load_numpy.create_np_dtype(dtype, h5_data,"dtype_string")
+    h_dataset,subitems = load_numpy.create_np_dtype(dtype, h5_data,"dtype_string",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
     assert bytes(h_dataset[()]).decode('ascii') == dtype.str
     assert load_numpy.load_np_dtype_dataset(h_dataset,'np_dtype',np.dtype) == dtype
 
-def test_create_np_ndarray(h5_data):
+def test_create_np_ndarray(h5_data,compression_kwargs):
     """
     test proper creatoin and loading of numpy ndarray
     """
@@ -97,7 +97,7 @@ def test_create_np_ndarray(h5_data):
     # check that numpy array representing python utf8 string is properly 
     # stored as bytearray dataset and reloaded from
     np_array_data = np.array("im python string")
-    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_string_array")
+    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_string_array",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
     assert bytes(h_dataset[()]) == np_array_data.tolist().encode("utf8")
     assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
@@ -106,7 +106,7 @@ def test_create_np_ndarray(h5_data):
     # chekc that numpy array representing python bytes string is properly
     # stored as bytearray dataset and reloaded from
     np_array_data = np.array(b"im python bytes")
-    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_bytes_array")
+    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_bytes_array",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
     assert h_dataset[()] == np_array_data.tolist()
     assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
@@ -115,8 +115,12 @@ def test_create_np_ndarray(h5_data):
     # check that numpy array with dtype object representing list of various kinds
     # of objects is converted to list before storing and reloaded proprly from this
     # list representation
-    np_array_data = np.array([[NESTED_DICT], ('What is this?',), {1, 2, 3, 7, 1}])
-    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_list_object_array")
+
+    # NOTE: simplified as mixing items of varying length receives
+    # VisibleDeprecationWarning from newer numpy versions
+    #np_array_data = np.array([[NESTED_DICT], ('What is this?',), {1, 2, 3, 7, 1}])
+    np_array_data = np.array([NESTED_DICT])#, ('What is this?',), {1, 2, 3, 7, 1}])
+    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_list_object_array",**compression_kwargs)
     ndarray_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     assert isinstance(h_dataset,h5.Group) and iter(subitems)
     assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
@@ -130,7 +134,7 @@ def test_create_np_ndarray(h5_data):
     # is properly converted to list of strings and restored from its list
     # representation
     np_array_data = np.array(["1313e", "was", "maybe?", "here"])
-    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_list_of_strings_array")
+    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_list_of_strings_array",**compression_kwargs)
     ndarray_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     assert isinstance(h_dataset,h5.Group) and iter(subitems)
     assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
@@ -144,7 +148,7 @@ def test_create_np_ndarray(h5_data):
     # by ndarray.tolist method is properly stored according to type of object and
     # restored from this representation accordingly
     np_array_data = np.array(NESTED_DICT)
-    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_object_array")
+    h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_object_array",**compression_kwargs)
     ndarray_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     ndarray_pickle_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     assert isinstance(h_dataset,h5.Group) and iter(subitems)
@@ -174,7 +178,7 @@ def test_create_np_ndarray(h5_data):
     # just PendingDeprecationWarning
     with pytest.warns(PendingDeprecationWarning):
         np_array_data = np.matrix([[1, 2], [3, 4]])
-        h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_matrix")
+        h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_matrix",**compression_kwargs)
         assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
         assert np.all(h_dataset[()] == np_array_data)
         assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
@@ -183,14 +187,14 @@ def test_create_np_ndarray(h5_data):
         assert isinstance(np_loaded_array_data,np.matrix)
         assert np_loaded_array_data.shape == np_array_data.shape
     
-def test_create_np_masked_array(h5_data):
+def test_create_np_masked_array(h5_data,compression_kwargs):
     """
     test proper creation and loading of numpy.masked arrays
     """
 
     # check that simple masked array is properly stored and loaded
     masked_array = np.ma.array([1, 2, 3, 4], dtype='float32', mask=[0, 1, 0, 0])
-    h_datagroup,subitems = load_numpy.create_np_masked_array_dataset(masked_array, h5_data, "masked_array")
+    h_datagroup,subitems = load_numpy.create_np_masked_array_dataset(masked_array, h5_data, "masked_array",**compression_kwargs)
     masked_array_container = load_numpy.NDMaskedArrayContainer(h_datagroup.attrs,b'ndarray_masked',np.ma.array)
     assert isinstance(h_datagroup,h5.Group) and iter(subitems)
     assert h_datagroup.attrs["np_dtype"] == masked_array.dtype.str.encode("ascii")
@@ -222,13 +226,26 @@ def test_create_np_masked_array(h5_data):
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.fixtures import FixtureRequest
-    for h5_root in h5_data(FixtureRequest(test_create_np_scalar)):
-        test_create_np_scalar(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_create_np_dtype)):
-        test_create_np_dtype(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_create_np_ndarray)):
-        test_create_np_ndarray(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_create_np_masked_array)):
-        test_create_np_masked_array(h5_root)
+    from hickle.tests.conftest import compression_kwargs
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_create_np_scalar),)
+    ):
+        test_create_np_scalar(h5_root,keywords)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_create_np_dtype),)
+    ):
+        test_create_np_dtype(h5_root,keywords)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_create_np_ndarray),)
+    ):
+        test_create_np_ndarray(h5_root,keywords)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_create_np_masked_array),)
+    ):
+        test_create_np_masked_array(h5_root,keywords)
 
     

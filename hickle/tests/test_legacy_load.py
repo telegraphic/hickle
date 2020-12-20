@@ -40,6 +40,7 @@ def test_legacy_load():
                         print(item.attrs.items())
                     raise
 
+@pytest.mark.no_compression
 def test_4_0_0_load():
     """
     test that files created by hickle 4.0.x can be loaded by 

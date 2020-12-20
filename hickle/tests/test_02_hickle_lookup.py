@@ -29,7 +29,7 @@ from py.path import local
 from hickle.helpers import PyContainer,not_dumpable
 from hickle.loaders import optional_loaders, attribute_prefix
 import hickle.lookup as lookup
-
+    
 # Set current working directory to the temporary directory
 local.get_temproot().chdir()
 
@@ -668,7 +668,7 @@ def test_type_legacy_mro():
     assert lookup.type_legacy_mro(function_to_dump) == (function_to_dump,)
 
 
-def test_create_pickled_dataset(h5_data):
+def test_create_pickled_dataset(h5_data,compression_kwargs):
     """
     tests create_pickled_dataset, load_pickled_data function and PickledContainer 
     """
@@ -679,7 +679,7 @@ def test_create_pickled_dataset(h5_data):
     pickled_py_object = pickle.dumps(py_object)
     data_set_name = "greetings"
     with pytest.warns(lookup.SerializedWarning,match = r".*type\s+not\s+understood,\s+data\s+is\s+serialized:.*") as warner:
-        h5_node,subitems = lookup.create_pickled_dataset(py_object, h5_data,data_set_name)
+        h5_node,subitems = lookup.create_pickled_dataset(py_object, h5_data,data_set_name,**compression_kwargs)
         assert isinstance(h5_node,h5py.Dataset) and not subitems and iter(subitems)
         assert bytes(h5_node[()]) == pickled_py_object and h5_node.name.rsplit('/',1)[-1] == data_set_name
         assert lookup.load_pickled_data(h5_node,b'pickle',object) == py_object
@@ -702,6 +702,7 @@ def test__DictItemContainer():
     assert container.convert() is my_bike_lock
 
     
+#@pytest.mark.no_compression
 def test__moc_numpy_array_object_lambda():
     """
     test the _moc_numpy_array_object_lambda function
@@ -716,6 +717,7 @@ def test__moc_numpy_array_object_lambda():
     data = ['hello','world']
     assert lookup._moc_numpy_array_object_lambda(data) == data[0]
     
+#@pytest.mark.no_compression
 def test_fix_lambda_obj_type():
     """
     test _moc_numpy_array_object_lambda function it self. When invokded
@@ -936,26 +938,27 @@ def test_ReferenceManager_context(h5_data):
     assert memo._overlay is None
     read_only_handle.close()
         
-def test_ReferenceManager_store_type(h5_data):
+def test_ReferenceManager_store_type(h5_data,compression_kwargs):
     """
     test ReferenceManager.store_type method which sets 'type' attribute
     reference to appropriate py_obj_type entry within 'hickle_types_table'
     """
     h_node = h5_data.create_group('some_list')
     with lookup.ReferenceManager.create_manager(h5_data) as memo:
-        memo.store_type(h_node,object,None)
+        memo.store_type(h_node,object,None,**compression_kwargs)
         assert len(memo._py_obj_type_table) == 0 and not memo._py_obj_type_link and not memo._base_type_link
         with pytest.raises(lookup.LookupError):
-            memo.store_type(h_node,list,None)
+            memo.store_type(h_node,list,None,**compression_kwargs)
         with pytest.raises(ValueError):
-            memo.store_type(h_node,list,b'')
-        memo.store_type(h_node,list,b'list')
+            memo.store_type(h_node,list,b'',**compression_kwargs)
+        memo.store_type(h_node,list,b'list',**compression_kwargs)
         assert isinstance(h_node.attrs['type'],h5py.Reference)
         type_table_entry = h5_data.file[h_node.attrs['type']]
         assert pickle.loads(type_table_entry[()]) is list
         assert isinstance(type_table_entry.attrs['base_type'],h5py.Reference)
         assert h5_data.file[type_table_entry.attrs['base_type']].name.rsplit('/',1)[-1].encode('ascii') == b'list'
     
+@pytest.mark.no_compression
 def test_ReferenceManager_get_manager(h5_data):
     h_node = h5_data.create_group('some_list')
     item_data = np.array(memoryview(b'hallo welt lore grueszet dich ipsum aus der lore von ipsum gelort in ipsum'),copy=False)
@@ -974,6 +977,7 @@ def test_ReferenceManager_get_manager(h5_data):
     with pytest.raises(lookup.ReferenceError):
         manager = lookup.ReferenceManager.get_manager(h_item)
 
+@pytest.mark.no_compression
 def test_ReferenceManager_resolve_type(h5_data):
     """
     test ReferenceManager.reslove_type method which tries to resolve
@@ -1069,7 +1073,7 @@ def test_ExpandReferenceContainer(h5_data):
             content = np.array(subitem[()])
             sub_container.append(name,content,subitem.attrs)
 
-
+@pytest.mark.no_compression
 def test_recover_custom_data(h5_data):
     array_to_recover = np.random.random_sample([4,2])
     with lookup.ReferenceManager.create_manager(h5_data) as memo:
@@ -1114,11 +1118,12 @@ def test_recover_custom_data(h5_data):
         assert recovered_group.attrs['so'] == 'long' and recovered_group.attrs['and'] == 'thanks'
         globals()['ClassToDump'] = backup_class_to_dump 
 
-    
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.monkeypatch import monkeypatch
     from _pytest.fixtures import FixtureRequest
+    from hickle.tests.conftest import compression_kwargs
+
     for h5_root in h5_data(FixtureRequest(test_create_pickled_dataset)):
         test_AttemptRecoverCustom_classes(h5_data)
     for table in loader_table():
@@ -1145,8 +1150,11 @@ if __name__ == "__main__":
     ):
             test_LoaderManager_load_loader(table,h5_root,monkey)
     test_type_legacy_mro()
-    for h5_root in h5_data(FixtureRequest(test_create_pickled_dataset)):
-        test_create_pickled_dataset(h5_root)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_create_pickled_dataset),)
+    ):
+        test_create_pickled_dataset(h5_root,keywords)
     test__DictItemContainer()
     test__moc_numpy_array_object_lambda()
     test_fix_lambda_obj_type()
@@ -1163,8 +1171,10 @@ if __name__ == "__main__":
         test_ReferenceManager_context(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ReferenceManager_get_manager)):
         test_ReferenceManager_get_manager(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_store_type)):
-        test_ReferenceManager_store_type(h5_root)
+    for h5_root,compression_kwargs in (
+            h5_data(FixtureRequest(test_ReferenceManager_store_type))
+    ):
+        test_ReferenceManager_store_type(h5_root,compression_kwargs)
     for h5_root in h5_data(FixtureRequest(test_ReferenceManager_resolve_type)):
         test_ReferenceManager_resolve_type(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ExpandReferenceContainer)):

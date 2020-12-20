@@ -11,4 +11,10 @@ exclude .nojekyll
 exclude .pylintrc
 exclude paper*
 recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
+recursive-exclude * *.py[co] *.bk
+recursive-exclude * old .old
+recursive-exclude * *.tox
+exclude hickle/tests/classes
+recursive-exclude hickle/tests/classes *
+exclude hickle/tests/dev_check
+recursive-exclude hickle/tests/dev_check *

@@ -8,6 +8,7 @@ from astropy.units import Quantity
 import numpy as np
 
 # hickle imports
+from hickle.helpers import no_compression
 
 
 # %% FUNCTION DEFINITIONS
@@ -25,7 +26,7 @@ def create_astropy_quantity(py_obj, h_group, name, **kwargs):
     """
 
     d = h_group.create_dataset(name, data=py_obj.value, dtype='float64',
-                               **kwargs)
+                               **no_compression(kwargs))
     d.attrs['unit'] = py_obj.unit.to_string().encode('ascii')
     return d,()
 
@@ -44,7 +45,7 @@ def create_astropy_angle(py_obj, h_group, name, **kwargs):
     """
 
     d = h_group.create_dataset(name, data=py_obj.value, dtype='float64',
-                               **kwargs)
+                               **no_compression(kwargs))
     d.attrs['unit'] = py_obj.unit.to_string().encode('ascii')
     return d,()
 
@@ -118,7 +119,7 @@ def create_astropy_constant(py_obj, h_group, name, **kwargs):
     """
 
     d = h_group.create_dataset(name, data=py_obj.value, dtype='float64',
-                               **kwargs)
+                               **no_compression(kwargs))
     d.attrs["unit"] = py_obj.unit.to_string().encode('ascii')
     d.attrs["abbrev"] = py_obj.abbrev.encode('ascii')
     d.attrs["name"] = py_obj.name.encode('ascii')

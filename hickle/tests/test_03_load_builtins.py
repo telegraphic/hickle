@@ -48,28 +48,28 @@ def h5_data(request):
 
 # %% FUNCTION DEFINITIONS
 
-def test_scalar_dataset(h5_data):
+def test_scalar_dataset(h5_data,compression_kwargs):
     """
     tests creation and loading of datasets for scalar values
     """
 
     # check that scalar value is properly handled
     floatvalue = 5.2
-    h_dataset,subitems= load_builtins.create_scalar_dataset(floatvalue,h5_data,"floatvalue")
+    h_dataset,subitems= load_builtins.create_scalar_dataset(floatvalue,h5_data,"floatvalue",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and h_dataset[()] == floatvalue
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'float',float) == floatvalue
 
     # check that intger value less thatn 64 bit is stored as int
     intvalue = 11
-    h_dataset,subitems = load_builtins.create_scalar_dataset(intvalue,h5_data,"intvalue")
+    h_dataset,subitems = load_builtins.create_scalar_dataset(intvalue,h5_data,"intvalue",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and h_dataset[()] == intvalue
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == intvalue
 
     # check that integer larger than 64 bit is stored as ascii byte string
     non_mappable_int = int(2**65)
-    h_dataset,subitems = load_builtins.create_scalar_dataset(non_mappable_int,h5_data,"non_mappable_int")
+    h_dataset,subitems = load_builtins.create_scalar_dataset(non_mappable_int,h5_data,"non_mappable_int",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset)
     assert bytearray(h_dataset[()]) == str(non_mappable_int).encode('utf8')
     assert not [ item for item in subitems ]
@@ -77,31 +77,31 @@ def test_scalar_dataset(h5_data):
 
     # check that integer larger than 64 bit is stored as ascii byte string
     non_mappable_neg_int = -int(-2**63-1)
-    h_dataset,subitems = load_builtins.create_scalar_dataset(non_mappable_neg_int,h5_data,"non_mappable_neg_int")
+    h_dataset,subitems = load_builtins.create_scalar_dataset(non_mappable_neg_int,h5_data,"non_mappable_neg_int",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset)
     assert bytearray(h_dataset[()]) == str(non_mappable_neg_int).encode('utf8')
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == non_mappable_neg_int
     
     
-def test_non_dataset(h5_data):
+def test_non_dataset(h5_data,compression_kwargs):
     """
      that None value is properly stored
     """
-    h_dataset,subitems = load_builtins.create_none_dataset(None,h5_data,"None_value")
+    h_dataset,subitems = load_builtins.create_none_dataset(None,h5_data,"None_value",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and h_dataset.shape is None and h_dataset.dtype == 'V1'
     assert not [ item for item in subitems ]
     assert load_builtins.load_none_dataset(h_dataset,b'None',None.__class__) is None
 
 
-def test_listlike_dataset(h5_data):
+def test_listlike_dataset(h5_data,compression_kwargs):
     """
     test storing and loading of list like data 
     """
 
     # check that empty tuple is stored properly
     empty_tuple = ()
-    h_dataset,subitems = load_builtins.create_listlike_dataset(empty_tuple, h5_data, "empty_tuple")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(empty_tuple, h5_data, "empty_tuple",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and h_dataset.size is None
     assert not subitems and iter(subitems)
     assert load_builtins.load_list_dataset(h_dataset,b'tuple',tuple) == empty_tuple
@@ -109,7 +109,7 @@ def test_listlike_dataset(h5_data):
     # check that string data is stored properly stored as array of bytes
     # which supports compression
     stringdata = "string_data"
-    h_dataset,subitems = load_builtins.create_listlike_dataset(stringdata, h5_data, "string_data")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(stringdata, h5_data, "string_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not [ item for item in subitems ]
     assert bytearray(h_dataset[()]).decode("utf8") == stringdata
     assert h_dataset.attrs["str_type"].decode("ascii") == 'str'
@@ -118,7 +118,7 @@ def test_listlike_dataset(h5_data):
     # check that byte string is proprly stored as array of bytes which
     # supports compression
     bytesdata = b'bytes_data'
-    h_dataset,subitems = load_builtins.create_listlike_dataset(bytesdata, h5_data, "bytes_data")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(bytesdata, h5_data, "bytes_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not [ item for item in subitems ]
     assert bytes(h_dataset[()]) == bytesdata
     assert h_dataset.attrs["str_type"].decode("ascii") == 'bytes'
@@ -132,7 +132,7 @@ def test_listlike_dataset(h5_data):
 
     # check that list of single type is stored as dataset of same type
     homogenous_list = [ 1, 2, 3, 4, 5, 6]
-    h_dataset,subitems = load_builtins.create_listlike_dataset(homogenous_list,h5_data,"homogenous_list")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(homogenous_list,h5_data,"homogenous_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not [ item for item in subitems ]
     assert h_dataset[()].tolist() == homogenous_list and h_dataset.dtype == int
     assert load_builtins.load_list_dataset(h_dataset,b'list',list) == homogenous_list
@@ -140,7 +140,7 @@ def test_listlike_dataset(h5_data):
     # check that list of different scalar types for which a least common type exists
     # is stored using a dataset 
     mixed_dtype_list = [ 1, 2.5, 3.8, 4, 5, 6]
-    h_dataset,subitems = load_builtins.create_listlike_dataset(mixed_dtype_list,h5_data,"mixed_dtype_list")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(mixed_dtype_list,h5_data,"mixed_dtype_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not [ item for item in subitems ]
     assert h_dataset[()].tolist() == mixed_dtype_list and h_dataset.dtype == float
     assert load_builtins.load_list_dataset(h_dataset,b'list',list) == mixed_dtype_list
@@ -149,7 +149,7 @@ def test_listlike_dataset(h5_data):
     # further check that for groups representing list the index of items is either
     # provided via item_index attribute or can be read from name of item
     not_so_homogenous_list = [ 1, 2, 3, [4],5 ,6 ]
-    h_dataset,subitems = load_builtins.create_listlike_dataset(not_so_homogenous_list,h5_data,"not_so_homogenous_list")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(not_so_homogenous_list,h5_data,"not_so_homogenous_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
     item_name = "data{:d}"
     index = -1 
@@ -158,9 +158,9 @@ def test_listlike_dataset(h5_data):
     index_from_string = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     for index,(name,item,attrs,kwargs) in enumerate(iter(subitems1)):
         assert item_name.format(index) == name and item == not_so_homogenous_list[index]
-        assert attrs == {"item_index":index} and kwargs == {}
+        assert attrs == {"item_index":index} and kwargs == compression_kwargs
         if isinstance(item,list):
-            item_dataset,_ = load_builtins.create_listlike_dataset(item,h_dataset,name)
+            item_dataset,_ = load_builtins.create_listlike_dataset(item,h_dataset,name,**compression_kwargs)
         else:
             item_dataset = h_dataset.create_dataset(name,data = item)
         item_dataset.attrs.update(attrs)
@@ -177,7 +177,7 @@ def test_listlike_dataset(h5_data):
     no_num_items_container = load_builtins.ListLikeContainer(no_num_items,b'list',list)
     for index,(name,item,attrs,kwargs) in enumerate(iter(subitems2)):
         assert item_name.format(index) == name and item == not_so_homogenous_list[index]
-        assert attrs == {"item_index":index} and kwargs == {}
+        assert attrs == {"item_index":index} and kwargs == compression_kwargs
         item_dataset = h_dataset.get(name,None)
         no_num_items_container.append(name,item,{})
     assert index + 1 == len(not_so_homogenous_list)
@@ -189,7 +189,7 @@ def test_listlike_dataset(h5_data):
     # from the taile of its name. Also check that ListLikeContainer.append
     # raises exceptoin in case value for item_index already has been loaded
     object_list = [ [4, 5 ] ,6, [ 1, 2, 3 ] ]
-    h_dataset,subitems = load_builtins.create_listlike_dataset(object_list,h5_data,"object_list")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(object_list,h5_data,"object_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
     item_name = "data{:d}"
     wrong_item_name = item_name + "_ni"
@@ -198,9 +198,9 @@ def test_listlike_dataset(h5_data):
     index_from_string = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     for index,(name,item,attrs,kwargs) in enumerate(iter(subitems)):
         assert item_name.format(index) == name and item == object_list[index]
-        assert attrs == {"item_index":index} and kwargs == {}
+        assert attrs == {"item_index":index} and kwargs == compression_kwargs
         if isinstance(item,list):
-            item_dataset,_ = load_builtins.create_listlike_dataset(item,h_dataset,name)
+            item_dataset,_ = load_builtins.create_listlike_dataset(item,h_dataset,name,**compression_kwargs)
         else:
             item_dataset = h_dataset.create_dataset(name,data = item)
         item_dataset.attrs.update(attrs)
@@ -224,7 +224,7 @@ def test_listlike_dataset(h5_data):
     # assert that list of strings where first string has lenght 1 is properly mapped
     # to group
     string_list = test_set = ['I','confess','appriciate','hickle','times']
-    h_dataset,subitems = load_builtins.create_listlike_dataset(string_list,h5_data,"string_list")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(string_list,h5_data,"string_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
     item_name = "data{:d}"
     index = -1 
@@ -232,7 +232,7 @@ def test_listlike_dataset(h5_data):
     index_from_string = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     for index,(name,item,attrs,kwargs) in enumerate(iter(subitems)):
         assert item_name.format(index) == name and item == string_list[index]
-        assert attrs == {"item_index":index} and kwargs == {}
+        assert attrs == {"item_index":index} and kwargs == compression_kwargs
         item_dataset = h_dataset.create_dataset(name,data = item)
         item_dataset.attrs.update(attrs)
         loaded_list.append(name,item,item_dataset.attrs)
@@ -244,7 +244,7 @@ def test_listlike_dataset(h5_data):
     # assert that list which contains numeric values and strings is properly mapped
     # to group
     mixed_string_list = test_set = [12,2.8,'I','confess','appriciate','hickle','times']
-    h_dataset,subitems = load_builtins.create_listlike_dataset(mixed_string_list,h5_data,"mixed_string_list")
+    h_dataset,subitems = load_builtins.create_listlike_dataset(mixed_string_list,h5_data,"mixed_string_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
     item_name = "data{:d}"
     index = -1 
@@ -252,7 +252,7 @@ def test_listlike_dataset(h5_data):
     index_from_string = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     for index,(name,item,attrs,kwargs) in enumerate(iter(subitems)):
         assert item_name.format(index) == name and item == mixed_string_list[index]
-        assert attrs == {"item_index":index} and kwargs == {}
+        assert attrs == {"item_index":index} and kwargs == compression_kwargs
         item_dataset = h_dataset.create_dataset(name,data = item)
         item_dataset.attrs.update(attrs)
         loaded_list.append(name,item,item_dataset.attrs)
@@ -262,14 +262,14 @@ def test_listlike_dataset(h5_data):
     assert index_from_string.convert() == mixed_string_list
     
 
-def test_set_container(h5_data):
+def test_set_container(h5_data,compression_kwargs):
     """
     tests storing and loading of set
     """
 
     # check that set of strings is store as group
     test_set = {'I','confess','appriciate','hickle','times'}
-    h_setdataset,subitems = load_builtins.create_setlike_dataset(test_set,h5_data,"test_set")
+    h_setdataset,subitems = load_builtins.create_setlike_dataset(test_set,h5_data,"test_set",**compression_kwargs)
     set_container = load_builtins.SetLikeContainer(h_setdataset.attrs,b'set',set)
     for name,item,attrs,kwargs in subitems:
         set_container.append(name,item,attrs)
@@ -277,27 +277,27 @@ def test_set_container(h5_data):
 
     # check that set of single bytes is stored as single dataset
     test_set_2 = set(b"hello world")
-    h_setdataset,subitems = load_builtins.create_setlike_dataset(test_set_2,h5_data,"test_set_2")
+    h_setdataset,subitems = load_builtins.create_setlike_dataset(test_set_2,h5_data,"test_set_2",**compression_kwargs)
     assert isinstance(h_setdataset,h5.Dataset) and set(h_setdataset[()]) == test_set_2
     assert not subitems and iter(subitems)
     assert load_builtins.load_list_dataset(h_setdataset,b'set',set) == test_set_2
 
     # check that set containing byte strings is stored as group
     test_set_3 = set((item.encode("utf8") for item in test_set))
-    h_setdataset,subitems = load_builtins.create_setlike_dataset(test_set_3,h5_data,"test_set_3")
+    h_setdataset,subitems = load_builtins.create_setlike_dataset(test_set_3,h5_data,"test_set_3",**compression_kwargs)
     set_container = load_builtins.SetLikeContainer(h_setdataset.attrs,b'set',set)
     for name,item,attrs,kwargs in subitems:
         set_container.append(name,item,attrs)
     assert set_container.convert() == test_set_3
 
     # check that empty set is represented by emtpy dataset
-    h_setdataset,subitems = load_builtins.create_setlike_dataset(set(),h5_data,"empty_set")
+    h_setdataset,subitems = load_builtins.create_setlike_dataset(set(),h5_data,"empty_set",**compression_kwargs)
     assert isinstance(h_setdataset,h5.Dataset) and h_setdataset.size == 0
     assert not subitems and iter(subitems)
     assert load_builtins.load_list_dataset(h_setdataset,b'set',set) == set()
     
 
-def test_dictlike_dataset(h5_data):
+def test_dictlike_dataset(h5_data,compression_kwargs):
     """
     test storing and loading of dict
     """
@@ -321,7 +321,7 @@ def test_dictlike_dataset(h5_data):
     # check that string and byte string keys are mapped to dataset or group name 
     # check that scalar dict keys are converted to their string representation
     # check that for all other keys a key value pair is created
-    h_datagroup,subitems = load_builtins.create_dictlike_dataset(allkeys_dict,h5_data,"allkeys_dict")
+    h_datagroup,subitems = load_builtins.create_dictlike_dataset(allkeys_dict,h5_data,"allkeys_dict",**compression_kwargs)
     assert isinstance(h_datagroup,h5.Group)
     invalid_key = b''
     last_entry = -1
@@ -380,7 +380,7 @@ def test_dictlike_dataset(h5_data):
 
     # check that order of OrderedDict dict keys is not altered on loading data from 
     # hickle file
-    h_datagroup,subitems = load_builtins.create_dictlike_dataset(ordered_dict,h5_data,"ordered_dict")
+    h_datagroup,subitems = load_builtins.create_dictlike_dataset(ordered_dict,h5_data,"ordered_dict",**compression_kwargs)
     assert isinstance(h_datagroup,h5.Group)
     last_entry = -1
     load_ordered_dict = load_builtins.DictLikeContainer(h_datagroup.attrs,b'dict',collections.OrderedDict)
@@ -408,16 +408,32 @@ def test_dictlike_dataset(h5_data):
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.fixtures import FixtureRequest
-    for h5_root in h5_data(FixtureRequest(test_scalar_dataset)):
-        test_scalar_dataset(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_non_dataset)):
-        test_non_dataset(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_listlike_dataset)):
-        test_listlike_dataset(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_set_container)):
-        test_set_container(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_dictlike_dataset)):
-        test_dictlike_dataset(h5_root)
+    from hickle.tests.conftest import compression_kwargs
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_scalar_dataset),)
+    ):
+        test_scalar_dataset(h5_root,keywords)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_non_dataset),)
+    ):
+        test_non_dataset(h5_root,keywords)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_listlike_dataset),)
+    ):
+        test_listlike_dataset(h5_root,keywords)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_set_container),)
+    ):
+        test_set_container(h5_root,keywords)
+    for h5_root,keywords in (
+        ( h5_data(request),compression_kwargs(request) )
+        for request in (FixtureRequest(test_dictlike_dataset),)
+    ):
+        test_dictlike_dataset(h5_root,keywords)
 
     
     

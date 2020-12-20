@@ -1055,7 +1055,7 @@ class LoaderManager(BaseManager):
                         package_file = package_spec.origin
                     if not os.path.isabs(package_file): # pragma: nocover
                         package_spec = find_spec(os.path.basename(package_file.rsplit('.')[0]))
-                        if not package_spec.has_location: # pargma: nocover
+                        if not getattr(package_spec,'has_location',False): # pargma: nocover
                             continue
                         package_file = package_spec.origin
                     package_list[0],allow_custom_loader = os.path.basename(package_file).rsplit('.')[0],package_list[0]
@@ -1082,7 +1082,7 @@ class LoaderManager(BaseManager):
                         if package_spec is None: # pragma: nocover
                             # not sure if hit at all
                             package_spec = find_spec(package_list[0])
-                        if not package_spec.has_location:
+                        if not getattr(package_spec,'has_location',False):
                             # can't resolve package or base module hosting mro_item
                             continue
                         package_file = package_spec.origin # pragma: nocover
