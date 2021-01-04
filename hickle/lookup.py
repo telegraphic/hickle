@@ -67,16 +67,16 @@ from .loaders import optional_loaders, attribute_prefix
 
 # %% GLOBALS
 # Define dict of all acceptable types
-types_dict = {}
-
-# Define dict of all acceptable hickle types
-hkl_types_dict = {}
-
-# Define dict of all acceptable hickle container types
-hkl_container_dict = {}
-
-# Empty list (hashable) of loaded loader names
-loaded_loaders = set()
+#rem types_dict = {}
+#rem 
+#rem # Define dict of all acceptable hickle types
+#rem hkl_types_dict = {}
+#rem 
+#rem # Define dict of all acceptable hickle container types
+#rem hkl_container_dict = {}
+#rem 
+#rem # Empty list (hashable) of loaded loader names
+#rem loaded_loaders = set()
 
 # %% FUNCTION DEFINITIONS
 
@@ -98,8 +98,8 @@ def dump_nothing(py_obj, h_group, name, **kwargs): # pragma: nocover
 # h5py >= 2.10 provides already a ref_dtype where metadata is already properly
 # set. Both ways to define ref_dtype are equivalent for h5py >= 2.10
 # for any other mimick definiton for ref_dtype of h5py >= 2.10
-h5_version = [int(v) for v in h5.__version__.split('.')]
-if h5_version[0] > 2 or ( h5_version[0] == 2 and h5_version[1] >= 10 ):
+#h5_version = [int(v) for v in h5.__version__.split('.')]
+if h5.version.version_tuple[0] > 2 or ( h5.version.version_tuple[0] == 2 and h5.version.version_tuple[1] >= 10 ):
     link_dtype = h5.ref_dtype
 else: # pragma: nocover
     link_dtype = np.dtype('O',metadata = {'ref':h5.Reference})
@@ -333,7 +333,11 @@ class ReferenceManager(BaseManager,dict):
         if isinstance(entry_ref,h5.Reference):
             # return the grand parent of the reffered to py_obj_type dataset as it
             # ist also the h_root_group of h_node
-            entry = h_node.file.get(entry_ref,None)
+            try:
+                entry = h_node.file.get(entry_ref,None)
+            except ValueError: # pragma: nocover
+                # h5py >= 3 would return anonymous dataset instead
+                entry = None
             if entry is not None:
                 return entry.parent.parent
         if h_node.parent == h_node.file:
@@ -352,7 +356,7 @@ class ReferenceManager(BaseManager,dict):
             return h_node.file
         try:
             entry = h_node.file.get(entry_ref,None)
-        except ValueError:
+        except ValueError: # pragma: nocover
             entry = None
         if entry is None:
             # 'type' reference seemst to be stale
@@ -469,7 +473,9 @@ class ReferenceManager(BaseManager,dict):
                 raise ReferenceError("inconsistent 'hickle_types_table' entryies for py_obj_type '{}': no base_type".format(py_obj_type))
             try:
                 base_type_entry = entry.file.get(base_type_ref,None)
-            except ValueError:
+            except ValueError: # pragma: nocover
+                base_type_entry = None
+            if base_type_entry is None:
                 raise ReferenceError("inconsistent 'hickle_types_table' entryies for py_obj_type '{}': stale base_type".format(py_obj_type))
             base_type = self._base_type_link.get(base_type_entry.id,None)
             if base_type is None:
@@ -849,10 +855,14 @@ class LoaderManager(BaseManager):
                 cls.__py_types__[option][myclass_type] = ( dump_function, hkl_str,memoise)
             if load_function is not None:
                 cls.__hkl_functions__[option][hkl_str] = load_function
+                cls.__hkl_functions__[option][hkl_str.decode('ascii')] = load_function
             if container_class is not None:
                 cls.__hkl_container__[option][hkl_str] = container_class
+                cls.__hkl_container__[option][hkl_str.decode('ascii')] = container_class
         except KeyError:
             raise LookupError("Invalid option '{}' encountered".format(option))
+        
+            
 
 
     @classmethod
@@ -886,6 +896,8 @@ class LoaderManager(BaseManager):
         try:
             cls.__hkl_functions__[option][hkl_str_to_ignore] = load_nothing
             cls.__hkl_container__[option][hkl_str_to_ignore] = NoContainer
+            cls.__hkl_functions__[option][hkl_str_to_ignore.decode('ascii')] = load_nothing
+            cls.__hkl_container__[option][hkl_str_to_ignore.decode('ascii')] = NoContainer
         except KeyError:
             raise LookupError("'{}' option unknown".format(option))
 
@@ -1250,8 +1262,10 @@ class ExpandReferenceContainer(PyContainer):
         restored from file. 
         """
         try:
-            referred_node = h_parent.file[h_parent[()]]
-        except ( ValueError, KeyError ):
+            referred_node = h_parent.file.get(h_parent[()],None)
+        except ( ValueError, KeyError ): # pragma nocover
+            referred_node = None
+        if referred_node is None:
             raise ReferenceError("node '{}' stale node reference".format(h_parent.name))
         yield referred_node.name.rsplit('/',1)[-1], referred_node
 

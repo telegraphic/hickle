@@ -73,10 +73,7 @@ def loader_table():
     # to ensure no loader preset by hickle core or hickle loader module
     # intervenes with test
     global lookup
-    lookup.loaded_loaders.clear()
-    lookup.types_dict.clear()
-    lookup.hkl_types_dict.clear()
-    lookup.hkl_container_dict.clear()
+    lookup.LoaderManager.__loaded_loaders__.clear()
     tuple( True for opt in lookup.LoaderManager.__py_types__.values() if opt.clear() )
     tuple( True for opt in lookup.LoaderManager.__hkl_functions__.values() if opt.clear() )
     tuple( True for opt in lookup.LoaderManager.__hkl_container__.values() if opt.clear() )
@@ -127,13 +124,11 @@ def loader_table():
     # cleanup and reload hickle.lookup module to reset it to its initial state
     # in case hickle.hickle has already been preloaded by pytest also reload it
     # to ensure no sideffectes occur during later tests
-    lookup.loaded_loaders.clear()
-    lookup.types_dict.clear()
-    lookup.hkl_types_dict.clear()
-    lookup.hkl_container_dict.clear()
+    lookup.LoaderManager.__loaded_loaders__.clear()
     tuple( True for opt in lookup.LoaderManager.__py_types__.values() if opt.clear() )
     tuple( True for opt in lookup.LoaderManager.__hkl_functions__.values() if opt.clear() )
     tuple( True for opt in lookup.LoaderManager.__hkl_container__.values() if opt.clear() )
+    
     reload(lookup)
     lookup = sys.modules[lookup.__name__]
     hickle_hickle = sys.modules.get("hickle.hickle",None)
@@ -779,8 +774,12 @@ def test_ReferenceManager_get_root(h5_data):
     assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.file.id
     list_group.attrs['type'] = list_entry.ref
     assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.id
+    for_later_use = list_entry.ref
+    list_entry = None
     del type_table[str(len(type_table)-2)]
     assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.file.id
+    assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.file.id
+    
         
 
 class not_a_surviver():
@@ -847,6 +846,7 @@ def test_ReferenceManager(h5_data):
     stale_ref_entry = type_table.create_dataset("stale",shape=None,dtype = 'S1')
     list_entry.attrs['base_type']=stale_ref_entry.ref
     type_table.pop("stale",None)
+    stale_ref_entry = None
     with pytest.raises(lookup.ReferenceError):
         reference_manager = lookup.ReferenceManager(h5_data)
     list_entry.attrs['base_type']=backup_attr
@@ -1004,7 +1004,7 @@ def test_ReferenceManager_resolve_type(h5_data):
             memo.resolve_type(invalid_pickle_and_ref)
         assert memo.resolve_type(pickled_data) == (object,b'pickle',False)
         assert memo.resolve_type(shared_ref) == (lookup.NodeReference,b'!node-reference!',True)
-        assert memo.resolve_type(old_style_typed) == (int,b'int',False)
+        assert memo.resolve_type(old_style_typed) in ((int,b'int',False),(int,'int',False))
         with pytest.raises(lookup.ReferenceError):
             info = memo.resolve_type(broken_old_style)
         memo.store_type(new_style_typed,int,b'int')
@@ -1012,8 +1012,21 @@ def test_ReferenceManager_resolve_type(h5_data):
         memo.store_type(stale_new_style,list,b'list')
         assert pickle.loads(memo._py_obj_type_table[str(entry_id)][()]) is list
         stale_list_base = memo._py_obj_type_table['list'].ref
+        # remove py_obj_type entry and base_type_entry for list entry
+        # while h5py 2 raises a value error if not active link exists for a
+        # dataset h5py 3 returns an anonymous group when resolving a stale 
+        # reference to it if any body still holds a strong reference to its
+        # h5py.Dataset or h5py.Group object. Therefore drop all references to
+        # the removed entries to simulate that sombody has removed them from
+        # a hickle file before it was passed to hickle.load for restoring its
+        # content.
+        memo._py_obj_type_link.pop(memo._py_obj_type_table[str(entry_id)].id,None)
+        memo._py_obj_type_link.pop(id(list),None)
+        memo._base_type_link.pop(memo._py_obj_type_table['list'].id,None)
+        memo._base_type_link.pop(b'list',None)
         del memo._py_obj_type_table[str(entry_id)]
         del memo._py_obj_type_table['list']
+        memo._py_obj_type_table.file.flush()
         with pytest.raises(lookup.ReferenceError):
             memo.resolve_type(stale_new_style)
         entry_id = len(memo._py_obj_type_table)
@@ -1021,13 +1034,19 @@ def test_ReferenceManager_resolve_type(h5_data):
         float_entry = memo._py_obj_type_table[str(entry_id)]
         assert pickle.loads(float_entry[()]) is float
         float_base = float_entry.attrs['base_type']
+        # remove float entry and clear all references to it see above 
         del memo._py_obj_type_link[float_entry.id]
         del memo._py_obj_type_link[id(float)]
         del float_entry.attrs['base_type']
-        assert memo.resolve_type(new_style_typed_no_link) == (float,b'pickle',False)
+        memo._py_obj_type_table.file.flush()
+        assert memo.resolve_type(new_style_typed_no_link) in ((float,b'pickle',False),(float,'pickle',False))
         del memo._py_obj_type_link[float_entry.id]
         del memo._py_obj_type_link[id(float)]
-        float_entry.attrs['base_type'] = stale_list_base
+        # create stale reference to not existing base_type entry
+        memo._py_obj_type_table.create_dataset('list',shape=None,dtype='S1')
+        float_entry.attrs['base_type'] = memo._py_obj_type_table['list'].ref
+        memo._py_obj_type_table.pop('list',None)
+        memo._py_obj_type_table.file.flush()
         with pytest.raises(lookup.ReferenceError):
             info = memo.resolve_type(new_style_typed_no_link)
         memo._py_obj_type_link.pop(float_entry.id,None)
@@ -1035,7 +1054,9 @@ def test_ReferenceManager_resolve_type(h5_data):
         del memo._base_type_link[memo._py_obj_type_table[float_base].id]
         del memo._base_type_link[b'float']
         float_entry.attrs['base_type'] = float_base
-        assert memo.resolve_type(new_style_typed_no_link) == (float,b'float',False)
+        memo._py_obj_type_table.file.flush()
+        assert memo.resolve_type(new_style_typed_no_link) in ((float,b'float',False),(float,'float',False))
+        
         assert memo.resolve_type(new_style_typed_no_link) 
         memo.store_type(has_not_recoverable_type,not_a_surviver,b'lost')
         del memo._py_obj_type_link[memo._py_obj_type_link[id(not_a_surviver)].id]
@@ -1067,7 +1088,11 @@ def test_ExpandReferenceContainer(h5_data):
         content = np.array(subitem[()])
         sub_container.append(name,content,subitem.attrs)
     assert np.all(sub_container.convert()==expected_data)
+    content = None
+    subitem = None
     del h5_data[referred_data.name]
+    referred_data = None
+    sub_container = lookup.ExpandReferenceContainer(referring_node.attrs,b'!node-reference!',lookup.NodeReference)
     with pytest.raises(lookup.ReferenceError):
         for name,subitem in sub_container.filter(referring_node):
             content = np.array(subitem[()])

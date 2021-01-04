@@ -54,7 +54,7 @@ def test_4_0_0_load():
         content = hkl.load(filename)
         if filename != needs_compare:
             continue
-        for content_item,compare_item in ( (content[i],compare_with[i]) for i in range(len(compare_with)) ):
+        for item_id,content_item,compare_item in ( (i,content[i],compare_with[i]) for i in range(len(compare_with)) ):
             if scipy.sparse.issparse(content_item):
                 assert np.allclose(content_item.toarray(),compare_item.toarray())
                 continue

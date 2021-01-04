@@ -318,7 +318,7 @@ def load(file_obj, path='/', safe=True, filename = None):
         # Check if the proper attributes for v3 loading are available
         if all(map(h5f.attrs.get, v3_attrs)):
             # Check if group attribute 'CLASS' has value 'hickle
-            if(h5f.attrs['CLASS'] != b'hickle'):  # pragma: no cover
+            if(h5f.attrs['CLASS'] not in ( b'hickle','hickle')):  # pragma: no cover
                 # If not, raise error
                 raise AttributeError("HDF5-file attribute 'CLASS' does not "
                                      "have value 'hickle'!")

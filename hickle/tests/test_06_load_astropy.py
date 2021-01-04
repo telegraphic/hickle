@@ -50,13 +50,15 @@ def test_create_astropy_quantity(h5_data,compression_kwargs):
         a = Quantity(7, unit=uu)
         h_dataset,subitems = load_astropy.create_astropy_quantity(a,h5_data,"quantity{}".format(index),**compression_kwargs)
         assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-        assert h_dataset.attrs['unit'] == a.unit.to_string().encode("ascii") and h_dataset[()] == a.value
+        a_unit_string = a.unit.to_string()
+        assert h_dataset.attrs['unit'] in ( a_unit_string.encode("ascii"),a_unit_string) and h_dataset[()] == a.value
         reloaded = load_astropy.load_astropy_quantity_dataset(h_dataset,b'astropy_quantity',Quantity)
         assert reloaded == a and reloaded.unit == a.unit
         a *= a
         h_dataset,subitems = load_astropy.create_astropy_quantity(a,h5_data,"quantity_sqr{}".format(index),**compression_kwargs)
         assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-        assert h_dataset.attrs['unit'] == a.unit.to_string().encode("ascii") and h_dataset[()] == a.value
+        a_unit_string = a.unit.to_string()
+        assert h_dataset.attrs['unit'] in ( a_unit_string.encode("ascii"),a_unit_string) and h_dataset[()] == a.value
         reloaded = load_astropy.load_astropy_quantity_dataset(h_dataset,b'astropy_quantity',Quantity)
         assert reloaded == a and reloaded.unit == a.unit
 
@@ -69,22 +71,23 @@ def test_create_astropy_constant(h5_data,compression_kwargs):
 
     h_dataset,subitems = load_astropy.create_astropy_constant(apc.G,h5_data,"apc_G",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs["unit"] == apc.G.unit.to_string().encode('ascii')
-    assert h_dataset.attrs["abbrev"] == apc.G.abbrev.encode('ascii')
-    assert h_dataset.attrs["name"] == apc.G.name.encode('ascii')
-    assert h_dataset.attrs["reference"] == apc.G.reference.encode('ascii')
+    apc_G_unit_string = apc.G.unit.to_string()
+    assert h_dataset.attrs["unit"] in (apc_G_unit_string.encode('ascii'),apc_G_unit_string)
+    assert h_dataset.attrs["abbrev"] in (apc.G.abbrev.encode('ascii'),apc.G.abbrev)
+    assert h_dataset.attrs["name"] in ( apc.G.name.encode('ascii'),apc.G.name)
+    assert h_dataset.attrs["reference"] in ( apc.G.reference.encode('ascii'),apc.G.reference)
     assert h_dataset.attrs["uncertainty"] == apc.G.uncertainty
     reloaded = load_astropy.load_astropy_constant_dataset(h_dataset,b'astropy_constant',apc.G.__class__)
     assert reloaded == apc.G and reloaded.dtype == apc.G.dtype
 
     h_dataset,subitems = load_astropy.create_astropy_constant(apc.cgs.e,h5_data,"apc_cgs_e",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs["unit"] == apc.cgs.e.unit.to_string().encode('ascii')
-    assert h_dataset.attrs["abbrev"] == apc.cgs.e.abbrev.encode('ascii')
-    assert h_dataset.attrs["name"] == apc.cgs.e.name.encode('ascii')
-    assert h_dataset.attrs["reference"] == apc.cgs.e.reference.encode('ascii')
-    assert h_dataset.attrs["uncertainty"] == apc.cgs.e.uncertainty
-    assert h_dataset.attrs["system"] == apc.cgs.e.system.encode('ascii')
+    assert h_dataset.attrs["unit"] in ( apc.cgs.e.unit.to_string().encode('ascii'),apc.cgs.e.unit)
+    assert h_dataset.attrs["abbrev"] in ( apc.cgs.e.abbrev.encode('ascii'),apc.cgs.e.abbrev)
+    assert h_dataset.attrs["name"] in (apc.cgs.e.name.encode('ascii'),apc.cgs.e.name)
+    assert h_dataset.attrs["reference"] in ( apc.cgs.e.reference.encode('ascii'),apc.cgs.e.reference)
+    assert h_dataset.attrs["uncertainty"]  == apc.cgs.e.uncertainty
+    assert h_dataset.attrs["system"] in ( apc.cgs.e.system.encode('ascii'),apc.cgs.e.system )
     reloaded = load_astropy.load_astropy_constant_dataset(h_dataset,b'astropy_constant',apc.cgs.e.__class__)
     assert reloaded == apc.cgs.e and reloaded.dtype == apc.cgs.e.dtype
 
@@ -97,7 +100,11 @@ def test_astropy_table(h5_data,compression_kwargs):
 
     h_dataset,subitems = load_astropy.create_astropy_table(t,h5_data,"astropy_table",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert np.all(h_dataset.attrs['colnames'] == [ cname.encode('ascii') for cname in t.colnames])
+    assert (
+        np.all(h_dataset.attrs['colnames'] == [ cname.encode('ascii') for cname in t.colnames]) or
+        np.all(h_dataset.attrs['colnames'] == [ cname for cname in t.colnames])
+    )
+        
     for metakey,metavalue in t.meta.items():
         assert h_dataset.attrs[metakey] == metavalue
     assert h_dataset.dtype == t.as_array().dtype
@@ -114,7 +121,7 @@ def test_astropy_quantity_array(h5_data,compression_kwargs):
     a = Quantity([1, 2, 3], unit='m')
     h_dataset,subitems = load_astropy.create_astropy_quantity(a,h5_data,"quantity_array",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs['unit'] == a.unit.to_string().encode("ascii") and np.all(h_dataset[()] == a.value)
+    assert h_dataset.attrs['unit'] in (a.unit.to_string().encode("ascii"),a.unit.to_string()) and np.all(h_dataset[()] == a.value)
     reloaded = load_astropy.load_astropy_quantity_dataset(h_dataset,b'astropy_quantity',Quantity)
     assert np.all(reloaded == a) and reloaded.unit == a.unit
 
@@ -129,9 +136,9 @@ def test_astropy_time_array(h5_data,compression_kwargs):
 
     h_dataset,subitems = load_astropy.create_astropy_time(t1,h5_data,'time1',**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs['format'] == str(t1.format).encode('ascii')
-    assert h_dataset.attrs['scale'] == str(t1.scale).encode('ascii')
-    assert h_dataset.attrs['np_dtype'] == t1.value.dtype.str.encode('ascii')
+    assert h_dataset.attrs['format'] in (str(t1.format).encode('ascii'),str(t1.format))
+    assert h_dataset.attrs['scale'] in (str(t1.scale).encode('ascii'),str(t1.scale))
+    assert h_dataset.attrs['np_dtype'] in ( t1.value.dtype.str.encode('ascii'),t1.value.dtype.str)
     reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
     assert reloaded.value.shape == t1.value.shape
     assert reloaded.format == t1.format
@@ -151,9 +158,9 @@ def test_astropy_time_array(h5_data,compression_kwargs):
     t1 = Time(times, format='mjd', scale='utc')
     h_dataset,subitems = load_astropy.create_astropy_time(t1,h5_data,'time2',**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs['format'] == str(t1.format).encode('ascii')
-    assert h_dataset.attrs['scale'] == str(t1.scale).encode('ascii')
-    assert h_dataset.attrs['np_dtype'] == t1.value.dtype.str.encode('ascii')
+    assert h_dataset.attrs['format'] in( str(t1.format).encode('ascii'),str(t1.format))
+    assert h_dataset.attrs['scale'] in ( str(t1.scale).encode('ascii'),str(t1.scale))
+    assert h_dataset.attrs['np_dtype'] in( t1.value.dtype.str.encode('ascii'),t1.value.dtype.str)
     reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
     assert reloaded.value.shape == t1.value.shape
     assert reloaded.format == t1.format
@@ -171,7 +178,7 @@ def test_astropy_angle(h5_data,compression_kwargs):
         a = Angle(1.02, unit=uu)
         h_dataset,subitems = load_astropy.create_astropy_angle(a,h5_data,"angle_{}".format(uu),**compression_kwargs)
         assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-        assert h_dataset.attrs['unit'] == a.unit.to_string().encode('ascii')
+        assert h_dataset.attrs['unit'] in( a.unit.to_string().encode('ascii'),a.unit.to_string())
         assert h_dataset[()] == a.value
         reloaded = load_astropy.load_astropy_angle_dataset(h_dataset,b'astropy_angle',a.__class__)
         assert reloaded == a and reloaded.unit == a.unit
@@ -184,7 +191,7 @@ def test_astropy_angle_array(h5_data,compression_kwargs):
     a = Angle([1, 2, 3], unit='degree')
     h_dataset,subitems = load_astropy.create_astropy_angle(a,h5_data,"angle_array",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs['unit'] == a.unit.to_string().encode('ascii')
+    assert h_dataset.attrs['unit'] in (a.unit.to_string().encode('ascii'),a.unit.to_string())
     assert np.allclose(h_dataset[()] , a.value )
     reloaded = load_astropy.load_astropy_angle_dataset(h_dataset,b'astropy_angle',a.__class__)
     assert np.all(reloaded ==  a) and reloaded.unit == a.unit
@@ -201,8 +208,8 @@ def test_astropy_skycoord(h5_data,compression_kwargs):
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
     assert h_dataset[()][...,0] == radec.data.lon.value
     assert h_dataset[()][...,1] == radec.data.lat.value
-    assert h_dataset.attrs['lon_unit'] == radec.data.lon.unit.to_string().encode('ascii')
-    assert h_dataset.attrs['lat_unit'] == radec.data.lat.unit.to_string().encode('ascii')
+    assert h_dataset.attrs['lon_unit'] in ( radec.data.lon.unit.to_string().encode('ascii'),radec.data.lon.unit.to_string())
+    assert h_dataset.attrs['lat_unit'] in ( radec.data.lat.unit.to_string().encode('ascii'),radec.data.lat.unit.to_string())
     reloaded = load_astropy.load_astropy_skycoord_dataset(h_dataset,b'astropy_skycoord',radec.__class__)
     assert np.allclose(reloaded.ra.value,radec.ra.value)
     assert np.allclose(reloaded.dec.value,radec.dec.value)
@@ -214,8 +221,8 @@ def test_astropy_skycoord(h5_data,compression_kwargs):
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
     assert h_dataset[()][...,0] == radec.data.lon.value
     assert h_dataset[()][...,1] == radec.data.lat.value
-    assert h_dataset.attrs['lon_unit'] == radec.data.lon.unit.to_string().encode('ascii')
-    assert h_dataset.attrs['lat_unit'] == radec.data.lat.unit.to_string().encode('ascii')
+    assert h_dataset.attrs['lon_unit'] in (radec.data.lon.unit.to_string().encode('ascii'),radec.data.lon.unit.to_string())
+    assert h_dataset.attrs['lat_unit'] in ( radec.data.lat.unit.to_string().encode('ascii'),radec.data.lat.unit.to_string())
     reloaded = load_astropy.load_astropy_skycoord_dataset(h_dataset,b'astropy_skycoord',radec.__class__)
     assert reloaded.ra.value == radec.ra.value
     assert reloaded.dec.value == radec.dec.value
@@ -232,8 +239,8 @@ def test_astropy_skycoord_array(h5_data,compression_kwargs):
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
     assert np.allclose(h_dataset[()][...,0],radec.data.lon.value)
     assert np.allclose(h_dataset[()][...,1],radec.data.lat.value)
-    assert h_dataset.attrs['lon_unit'] == radec.data.lon.unit.to_string().encode('ascii')
-    assert h_dataset.attrs['lat_unit'] == radec.data.lat.unit.to_string().encode('ascii')
+    assert h_dataset.attrs['lon_unit'] in ( radec.data.lon.unit.to_string().encode('ascii'),radec.data.lon.unit.to_string())
+    assert h_dataset.attrs['lat_unit'] in ( radec.data.lat.unit.to_string().encode('ascii'),radec.data.lat.unit.to_string())
     reloaded = load_astropy.load_astropy_skycoord_dataset(h_dataset,b'astropy_skycoord',radec.__class__)
     assert np.allclose(reloaded.ra.value,radec.ra.value)
     assert np.allclose(reloaded.dec.value,radec.dec.value)
@@ -245,8 +252,8 @@ def test_astropy_skycoord_array(h5_data,compression_kwargs):
     assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
     assert np.allclose(h_dataset[()][...,0],radec.data.lon.value)
     assert np.allclose(h_dataset[()][...,1],radec.data.lat.value)
-    assert h_dataset.attrs['lon_unit'] == radec.data.lon.unit.to_string().encode('ascii')
-    assert h_dataset.attrs['lat_unit'] == radec.data.lat.unit.to_string().encode('ascii')
+    assert h_dataset.attrs['lon_unit'] in ( radec.data.lon.unit.to_string().encode('ascii'),radec.data.lon.unit.to_string())
+    assert h_dataset.attrs['lat_unit'] in ( radec.data.lat.unit.to_string().encode('ascii'),radec.data.lat.unit.to_string())
     reloaded = load_astropy.load_astropy_skycoord_dataset(h_dataset,b'astropy_skycoord',radec.__class__)
     assert np.allclose(reloaded.ra.value,radec.ra.value)
     assert np.allclose(reloaded.dec.value,radec.dec.value)
@@ -256,7 +263,7 @@ def test_astropy_skycoord_array(h5_data,compression_kwargs):
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.fixtures import FixtureRequest
-    from hickle.tests.conftest import compression_kwargs
+    from conftest import compression_kwargs
     for h5_root,keywords in (
         ( h5_data(request),compression_kwargs(request) )
         for request in (FixtureRequest(test_create_astropy_quantity),)

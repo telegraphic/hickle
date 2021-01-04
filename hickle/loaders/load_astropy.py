@@ -8,7 +8,7 @@ from astropy.units import Quantity
 import numpy as np
 
 # hickle imports
-from hickle.helpers import no_compression
+from hickle.helpers import no_compression,load_str_list_attr_ascii,load_str_attr_ascii
 
 
 # %% FUNCTION DEFINITIONS
@@ -92,7 +92,7 @@ def create_astropy_time(py_obj, h_group, name, **kwargs):
     if 'str' in py_obj.value.dtype.name:
         d = h_group.create_dataset(
             name,
-            data = [item.encode('ascii') for item in py_obj.value ],
+            data = np.array([item.encode('ascii') for item in py_obj.value ]),
             **kwargs
         )
     else:
@@ -157,7 +157,7 @@ def load_astropy_quantity_dataset(h_node,base_type,py_obj_type):
     """
     loads astropy unit
     """
-    unit = h_node.attrs["unit"].decode('ascii')
+    unit = h_node.attrs["unit"]
     return py_obj_type(h_node[()], unit)
 
 
@@ -165,8 +165,8 @@ def load_astropy_time_dataset(h_node,base_type,py_obj_type):
     """
     loads astropy time
     """
-    fmt = h_node.attrs["format"].decode('ascii')
-    scale = h_node.attrs["scale"].decode('ascii')
+    fmt = load_str_attr_ascii(h_node.attrs,"format")
+    scale = load_str_attr_ascii(h_node.attrs,"scale")
     dtype = h_node.attrs.get('np_dtype','')
     if dtype:
         dtype = np.dtype(dtype)
@@ -190,8 +190,8 @@ def load_astropy_skycoord_dataset(h_node,base_type,py_obj_type):
     loads astropy SkyCoord
     """
     data = h_node[()]
-    lon_unit = h_node.attrs["lon_unit"].decode('ascii')
-    lat_unit = h_node.attrs["lat_unit"].decode('ascii')
+    lon_unit = load_str_attr_ascii(h_node.attrs,"lon_unit")
+    lat_unit = load_str_attr_ascii(h_node.attrs,"lat_unit")
     q = py_obj_type(data[..., 0], data[..., 1], unit=(lon_unit, lat_unit))
     return q
 
@@ -219,7 +219,7 @@ def load_astropy_table(h_node,base_type,py_obj_type):
     loads astropy table
     """
 
-    colnames = [cn.decode('ascii') for cn in h_node.attrs["colnames"]]
+    colnames = load_str_list_attr_ascii(h_node.attrs,"colnames")
 
     t = py_obj_type(
         h_node[()],

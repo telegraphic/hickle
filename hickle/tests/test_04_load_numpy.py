@@ -67,7 +67,7 @@ def test_create_np_scalar(h5_data,compression_kwargs):
     dtype = scalar_data.dtype
     h_dataset,subitems = load_numpy.create_np_scalar_dataset(scalar_data,h5_data,"scalar_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
-    assert h_dataset.attrs['np_dtype'] == dtype.str.encode('ascii')
+    assert h_dataset.attrs['np_dtype'] in ( dtype.str.encode('ascii'),dtype.str)
     assert  h_dataset[()] == scalar_data
     assert load_numpy.load_np_scalar_dataset(h_dataset,b'np_scalar',scalar_data.__class__) == scalar_data
 
@@ -76,7 +76,7 @@ def test_create_np_scalar(h5_data,compression_kwargs):
     dtype = scalar_data.dtype
     h_dataset,subitems = load_numpy.create_np_scalar_dataset(scalar_data,h5_data,"generic_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
-    assert h_dataset.attrs['np_dtype'] == dtype.str.encode('ascii') and h_dataset[()] == scalar_data
+    assert h_dataset.attrs['np_dtype'] in ( dtype.str.encode('ascii'),dtype.str) and h_dataset[()] == scalar_data
     assert load_numpy.load_np_scalar_dataset(h_dataset,b'np_scalar',scalar_data.__class__) == scalar_data
 
 def test_create_np_dtype(h5_data,compression_kwargs):
@@ -100,7 +100,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_string_array",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
     assert bytes(h_dataset[()]) == np_array_data.tolist().encode("utf8")
-    assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
+    assert h_dataset.attrs["np_dtype"] in ( np_array_data.dtype.str.encode("ascii"),np_array_data.dtype.str)
     assert load_numpy.load_ndarray_dataset(h_dataset,b'ndarray',np.ndarray) == np_array_data
 
     # chekc that numpy array representing python bytes string is properly
@@ -109,7 +109,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_bytes_array",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
     assert h_dataset[()] == np_array_data.tolist()
-    assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
+    assert h_dataset.attrs["np_dtype"] in ( np_array_data.dtype.str.encode("ascii"),np_array_data.dtype.str)
     assert load_numpy.load_ndarray_dataset(h_dataset,b'ndarray',np.ndarray) == np_array_data
 
     # check that numpy array with dtype object representing list of various kinds
@@ -123,7 +123,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_list_object_array",**compression_kwargs)
     ndarray_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     assert isinstance(h_dataset,h5.Group) and iter(subitems)
-    assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
+    assert h_dataset.attrs["np_dtype"] in ( np_array_data.dtype.str.encode("ascii"),np_array_data.dtype.str)
     for index,(name,item,attrs,kwargs) in enumerate(subitems):
         assert name == "data{:d}".format(index) and attrs.get("item_index",None) == index
         assert isinstance(kwargs,dict) and np_array_data[index] == item
@@ -137,7 +137,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_list_of_strings_array",**compression_kwargs)
     ndarray_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     assert isinstance(h_dataset,h5.Group) and iter(subitems)
-    assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
+    assert h_dataset.attrs["np_dtype"] in ( np_array_data.dtype.str.encode("ascii"),np_array_data.dtype.str)
     for index,(name,item,attrs,kwargs) in enumerate(subitems):
         assert name == "data{:d}".format(index) and attrs.get("item_index",None) == index
         assert isinstance(kwargs,dict) and np_array_data[index] == item
@@ -152,7 +152,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     ndarray_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     ndarray_pickle_container = load_numpy.NDArrayLikeContainer(h_dataset.attrs,b'ndarray',np_array_data.__class__)
     assert isinstance(h_dataset,h5.Group) and iter(subitems)
-    assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
+    assert h_dataset.attrs["np_dtype"] in ( np_array_data.dtype.str.encode("ascii"),np_array_data.dtype.str)
     data_set = False
     for name,item,attrs,kwargs in subitems:
         if name == "data":
@@ -181,7 +181,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
         h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_matrix",**compression_kwargs)
         assert isinstance(h_dataset,h5.Dataset) and iter(subitems) and not subitems
         assert np.all(h_dataset[()] == np_array_data)
-        assert h_dataset.attrs["np_dtype"] == np_array_data.dtype.str.encode("ascii")
+        assert h_dataset.attrs["np_dtype"] in ( np_array_data.dtype.str.encode("ascii"),np_array_data.dtype.str)
         np_loaded_array_data = load_numpy.load_ndarray_dataset(h_dataset,b'npmatrix',np.matrix)
         assert np.all(np_loaded_array_data == np_array_data)
         assert isinstance(np_loaded_array_data,np.matrix)
@@ -197,7 +197,7 @@ def test_create_np_masked_array(h5_data,compression_kwargs):
     h_datagroup,subitems = load_numpy.create_np_masked_array_dataset(masked_array, h5_data, "masked_array",**compression_kwargs)
     masked_array_container = load_numpy.NDMaskedArrayContainer(h_datagroup.attrs,b'ndarray_masked',np.ma.array)
     assert isinstance(h_datagroup,h5.Group) and iter(subitems)
-    assert h_datagroup.attrs["np_dtype"] == masked_array.dtype.str.encode("ascii")
+    assert h_datagroup.attrs["np_dtype"] in ( masked_array.dtype.str.encode("ascii"),masked_array.dtype.str)
     data_set = mask_set = False
     for name,item,attrs,kwargs in subitems:
         assert isinstance(attrs,dict) and isinstance(kwargs,dict)

@@ -132,7 +132,7 @@ def load_np_scalar_dataset(h_node,base_type,py_obj_type):
     restores scalar value from dataset
     """
 
-    dtype = np.dtype(h_node.attrs["np_dtype"].decode("ascii"))
+    dtype = np.dtype(h_node.attrs["np_dtype"])
     return dtype.type(h_node[()])
 
 
@@ -140,7 +140,7 @@ def load_ndarray_dataset(h_node,base_type,py_obj_type):
     """
     restores ndarray like object from dataset
     """
-    dtype = np.dtype(h_node.attrs['np_dtype'].decode('ascii'))
+    dtype = np.dtype(h_node.attrs['np_dtype'])
     if "str" in dtype.name:
         string_data = h_node[()]
         if h_node.dtype.itemsize <= 1 or 'bytes' not in h_node.dtype.name:
@@ -191,7 +191,7 @@ class NDArrayLikeContainer(ListLikeContainer):
             super(NDArrayLikeContainer,self).append(name,item,h5_attrs)
     
     def convert(self):
-        data = np.array(self._content,dtype = self._h5_attrs['np_dtype'].decode('ascii'))
+        data = np.array(self._content,dtype = self._h5_attrs['np_dtype'])
         return data if data.__class__ is self.object_type or isinstance(self.object_type,types.LambdaType) else self.object_type(data)
 
 class NDMaskedArrayContainer(PyContainer):
@@ -207,7 +207,7 @@ class NDMaskedArrayContainer(PyContainer):
         self._content[name] = item
 
     def convert(self):
-        dtype = self._h5_attrs['np_dtype'].decode('ascii')
+        dtype = self._h5_attrs['np_dtype']
         data = np.ma.array(self._content['data'], mask=self._content['mask'], dtype=dtype)
         return data if data.__class__ is self.object_type or isinstance(self.object_type,types.LambdaType) else self.object_type(data)
 

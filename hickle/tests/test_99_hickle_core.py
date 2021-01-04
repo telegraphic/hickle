@@ -84,7 +84,7 @@ def test_recursive_dump(h5_data,compression_kwargs):
             # resembles double quouted string key and 'type', 'base_type 'key_base_type'
             # attributes the resulting dataset are set accordingly
             first_item = dumped_data['"12"']
-            assert first_item[()] == 12 and first_item.attrs['key_base_type'] == b'str'
+            assert first_item[()] == 12 and first_item.attrs['key_base_type'] in (b'str','str')
             assert memo.resolve_type(first_item) == (data['12'].__class__,b'int',False)
             #assert first_item.attrs['base_type'] == b'int'
             #assert first_item.attrs['type'] == pickle.dumps(data['12'].__class__) 
@@ -95,7 +95,7 @@ def test_recursive_dump(h5_data,compression_kwargs):
             second_item = dumped_data.get("data0",None)
             if second_item is None:
                 second_item = dumped_data["data1"]
-            assert second_item.attrs['key_base_type'] == b'key_value'
+            assert second_item.attrs['key_base_type'] in (b'key_value','key_value')
             assert memo.resolve_type(second_item) == (tuple,b'tuple',True)
             #assert second_item.attrs['type'] == pickle.dumps(tuple)
         

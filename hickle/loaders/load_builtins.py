@@ -34,6 +34,11 @@ dict_key_types_dict = {
     b'int': int,
     b'complex': complex,
     b'NoneType': eval,
+    'float': float,
+    'bool': bool,
+    'int': int,
+    'complex': complex,
+    'NoneType': eval,
 }
 
 # %% FUNCTION DEFINITIONS
@@ -273,7 +278,7 @@ def load_list_dataset(h_node,base_type,py_obj_type):
         return py_obj_type() if isinstance(py_obj_type,tuple) else py_obj_type(())
     str_type = h_node.attrs.get('str_type', None)
     content = h_node[()]
-    if str_type == b'str':
+    if str_type in (b'str','str'):
         # decode bytes representing python string before final conversion
         if h_node.dtype.itemsize > 1 and 'bytes' in h_node.dtype.name:
             # string dataset 4.0.x style convert it back to python string
@@ -282,6 +287,15 @@ def load_list_dataset(h_node,base_type,py_obj_type):
             # decode bytes representing python string before final conversion
             content = bytes(content).decode("utf8")
     return py_obj_type(content) if content.__class__ is not py_obj_type else content
+
+def load_hickle_4_0_x_string(h_node,base_type,py_obj_type):
+    if not 'object' in h_node.dtype.name or h_node.attrs.get('str_type',None) is not None:
+        return load_list_dataset(h_node,base_type,py_obj_type)
+    content = h_node[()]
+    if py_obj_type is str:
+        return content if isinstance(content,str) else content.decode('utf8')
+    return py_obj_type(content) if content.__class__ is not py_obj_type else content
+        
 
 class ListLikeContainer(PyContainer):
     """
@@ -351,20 +365,20 @@ class DictLikeContainer(PyContainer):
 
     def append(self,name,item,h5_attrs):
         key_base_type = h5_attrs.get('key_base_type',b'')
-        if key_base_type == b'str':
+        if key_base_type in ( b'str','str'):
             item = (
                 name[1:-1] if name[0] == '"' else self._swap_key_slashes.sub(r'/',name)[1:-1],
                 item
             )
-        elif key_base_type == b'bytes':
+        elif key_base_type in (b'bytes','bytes'):
             item = (
                 name[2:-1].encode("utf8") if name[:2] == 'b"' else self._swap_key_slashes.sub(r'/',name)[1:-1],
                 item
             )
-        elif not key_base_type == b'key_value':
+        elif not key_base_type in (b'key_value','key_value'):
             load_key  = dict_key_types_dict.get(key_base_type,None)
             if load_key is None:
-                if key_base_type not in {b'tuple'}:
+                if key_base_type not in {b'tuple','tuple'}:
                     raise ValueError("key type '{}' not understood".format(key_base_type.decode("utf8")))
                 load_key = eval
             item = (
@@ -396,6 +410,7 @@ class_register = [
     [set, b"set", create_setlike_dataset, load_list_dataset,SetLikeContainer],
     [bytes, b"bytes", create_listlike_dataset, load_list_dataset],
     [str, b"str", create_listlike_dataset, load_list_dataset],
+    [str, b"str", None, load_hickle_4_0_x_string,None,True,'hickle-4.0'],
     [int, b"int", create_scalar_dataset, load_scalar_dataset, None, False],
     [float, b"float", create_scalar_dataset, load_scalar_dataset, None, False],
     [complex, b"complex", create_scalar_dataset, load_scalar_dataset, None, False],

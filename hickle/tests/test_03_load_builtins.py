@@ -82,6 +82,21 @@ def test_scalar_dataset(h5_data,compression_kwargs):
     assert bytearray(h_dataset[()]) == str(non_mappable_neg_int).encode('utf8')
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == non_mappable_neg_int
+
+def test_load_hickle_4_0_X_string(h5_data):
+    string_data = "just tes me as utf8 string"
+    bytes_data = string_data.encode('utf8')
+    if h5.version.version_tuple[0] >= 3:
+        utf_entry = h5_data.create_dataset('utf_entry',data = string_data)#,dtype = 'U{}'.format(len(string_data)))
+        bytes_entry = h5_data.create_dataset('bytes_entry',data = bytes_data,dtype = 'S{}'.format(len(bytes_data)))
+    else:
+        utf_entry = h5_data.create_dataset('utf_entry',data = string_data)
+        bytes_entry = h5_data.create_dataset('bytes_entry',data = bytes_data)
+    assert load_builtins.load_hickle_4_0_x_string(utf_entry,b'str',str) == string_data
+    bytes_entry.attrs['str_type'] = b'str'
+    assert load_builtins.load_hickle_4_0_x_string(bytes_entry,b'str',str) == string_data
+    object_entry = h5_data.create_dataset('utf_h5py2_entry',data = string_data,dtype = np.dtype('O',metadata={'vlen':bytes}))
+    assert load_builtins.load_hickle_4_0_x_string(object_entry,b'str',bytes) == bytes_data
     
     
 def test_non_dataset(h5_data,compression_kwargs):
@@ -112,7 +127,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     h_dataset,subitems = load_builtins.create_listlike_dataset(stringdata, h5_data, "string_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not [ item for item in subitems ]
     assert bytearray(h_dataset[()]).decode("utf8") == stringdata
-    assert h_dataset.attrs["str_type"].decode("ascii") == 'str'
+    assert h_dataset.attrs["str_type"] in ('str',b'str')
     assert load_builtins.load_list_dataset(h_dataset,b'str',str) == stringdata
 
     # check that byte string is proprly stored as array of bytes which
@@ -121,7 +136,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     h_dataset,subitems = load_builtins.create_listlike_dataset(bytesdata, h5_data, "bytes_data",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not [ item for item in subitems ]
     assert bytes(h_dataset[()]) == bytesdata
-    assert h_dataset.attrs["str_type"].decode("ascii") == 'bytes'
+    assert h_dataset.attrs["str_type"] in ('bytes',b'bytes')
     assert load_builtins.load_list_dataset(h_dataset,b'bytes',bytes) == bytesdata
 
     # check that string dataset created by hickle 4.0.x is properly loaded 

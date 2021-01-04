@@ -120,9 +120,15 @@ def test_H5NodeFilterProxy(h5_data):
     # which will fail cause hdf5 file is opened for read only
     h5_node = h5_data['somedata']
     with pytest.raises(OSError):
-        h5_node.attrs['type'] = pickle.dumps(list)
+        try:
+            h5_node.attrs['type'] = pickle.dumps(list)
+        except RuntimeError as re:
+            raise OSError(re).with_traceback(re.__traceback__)
     with pytest.raises(OSError):
-        h5_node.attrs['base_type'] = b'list'
+        try:
+            h5_node.attrs['base_type'] = b'list'
+        except RuntimeError as re:
+            raise OSError(re).with_traceback(re.__traceback__)
 
     # verify that 'type' expands to tuple before running
     # the remaining tests

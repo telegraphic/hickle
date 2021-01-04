@@ -365,3 +365,17 @@ def not_dumpable( py_obj, h_group, name, **kwargs): # pragma: nocover
 #     raise FileError(
 #         "'file_obj' must be a valid path string, pahtlib.Path, h5py.File, h5py.Group, h5py.Dataset, file  or file like object'"
 #     )
+
+if h5.version.version_tuple[0] >= 3: # pragma: nocover
+    load_str_list_attr_ascii = load_str_list_attr = h5.AttributeManager.get
+    load_str_attr_ascii = load_str_list_attr = h5.AttributeManager.get
+else: # pragma: nocover
+    def load_str_list_attr_ascii(attrs,name):
+        return [ value.decode('ascii') for value in attrs[name]]
+    def load_str_list_attr(attrs,name):
+        return [ value.decode('utf8') for value in attrs[name]]
+    def load_str_attr_ascii(attrs,name):
+        return attrs[name].decode('ascii')
+    def load_str_attr(attrs,name):
+        return attrs[name].decode('utf8')
+
