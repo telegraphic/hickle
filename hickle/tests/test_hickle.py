@@ -134,6 +134,14 @@ def test_non_empty_group():
         dump(None, 'test.hdf5', 'r+')
 
 
+def test_invalid_path():
+    """ Test if attempting to load from an invalid path fails """
+
+    hickle.dump(None, 'test.hdf5')
+    with pytest.raises(ValueError):
+        hickle.load('test.hdf5', path='/test')
+
+
 def test_string():
     """ Dumping and loading a string """
     filename, mode = 'test.h5', 'w'

@@ -517,6 +517,13 @@ def load(file_obj, path='/', safe=True):
         h5f, path, close_flag = file_opener(file_obj, path, 'r')
         h_root_group = h5f.get(path)   # Solely used by v4
 
+        # Check if h_root_group is not None
+        if h_root_group is None:
+            # If so, the given path is invalid
+            raise FileError("Input argument 'path' (%s) is not a valid path "
+                            "within the HDF5-file given by the provided "
+                            "'file_obj'!" % (path))
+
         # Define attributes h_root_group must have
         v3_attrs = ['CLASS', 'VERSION', 'PYTHON_VERSION']
         v4_attrs = ['HICKLE_VERSION', 'HICKLE_PYTHON_VERSION']
