@@ -97,12 +97,14 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
             # If so, dump py_obj into the current group
             _dump(py_obj, h_group, name, **kwargs)
             d = h_group[name]
-            d.attrs['type'] = np.array(pickle.dumps(np.array))
+            d.attrs['type'] = np.array(pickle.dumps(
+                lambda x: np.array(x, dtype=object)))
         else:
             # If not, create a new group and dump py_obj into that
             d = h_group.create_group(name)
             _dump(py_obj, d, **kwargs)
-            d.attrs['type'] = np.array(pickle.dumps(lambda x: np.array(x[0])))
+            d.attrs['type'] = np.array(pickle.dumps(
+                lambda x: np.array(x[0], dtype=object)))
     else:
         d = h_group.create_dataset(name, data=py_obj, **kwargs)
     d.attrs['np_dtype'] = bytes(dtype, 'ascii')

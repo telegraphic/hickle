@@ -1,5 +1,6 @@
 # %% IMPORTS
 # Built-in imports
+from inspect import isclass
 import re
 
 # Package imports
@@ -22,6 +23,30 @@ def get_type_and_data(h_node):
     py_type, base_type = get_type(h_node)
     data = h_node[()]
     return py_type, base_type, data
+
+
+def get_mro_list(py_obj):
+    # Obtain MRO of this object
+    if isclass(py_obj):
+        mro_list = py_obj.mro()
+    else:
+        mro_list = py_obj.__class__.mro()
+
+    # Check if py_obj is a built-in iterable or not an iterable at all
+    if(isinstance(py_obj, (list, set, tuple, dict, str, bytes)) or
+       not hasattr(py_obj, '__iter__')):
+        # If so, use full MRO list
+        pass
+    else:
+        # Else, use reduced MRO list
+        pkg_name = mro_list[0].__module__.split('.')[0]
+
+        mro_list = [x for x in mro_list
+                    if x.__module__.split('.')[0] == pkg_name]
+        mro_list.append(object)
+
+    # Return mro_list
+    return(mro_list)
 
 
 def sort_keys(key_list):

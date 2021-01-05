@@ -49,6 +49,9 @@ from importlib import import_module
 from inspect import isclass
 from itertools import starmap
 
+# hickle import
+from hickle.helpers import get_mro_list
+
 
 # %% GLOBALS
 # Define dict of all acceptable types
@@ -149,10 +152,7 @@ def load_loader(py_obj):
     """
 
     # Obtain the MRO of this object
-    if isclass(py_obj):
-        mro_list = py_obj.mro()
-    else:
-        mro_list = py_obj.__class__.mro()
+    mro_list = get_mro_list(py_obj)
 
     # Loop over the entire mro_list
     for mro_item in mro_list:

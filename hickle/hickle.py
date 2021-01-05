@@ -38,7 +38,8 @@ import numpy as np
 # hickle imports
 from hickle import __version__
 from hickle.helpers import (
-    get_type, sort_keys, check_is_iterable, check_iterable_item_type)
+    get_type, get_mro_list, sort_keys, check_is_iterable,
+    check_iterable_item_type)
 from hickle.lookup import (
     types_dict, hkl_types_dict, types_not_to_sort, dict_key_types_dict,
     check_is_ndarray_like, load_loader)
@@ -265,7 +266,7 @@ def create_dataset_lookup(py_obj):
     """
 
     # Obtain the MRO of this object
-    mro_list = py_obj.__class__.mro()
+    mro_list = get_mro_list(py_obj)
 
     # Create a type_map
     type_map = map(types_dict.get, mro_list)
@@ -295,6 +296,8 @@ def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
     # If this obj is iterable, use compression if given
     if hasattr(py_obj, '__iter__') and not isinstance(py_obj, (str, bytes)):
         kwargs = {'compression': kwargs.pop('compression', None)}
+    else:
+        kwargs = {}
 
     # Try to create the dataset
     try:
@@ -366,7 +369,7 @@ def create_dict_dataset(py_obj, h_group, name, **kwargs):
 
     for idx, (key, py_subobj) in enumerate(py_obj.items()):
         # Obtain the raw string representation of this key
-        subgroup_key = "%r" % (key)
+        subgroup_key = "{!r}".format(key)
 
         # Make sure that the '\\\\' is not in the key, or raise error if so
         if '\\\\' in subgroup_key:

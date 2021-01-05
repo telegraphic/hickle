@@ -234,12 +234,13 @@ def test_object_numpy():
 
     https://github.com/telegraphic/hickle/issues/90"""
 
-    arr = np.array([[NESTED_DICT], ('What is this?',), {1, 2, 3, 7, 1}])
+    arr = np.array([[NESTED_DICT], ('What is this?',), {1, 2, 3, 7, 1}],
+                   dtype=object)
     dump(arr, 'test.hdf5')
     arr_hkl = load('test.hdf5')
     assert np.all(arr == arr_hkl)
 
-    arr2 = np.array(NESTED_DICT)
+    arr2 = np.array(NESTED_DICT, dtype=object)
     dump(arr2, 'test.hdf5')
     arr_hkl2 = load('test.hdf5')
     assert np.all(arr2 == arr_hkl2)
@@ -259,8 +260,8 @@ def test_list_object_numpy():
 
     https://github.com/telegraphic/hickle/issues/90"""
 
-    lst = [np.array(NESTED_DICT), np.array([('What is this?',),
-                                            {1, 2, 3, 7, 1}])]
+    lst = [np.array(NESTED_DICT, dtype=object),
+           np.array([('What is this?',), {1, 2, 3, 7, 1}], dtype=object)]
     dump(lst, 'test.hdf5')
     lst_hkl = load('test.hdf5')
     assert np.all(lst[0] == lst_hkl[0])
