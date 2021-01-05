@@ -569,7 +569,7 @@ def load(file_obj, path='/', safe=True):
             raise FileError("HDF5-file does not have the proper attributes!")
 
     # If this fails, raise error and provide user with caught error message
-    except Exception as error:  # pragma: no cover
+    except Exception as error:
         raise ValueError("Provided argument 'file_obj' does not appear to be a"
                          " valid hickle file! (%s)" % (error))
     finally:
