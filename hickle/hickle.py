@@ -292,6 +292,10 @@ def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
     # Set the name of this dataset
     name = 'data%s' % ("_%i" % (call_id) if call_id is not None else '')
 
+    # If this obj is iterable, use compression if given
+    if hasattr(py_obj, '__iter__') and not isinstance(py_obj, (str, bytes)):
+        kwargs = {'compression': kwargs.pop('compression', None)}
+
     # Try to create the dataset
     try:
         h_subgroup = create_dataset(py_obj, h_group, name, **kwargs)
@@ -310,7 +314,7 @@ def create_hkl_dataset(py_obj, h_group, call_id=None, **kwargs):
             pass
 
         # Create the pickled dataset
-        h_subgroup = create_dataset(py_obj, h_group, name, error, **kwargs)
+        h_subgroup = create_dataset(py_obj, h_group, name, error)
 
     # Save base type of py_obj
     h_subgroup.attrs['base_type'] = base_type
