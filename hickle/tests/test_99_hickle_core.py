@@ -42,7 +42,7 @@ def h5_data(request):
     create dummy hdf5 test data file for testing PyContainer and H5NodeFilterProxy
     """
     import h5py as h5
-    dummy_file = h5.File('hickle_lookup_{}.hdf5'.format(request.function.__name__),'w')
+    dummy_file = h5.File('hickle_core_{}.hdf5'.format(request.function.__name__),'w')
     filename = dummy_file.filename
     test_data = dummy_file.create_group("root_group")
     yield test_data

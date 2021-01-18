@@ -56,7 +56,7 @@ install:
 build: false
 
 test_script:
-    - "check-manifest"
+    #- "check-manifest"
     - "python -m tox"
     #- "python setup.py sdist bdist_wheel"
     #- "twine check dist/*"

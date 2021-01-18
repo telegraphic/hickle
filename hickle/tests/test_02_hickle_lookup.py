@@ -1069,7 +1069,7 @@ def test_ReferenceManager_resolve_type(h5_data):
         has_not_recoverable_type.attrs['base_type'] = b'lost'
         hide_not_a_surviver = globals().pop('not_a_surviver',None)
         assert memo.resolve_type(has_not_recoverable_type) == (lookup.AttemptRecoverCustom,b'!recover!',False)
-        assert memo.resolve_type(has_not_recoverable_type,base_type_type=2) == (lookup.AttemptRecoverCustom,b'lost',False)
+        assert memo.resolve_type(has_not_recoverable_type,base_type_type=2) in ((lookup.AttemptRecoverCustom,b'lost',False),(lookup.AttemptRecoverCustom,'lost',False))
         globals()['not_a_surviver'] = hide_not_a_surviver
     
     
@@ -1081,6 +1081,7 @@ def test_ExpandReferenceContainer(h5_data):
     expected_data = np.random.randint(-13,13,12)
     referred_data = h5_data.create_dataset('referred_data',data = expected_data)
     referring_node = h5_data.create_dataset('referring_node',data = referred_data.ref,dtype = lookup.link_dtype)
+    h5_data.file.flush()
     sub_container = lookup.ExpandReferenceContainer(referring_node.attrs,b'!node-reference!',lookup.NodeReference)
     content = None
     for name,subitem in sub_container.filter(referring_node):
@@ -1088,10 +1089,7 @@ def test_ExpandReferenceContainer(h5_data):
         content = np.array(subitem[()])
         sub_container.append(name,content,subitem.attrs)
     assert np.all(sub_container.convert()==expected_data)
-    content = None
-    subitem = None
-    del h5_data[referred_data.name]
-    referred_data = None
+    referring_node = h5_data.create_dataset('stale_reference',shape=(),dtype=lookup.link_dtype)
     sub_container = lookup.ExpandReferenceContainer(referring_node.attrs,b'!node-reference!',lookup.NodeReference)
     with pytest.raises(lookup.ReferenceError):
         for name,subitem in sub_container.filter(referring_node):
@@ -1143,6 +1141,125 @@ def test_recover_custom_data(h5_data):
         assert recovered_group.attrs['so'] == 'long' and recovered_group.attrs['and'] == 'thanks'
         globals()['ClassToDump'] = backup_class_to_dump 
 
+# =======
+# def test_create_compact_dataset(h5_data,compression_kwargs):
+#     """
+#     test create_compact_dataset, load_compact_dataset function and 
+#     CompactContainer object
+#     """
+#     py_obj = ClassToDump('hello','i lore love ipsum in my lore made by ipsum',42)
+#     py_obj_compact = ClassToDumpCompact('hello','i lore love ipsum in my lore made by ipsum',42)
+#     py_obj_compact_set = ClassToDumpCompactDataset('hello','i lore love ipsum in my lore made by ipsum',42)
+#     py_obj_compact_off = ClassToDumpCompactOff('hello','i lore love ipsum in my lore made by ipsum',42)
+#     
+#     data_set_name = ("some_object","some_object_compact","some_object_dataset","some_object_compact_off")
+#     with pytest.warns(lookup.SerializedWarning,match = r".*type\s+not\s+understood,\s+data\s+is\s+serialized:.*") as warner:
+#         h5_node,subitems = lookup.create_compact_dataset(py_obj,h5_data,data_set_name[0],**compression_kwargs)
+#         assert isinstance(h5_node,h5py.Dataset) and not subitems and iter(subitems)
+#         assert bytes(h5_node[()]) == pickle.dumps(py_obj) and h5_node.name.rsplit('/',1)[-1] == data_set_name[0]
+#         assert lookup.load_pickled_data(h5_node,b'pickle',object) == py_obj
+#         h5_node_off,subitems = lookup.create_compact_dataset(py_obj_compact_off,h5_data,data_set_name[3],**compression_kwargs)
+#         assert isinstance(h5_node_off,h5py.Dataset) and not subitems and iter(subitems)
+#         assert bytes(h5_node_off[()]) == pickle.dumps(py_obj_compact_off) and h5_node_off.name.rsplit('/',1)[-1] == data_set_name[3]
+#         assert lookup.load_pickled_data(h5_node_off,b'pickle',object) == py_obj_compact_off
+# 
+#     # mock loader required to store and later load data as none of the known
+#     # loader modules has successfully passed its unit test and thus none of the
+#     # can be considered reliable yet.
+#     compacted_set_data = py_obj_compact_set.__compact__()
+#     assert isinstance(compacted_set_data,str) and "ClassToDumpCompactDataset compacted type changed"# ensure tests is consistent
+#     def dump_compacted_set(py_obj,h_group,name,**kwargs):
+#         stored_data = np.array(bytearray(py_obj,'utf8'),copy=False)
+#         stored_data.dtype = 'S1'
+#         return h_group.create_dataset(name,data = stored_data,**kwargs),()
+# 
+#     def load_compacted_set(h_node,base_type,py_obj_type):
+#         return bytes(h_node[()]).decode('utf8')
+#     # TODO make backups of str, list and tuple and restore at end of test
+#     backup__py_types__None = { key:entry for key,entry in lookup.LoaderManager.__py_types__[None].items() }
+#     backup__hkl_functions__None = { key:entry for key,entry in lookup.LoaderManager.__hkl_functions__[None].items() }
+#     backup__hkl_container__None = { key:entry for key,entry in lookup.LoaderManager.__hkl_container__[None].items() }
+#     lookup.LoaderManager.__py_types__[None][str] = ( dump_compacted_set,b'str',True)
+#     lookup.LoaderManager.__hkl_functions__[None][b'str'] = load_compacted_set
+#     compacted_data = py_obj_compact.__compact__()
+#     assert isinstance(compacted_data,(list,tuple))
+#     def dump_compacted_data(py_obj,h_group,name,**kwargs):
+#         return h_group.create_group(name),(('ignoreme',None,{},{}),)
+#     class MockListContainer(PyContainer):
+#         def convert(self):
+#             return compacted_data
+#     lookup.LoaderManager.__py_types__[None][tuple] = ( dump_compacted_data,b'tuple',True)
+#     lookup.LoaderManager.__py_types__[None][list] = ( dump_compacted_data,b'list',True)
+#     lookup.LoaderManager.__hkl_container__[None][b'tuple'] = MockListContainer
+#     lookup.LoaderManager.__hkl_container__[None][b'list'] = MockListContainer
+#     
+#     with lookup.ReferenceManager.create_manager(h5_data) as memo:
+#         with lookup.LoaderManager.create_manager(h5_data) as loader:
+#             h5_node_compact_set,subitems = lookup.create_compact_dataset(py_obj_compact_set,h5_data,data_set_name[2],**compression_kwargs)
+#             memo.store_type(h5_node_compact_set,ClassToDumpCompactDataset,b'!compact',**compression_kwargs)
+#             assert isinstance(h5_node_compact_set,h5py.Dataset) and not subitems and iter(subitems)
+#             assert h5_node_compact_set.name.rsplit('/',1)[-1] == data_set_name[2]
+#             assert lookup.load_compact_dataset(h5_node_compact_set,b'!compact!',ClassToDumpCompactDataset) == py_obj_compact_set
+#             h5_node_compact,subitems = lookup.create_compact_dataset(py_obj_compact,h5_data,data_set_name[1],**compression_kwargs)
+#             memo.store_type(h5_node_compact,ClassToDumpCompact,b'!compact',**compression_kwargs)
+#             assert isinstance(h5_node_compact,h5py.Group) and subitems and iter(subitems)
+#             assert h5_node_compact.name.rsplit('/',1)[-1] == data_set_name[1]
+#             expand_container = lookup.CompactContainer(h5_node_compact.attrs,b'!compact!',ClassToDumpCompact)
+#             with pytest.raises(RuntimeError):
+#                 expand_container.append('may_not',None,{})
+#             failed_subexpand = expand_container.convert()
+#             assert isinstance(failed_subexpand,ClassToDumpCompact) and getattr(failed_subexpand,'_data',failed_subexpand) is failed_subexpand
+#             for sub_name,sub_item in expand_container.filter(h5_node_compact): pass
+#             assert expand_container._compact_container is not None
+#             assert expand_container.append == expand_container._compact_container.append
+#             for h_subname,py_subobj,h_subattrs,sub_kwargs in subitems:
+#                 expand_container.append(h_subname,py_subobj,h_subattrs)
+#             assert expand_container.convert() == py_obj_compact
+#     lookup.LoaderManager.__py_types__[None].pop(str,None)
+#     lookup.LoaderManager.__py_types__[None].pop(list,None)
+#     lookup.LoaderManager.__py_types__[None].pop(tuple,None)
+#     lookup.LoaderManager.__hkl_functions__[None].pop(b'str',None)
+#     lookup.LoaderManager.__hkl_functions__[None].pop(b'list',None)
+#     lookup.LoaderManager.__hkl_functions__[None].pop(b'tuple',None)
+#     lookup.LoaderManager.__hkl_container__[None].pop(b'str',None)
+#     lookup.LoaderManager.__hkl_container__[None].pop(b'list',None)
+#     lookup.LoaderManager.__hkl_container__[None].pop(b'tuple',None)
+#     lookup.LoaderManager.__py_types__[None].update(backup__py_types__None)
+#     lookup.LoaderManager.__hkl_functions__[None].update(backup__hkl_functions__None)
+#     lookup.LoaderManager.__hkl_container__[None].update(backup__hkl_container__None)
+#         
+# 
+# @pytest.mark.no_compression
+# def test_register_compact_expand():
+#     """
+#     test register_compact_expand function
+#     """
+#     with pytest.raises(TypeError):
+#         lookup.register_compact_expand(ClassToDump('welt','hallo',42))
+#     with pytest.raises(TypeError):
+#         lookup.register_compact_expand(ClassToDump)
+#     to_enable_disable = (
+#         ClassToDump,
+#         ClassToDumpCompact,
+#         ClassToDumpCompact,
+#         ClassToDumpCompactDataset,
+#         ClassToDumpCompactOff,
+#         ClassToDumpCompactStrange,
+#         ClassToDumpCompactStrange2
+#     )
+#     module_backups = { cls:cls.__module__ for cls in to_enable_disable }
+#     for cls in to_enable_disable:
+#         cls.__module__ = cls.__module__.split('.',1)[-1]
+#     lookup.register_compact_expand(*to_enable_disable[1:-2])
+#     with pytest.raises(TypeError):
+#         lookup.register_compact_expand(to_enable_disable[-2])
+#     with pytest.raises(TypeError):
+#         lookup.register_compact_expand(to_enable_disable[-1])
+#     for cls,module in module_backups.items():
+#         cls.__module__ = module
+#         
+#     
+# >>>>>>> 76fb657... stale refdataset fix on h5py3 and fix of spourious race
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.monkeypatch import monkeypatch

@@ -3,10 +3,13 @@ include *.md
 include MANIFEST.in
 include requirements*.txt
 recursive-include hickle tests *
+include conftest.py
+include tox.ini
 
 exclude docs
 recursive-exclude docs *
 exclude *.yml
+exclude .*
 exclude .nojekyll
 exclude .pylintrc
 exclude paper*
@@ -14,7 +17,12 @@ recursive-exclude * __pycache__
 recursive-exclude * *.py[co] *.bk
 recursive-exclude * old .old
 recursive-exclude * *.tox
+recursive-exclude * *.h5
+exclude *_mv.txt
+exclude *_tox.txt
+recursive-exclude * .bashrcrun
 exclude hickle/tests/classes
 recursive-exclude hickle/tests/classes *
 exclude hickle/tests/dev_check
 recursive-exclude hickle/tests/dev_check *
+exclude hickle/tests/test_stateful.py

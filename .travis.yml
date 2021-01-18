@@ -16,7 +16,7 @@ install:
   #- pip install -r requirements_test.txt
 
 script:
-  - check-manifest
+  #- check-manifest
   - tox
 
 # Run code coverage
