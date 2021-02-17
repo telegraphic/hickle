@@ -3,41 +3,49 @@ environment:
         - PYTHON: "C:\\Python35"
           PYTHON_VERSION: "3.5.x"
           PYTHON_ARCH: "32"
+          TOXENV: "py35,py35-compress"
           TOX_APPVEYOR_X64: 0
 
         - PYTHON: "C:\\Python35-x64"
           PYTHON_VERSION: "3.5.x"
           PYTHON_ARCH: "64"
+          TOXENV: "py35,py35-compress"
           TOX_APPVEYOR_X64: 1
 
         - PYTHON: "C:\\Python36"
           PYTHON_VERSION: "3.6.x"
           PYTHON_ARCH: "32"
+          TOXENV: "py36,py36-compress"
           TOX_APPVEYOR_X64: 0
 
         - PYTHON: "C:\\Python36-x64"
           PYTHON_VERSION: "3.6.x"
           PYTHON_ARCH: "64"
+          TOXENV: "py36,py36-compress"
           TOX_APPVEYOR_X64: 1
 
         - PYTHON: "C:\\Python37"
           PYTHON_VERSION: "3.7.x"
           PYTHON_ARCH: "32"
+          TOXENV: "py37,py37-compress"
           TOX_APPVEYOR_X64: 0
 
         - PYTHON: "C:\\Python37-x64"
           PYTHON_VERSION: "3.7.x"
           PYTHON_ARCH: "64"
+          TOXENV: "py37,py37-compress"
           TOX_APPVEYOR_X64: 1
 
         - PYTHON: "C:\\Python38"
           PYTHON_VERSION: "3.8.x"
           PYTHON_ARCH: "32"
+          TOXENV: "py38,py38-compress"
           TOX_APPVEYOR_X64: 0
 
         - PYTHON: "C:\\Python38-x64"
           PYTHON_VERSION: "3.8.x"
           PYTHON_ARCH: "64"
+          TOXENV: "py38,py38-compress"
           TOX_APPVEYOR_X64: 1
 
 install:
@@ -47,8 +55,8 @@ install:
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
     # Upgrade pip
-    - "python -m pip install --user --upgrade pip setuptools wheel"
-    - "python -m pip install tox-appveyor"
+    - "python -m pip install --user --upgrade pip setuptools wheel virtualenv"
+    - "python -m pip install tox tox-appveyor"
 
     # Install testing requirements
     #- "pip install -r requirements_test.txt"

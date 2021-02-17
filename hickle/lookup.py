@@ -937,7 +937,7 @@ class LoaderManager(BaseManager):
         # each entry to be used within h_root_group.attrs sturcture or update entry there
         if options is None:
             option_items = ( 
-                match[1].lower() 
+                match.group(1).lower() 
                 for match,on in ( 
                     ( LoaderManager._option_parser.match(name), value ) for name, value in h_root_group.attrs.items() 
                 ) 
