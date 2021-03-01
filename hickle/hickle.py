@@ -42,9 +42,9 @@ import numpy as np
 from hickle import __version__
 from .helpers import PyContainer, NotHicklable, nobody_is_my_name
 from .lookup import (
-    hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
+    #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
     create_pickled_dataset, load_nothing, fix_lambda_obj_type,ReferenceManager,
-    link_dtype
+    LoaderManager,link_dtype
 )
 
 
@@ -138,7 +138,7 @@ def file_opener(f, path, mode='r'):
 # DUMPERS #
 ###########
 
-def _dump(py_obj, h_group, name, memo, attrs={} , **kwargs):
+def _dump(py_obj, h_group, name, memo, loader,attrs={} , **kwargs):
     """ Dump a python object to a group within an HDF5 file.
 
     This function is called recursively by the main dump() function.
@@ -171,7 +171,7 @@ def _dump(py_obj, h_group, name, memo, attrs={} , **kwargs):
     # Check if we have a unloaded loader for the provided py_obj and 
     # retrive the most apropriate method for creating the corresponding
     # representation within HDF5 file
-    py_obj_type, (create_dataset, base_type,memoise) = load_loader(py_obj.__class__)
+    py_obj_type, (create_dataset, base_type,memoise) = loader.load_loader(py_obj.__class__)
     try:
         h_node,h_subitems = create_dataset(py_obj, h_group, name, **kwargs)
     except NotHicklable:
@@ -196,10 +196,10 @@ def _dump(py_obj, h_group, name, memo, attrs={} , **kwargs):
     # loop through list of all subitems and recursively dump them
     # to HDF5 file
     for h_subname,py_subobj,h_subattrs,sub_kwargs in h_subitems:
-        _dump(py_subobj,h_node,h_subname,memo,h_subattrs,**sub_kwargs)
+        _dump(py_subobj,h_node,h_subname,memo,loader,h_subattrs,**sub_kwargs)
 
 
-def dump(py_obj, file_obj, mode='w', path='/', **kwargs):
+def dump(py_obj, file_obj, mode='w', path='/', options = {},**kwargs):
     """
     Write a hickled representation of `py_obj` to the provided `file_obj`.
 
@@ -220,6 +220,17 @@ def dump(py_obj, file_obj, mode='w', path='/', **kwargs):
     path : str, optional
         Path within HDF5-file or group to save data to.
         Defaults to root ('/').
+    loader_settings (dict):
+        Each entry in this dict modifies how hickle dumps data to file.
+        For example 
+            { compact_expand = True }
+        would enforce use of compact_expand loader on all classes
+        registered with this kind of loader.
+            { compact_expand = False }
+        would disable compact_expand loader for dumped data even if
+        globally turned on. More options may follow.
+
+        
     kwargs : keyword arguments
         Additional keyword arguments that must be provided to the
         :meth:`~h5py.Group.create_dataset` method.
@@ -247,8 +258,9 @@ def dump(py_obj, file_obj, mode='w', path='/', **kwargs):
         h_root_group.attrs["HICKLE_VERSION"] = __version__
         h_root_group.attrs["HICKLE_PYTHON_VERSION"] = py_ver
 
-        with ReferenceManager.create_manager(h_root_group) as memo:
-            _dump(py_obj, h_root_group,'data', memo ,**kwargs)
+        with LoaderManager.create_manager(h_root_group,False,options) as loader:
+            with ReferenceManager.create_manager(h_root_group) as memo:
+                _dump(py_obj, h_root_group,'data', memo ,loader,**kwargs)
     finally:
         # Close the file if requested.
         # Closing a file twice will not cause any problems
@@ -368,12 +380,14 @@ def load(file_obj, path='/', safe=True):
                 # eventhough stated otherwise in documentation. Activate workarrounds
                 # just in case issues arrise. Especially as corresponding lambdas in
                 # load_numpy are not needed anymore and thus have been removed.
-                with ReferenceManager.create_manager(h_root_group,fix_lambda_obj_type) as memo:
-                    _load(py_container, 'data',h_root_group['data'],memo,load_loader = load_legacy_loader)
+                with LoaderManager.create_manager(h_root_group,True) as loader:
+                    with ReferenceManager.create_manager(h_root_group,fix_lambda_obj_type) as memo:
+                        _load(py_container, 'data',h_root_group['data'],memo,loader) #load_loader = load_legacy_loader)
                 return py_container.convert()
             # 4.1.x file and newer
-            with ReferenceManager.create_manager(h_root_group,pickle_loads) as memo:
-                _load(py_container, 'data',h_root_group['data'],memo,load_loader = load_loader)
+            with LoaderManager.create_manager( h_root_group,False) as loader:
+                with ReferenceManager.create_manager(h_root_group,pickle_loads) as memo:
+                    _load(py_container, 'data',h_root_group['data'],memo,loader) #load_loader = load_loader)
             return py_container.convert()
 
         # Else, raise error
@@ -390,7 +404,7 @@ def load(file_obj, path='/', safe=True):
 
 
 
-def _load(py_container, h_name, h_node,memo,load_loader = load_loader):
+def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader):
     """ Load a hickle file
 
     Recursive funnction to load hdf5 data into a PyContainer()
@@ -417,14 +431,14 @@ def _load(py_container, h_name, h_node,memo,load_loader = load_loader):
 
     # load the type information of node.
     py_obj_type,base_type,is_container = memo.resolve_type(h_node)
-    py_obj_type,(_,_,memoise) = load_loader(py_obj_type)
+    py_obj_type,(_,_,memoise) = loader.load_loader(py_obj_type)
     
     if is_container:
         # Either a h5py.Group representing the structure of complex objects or
         # a h5py.Dataset representing a h5py.Reference to the node of an object
         # referred to from multiple places within the objet structure to be dumped 
 
-        py_container_class = hkl_container_dict.get(base_type,NoMatchContainer)
+        py_container_class = loader.hkl_container_dict.get(base_type,NoMatchContainer)
         py_subcontainer = py_container_class(h_node.attrs,base_type,py_obj_type)
     
         # NOTE: Sorting of container items according to their key Name is
@@ -432,14 +446,14 @@ def _load(py_container, h_name, h_node,memo,load_loader = load_loader):
         #       as loader has all the knowledge required to properly decide
         #       if sort is necessary and how to sort and at what stage to sort 
         for h_key,h_subnode in py_subcontainer.filter(h_node):
-            _load(py_subcontainer, h_key, h_subnode, memo , load_loader)
+            _load(py_subcontainer, h_key, h_subnode, memo ,loader) # load_loader)
 
         # finalize subitem
         sub_data = py_subcontainer.convert()
         py_container.append(h_name,sub_data,h_node.attrs)
     else:
         # must be a dataset load it and append to parent container
-        load_fn = hkl_types_dict.get(base_type, no_match_load)
+        load_fn = loader.hkl_types_dict.get(base_type, no_match_load)
         sub_data = load_fn(h_node,base_type,py_obj_type)
         py_container.append(h_name,sub_data,h_node.attrs)
     # store loaded object for properly restoring addtional references to it

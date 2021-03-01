@@ -15,15 +15,19 @@ import types
 import weakref
 
 # Package imports
+import collections
 import numpy as np
 import h5py
 import dill as pickle
-from importlib.util import find_spec
+from importlib.util import find_spec,spec_from_loader,spec_from_file_location
 from importlib import reload
+from copy import copy
+import os.path
 from py.path import local
 
 # hickle imports
 from hickle.helpers import PyContainer,not_dumpable
+from hickle.loaders import optional_loaders, attribute_prefix
 import hickle.lookup as lookup
 
 # Set current working directory to the temporary directory
@@ -73,6 +77,9 @@ def loader_table():
     lookup.types_dict.clear()
     lookup.hkl_types_dict.clear()
     lookup.hkl_container_dict.clear()
+    tuple( True for opt in lookup.LoaderManager.__py_types__.values() if opt.clear() )
+    tuple( True for opt in lookup.LoaderManager.__hkl_functions__.values() if opt.clear() )
+    tuple( True for opt in lookup.LoaderManager.__hkl_container__.values() if opt.clear() )
 
     # simulate loader definitions found within loader modules
     def create_test_dataset(myclass_type,h_group,name,**kwargs):
@@ -114,7 +121,7 @@ def loader_table():
         (tuple,b'tuple',None,load_test_dataset,TestContainer),
         (lookup._DictItem,b'dict_item',None,None,NotHicklePackage),
         (lookup._DictItem,b'pickle',None,None,HickleLoadersModule),
-        (lookup._DictItem,b'dict_item',lookup.register_class,None,IsHickleCore)
+        (lookup._DictItem,b'dict_item',lookup.LoaderManager.register_class,None,IsHickleCore)
     ]
 
     # cleanup and reload hickle.lookup module to reset it to its initial state
@@ -124,6 +131,9 @@ def loader_table():
     lookup.types_dict.clear()
     lookup.hkl_types_dict.clear()
     lookup.hkl_container_dict.clear()
+    tuple( True for opt in lookup.LoaderManager.__py_types__.values() if opt.clear() )
+    tuple( True for opt in lookup.LoaderManager.__hkl_functions__.values() if opt.clear() )
+    tuple( True for opt in lookup.LoaderManager.__hkl_container__.values() if opt.clear() )
     reload(lookup)
     lookup = sys.modules[lookup.__name__]
     hickle_hickle = sys.modules.get("hickle.hickle",None)
@@ -164,56 +174,12 @@ class ToBeInLoadersOrNotToBe():
 
     def __ne__(self,other):
         return self != other
-            
-
-class MetaClassToDump(type):
-    """
-    Metaclass for ClassToDump allowing to controll which
-    unbound class methods and magic methods are visible to
-    create_pickled_dataset method and which not at the
-    class level
-    """
-
-    # any function listed therein is not defined on class
-    # when called the next time (single shot)
-    hide_special = set()
-
-    def __getattribute__(self,name):
-        if name in MetaClassToDump.hide_special:
-            MetaClassToDump.hide_special.remove(name)
-            raise AttributeError("")
-        return super(MetaClassToDump,self).__getattribute__(name)
-    
-
-class ClassToDump(metaclass=MetaClassToDump):
+class ClassToDump():
     """
     Primary class used to test create_pickled_dataset function
     """
     def __init__(self,hallo,welt,with_default=1):
         self._data = hallo,welt,with_default
-
-    def dump_boundmethod(self):
-        """
-        dummy instance method used to check if instance methods are
-        either rejected or allways stored as pickle string
-        """
-        pass
-
-    @staticmethod
-    def dump_staticmethod():
-        """
-        dummy static method used to check if static methods are allways
-        stored as pickle string
-        """
-        pass
-
-    @classmethod
-    def dump_classmethod(cls):
-        """
-        dummy class method used to check if class methods are allways
-        stored as pickle string
-        """
-        pass
 
     def __eq__(self,other):
         return other.__class__ is self.__class__ and self._data == other._data
@@ -221,38 +187,55 @@ class ClassToDump(metaclass=MetaClassToDump):
     def __ne__(self,other):
         return self != other
 
-    def __getattribute__(self,name):
-        # ensure that methods which are hidden by metaclass are also not
-        # accessible from class instance
-        if name in MetaClassToDump.hide_special:
-            raise AttributeError("")
-        return super(ClassToDump,self).__getattribute__(name)
+class ClassToDumpCompact(ClassToDump):
+    """
+    Class which may be handled by 'compact_expand' loader
+    """
+    def __compact__(self):
+        return self._data
 
-    def __getstate__(self):
-        # returns the state of this class when asked by copy protocol handler
-        return self.__dict__
+    def __expand__(self,compact):
+        self._data = compact
 
-    def __setstate__(self,state):
-        
-        # set the state from the passed state description
-        self.__dict__.update(state)
+class ClassToDumpCompactOff(ClassToDump):
+    """
+    Class which enforces that any instance is pickled
+    independent whether 'compact_expand' loader was selected
+    for hickle.dump call or not
+    """
+    def __compact__(self):
+        return None
 
-    # controls whether the setstate method is reported as
-    # sixth element of tuple returned by __reduce_ex__ or
-    # __reduce__ function or not
-    extern_setstate = False
+class ClassToDumpCompactStrange(ClassToDump):
+    """
+    Class which does not properly implement
+    '__compact__' and '__expand__' methods
+    recommended by compact expand protocol
+    """
+    def __compact__(self):
+        return self._data
 
-    def __reduce_ex__(self,proto = pickle.DEFAULT_PROTOCOL):
-        state = super(ClassToDump,self).__reduce_ex__(proto)
-        if len(state) > 5 or not ClassToDump.extern_setstate:
-            return state
-        return (*state,*( (None,) * ( 5 - len(state)) ),ClassToDump.__setstate__)
+class ClassToDumpCompactStrange2(ClassToDump):
+    """
+    Another class which does not properly implement
+    '__compact__' and '__expand__' methods
+    recommended by compact expand protocol
+    """
+    def __compact__(self):
+        return 42
+    
+class ClassToDumpCompactDataset(ClassToDump):
+    """
+    Class which is to be represented by a h5py.Dataset
+    instead of a h5py.Group in its compacted form
+    """
+    def __compact__(self):
+        return "{}|{}|{}".format(*self._data)
 
-    def __reduce__(self):
-        state = super(ClassToDump,self).__reduce__()
-        if len(state) > 5 or not ClassToDump.extern_setstate:
-            return state
-        return (*state,*( (None,) * ( 5 - len(state)) ),ClassToDump.__setstate__)
+    def __expand__(self,compact):
+        self._data = compact.split("|")
+        self._data[2] = int(self._data[2])
+        self._data = (*self._data,)
 
 class SimpleClass():
     """
@@ -290,7 +273,23 @@ def function_to_dump(hallo,welt,with_default=1):
     """
     return hallo,welt,with_default
 
-def test_register_class(loader_table):
+def test_AttemptRecoverCustom_classes(h5_data):
+    recovered_group = lookup.RecoveredGroup({'hello':1},attrs={'world':2,'type':42})
+    assert recovered_group == {'hello':1} and recovered_group.attrs == {'world':2}
+    array_to_recover = np.random.random_sample([4,2])
+    dataset_to_recover = h5_data.create_dataset('to_recover',data=array_to_recover)
+    dataset_to_recover.attrs['world'] = 2
+    dataset_to_recover.attrs['type'] = 42
+    recovered_dataset = lookup.RecoveredDataset(dataset_to_recover[()],dtype=dataset_to_recover.dtype,attrs=dataset_to_recover.attrs)
+    assert np.allclose(recovered_dataset,array_to_recover)
+    assert recovered_dataset.dtype == array_to_recover.dtype
+    assert recovered_dataset.attrs == {'world':2}
+    #recovered = lookup.recover_custom_dataset(dataset_to_recover,'unknown',dataset_to_recover.attrs['type']) 
+    #assert recovered.dtype == array_to_recover.dtype and recovered == array_to_recover
+    #assert recovered.attrs == {'world':2}
+    
+
+def test_LoaderManager_register_class(loader_table):
     """
     tests the register_class method
     """
@@ -298,63 +297,70 @@ def test_register_class(loader_table):
     # try to register dataset only loader specified by loader_table
     # and retrieve its contents from types_dict and hkl_types_dict
     loader_spec = loader_table[0]
-    lookup.register_class(*loader_spec)
-    assert lookup.types_dict[loader_spec[0]] == (*loader_spec[2:0:-1],loader_spec[5])
-    assert lookup.hkl_types_dict[loader_spec[1]] == loader_spec[3]
+    lookup.LoaderManager.register_class(*loader_spec)
+    assert lookup.LoaderManager.__py_types__[None][loader_spec[0]] == (*loader_spec[2:0:-1],loader_spec[5])
+    assert lookup.LoaderManager.__hkl_functions__[None][loader_spec[1]] == loader_spec[3]
     with pytest.raises(KeyError):
-        lookup.hkl_container_dict[loader_spec[1]] is None
+        lookup.LoaderManager.__hkl_container__[None][loader_spec[1]] is None
 
     # try to register PyContainer only loader specified by loader_table
     # and retrive its contents from types_dict and hkl_contianer_dict
     loader_spec = loader_table[1]
-    lookup.register_class(*loader_spec)
-    assert lookup.types_dict[loader_spec[0]] == (*loader_spec[2:0:-1],loader_spec[5])
+    lookup.LoaderManager.register_class(*loader_spec)
+    assert lookup.LoaderManager.__py_types__[None][loader_spec[0]] == (*loader_spec[2:0:-1],loader_spec[5])
     with pytest.raises(KeyError):
-        lookup.hkl_types_dict[loader_spec[1]] is None
-    assert lookup.hkl_container_dict[loader_spec[1]] == loader_spec[4]
+        lookup.LoaderManager.__hkl_functions__[None][loader_spec[1]] is None
+    assert lookup.LoaderManager.__hkl_container__[None][loader_spec[1]] == loader_spec[4]
 
 
     # try to register container without dump_function specified by
     # loader table and try to retrive load_function and PyContainer from
     # hkl_types_dict and hkl_container_dict
     loader_spec = loader_table[2]
-    lookup.register_class(*loader_spec)
+    lookup.LoaderManager.register_class(*loader_spec)
     with pytest.raises(KeyError):
-        lookup.types_dict[loader_spec[0]][1] == loader_spec[1]
-    assert lookup.hkl_types_dict[loader_spec[1]] == loader_spec[3]
-    assert lookup.hkl_container_dict[loader_spec[1]] == loader_spec[4]
+        lookup.LoaderManager.__py_types__[None][loader_spec[0]][1] == loader_spec[1]
+    assert lookup.LoaderManager.__hkl_functions__[None][loader_spec[1]] == loader_spec[3]
+    assert lookup.LoaderManager.__hkl_container__[None][loader_spec[1]] == loader_spec[4]
 
     # try to register loader shadowing loader preset by hickle core
     # defined by external loader module
     loader_spec = loader_table[3]
     with pytest.raises(TypeError,match = r"loader\s+for\s+'\w+'\s+type\s+managed\s+by\s+hickle\s+only"):
-        lookup.register_class(*loader_spec)
+        lookup.LoaderManager.register_class(*loader_spec)
     loader_spec = loader_table[4]
 
     # try to register loader shadowing loader preset by hickle core
     # defined by hickle loaders module
     with pytest.raises(TypeError,match = r"loader\s+for\s+'\w+'\s+type\s+managed\s+by\s+hickle\s+core\s+only"):
-        lookup.register_class(*loader_spec)
+        lookup.LoaderManager.register_class(*loader_spec)
 
     # simulate registering loader preset by hickle core
     loader_spec = loader_table[5]
-    lookup.register_class(*loader_spec)
+    lookup.LoaderManager.register_class(*loader_spec)
+    loader_spec = loader_table[0]
+    with pytest.raises(ValueError):
+        lookup.LoaderManager.register_class(loader_spec[0],b'!node-reference!',*loader_spec[2:],'custom')
+    with pytest.raises(lookup.LookupError):
+        lookup.LoaderManager.register_class(*loader_spec,'mine')
 
-def test_register_class_exclude(loader_table):
+def test_LoaderManager_register_class_exclude(loader_table):
     """
     test registr class exclude function
     """
 
     # try to disable loading of loader preset by hickle core
     base_type = loader_table[5][1]
-    lookup.register_class(*loader_table[2])
-    lookup.register_class(*loader_table[5])
+    lookup.LoaderManager.register_class(*loader_table[2])
+    lookup.LoaderManager.register_class(*loader_table[5])
     with pytest.raises(ValueError,match = r"excluding\s+'.+'\s+base_type\s+managed\s+by\s+hickle\s+core\s+not\s+possible"):
-        lookup.register_class_exclude(base_type)
+        lookup.LoaderManager.register_class_exclude(base_type)
 
     # disable any of the other loaders
     base_type = loader_table[2][1]
-    lookup.register_class_exclude(base_type)
+    lookup.LoaderManager.register_class_exclude(base_type)
+    with pytest.raises(lookup.LookupError):
+        lookup.LoaderManager.register_class_exclude(base_type,'compact')
 
 
 def patch_importlib_util_find_spec(name,package=None):
@@ -365,6 +371,45 @@ def patch_importlib_util_find_spec(name,package=None):
     """
     return find_spec("hickle.tests." + name.replace('.','_',1),package)
 
+def patch_importlib_util_find_spec_no_load_builtins(name,package=None):
+    """
+    function used to temporarily redirect search for laoders
+    to hickle_loader directory in test directory for testing
+    loading of new loaders
+    """
+    if name in {'hickle.loaders.load_builtins'}:
+        return None
+    return find_spec("hickle.tests." + name.replace('.','_',1),package)
+
+def patch_importlib_util_spec_from_tests_loader(name, loader, *, origin=None, is_package=None):
+    """
+    function used to temporarily redirect search for laoders
+    to hickle_loader directory in test directory for testing
+    loading of new loaders
+    """
+    name = name.replace('.','_',1)
+    myloader = copy(sys.modules['hickle.tests'].__loader__)
+    myloader.name = "hickle.tests." + name
+    myloader.path = os.path.join(os.path.dirname(myloader.path),'{}.py'.format(name))
+    return spec_from_loader(myloader.name,myloader,origin=origin,is_package=is_package)
+
+def patch_importlib_util_spec_from_loader(name, loader, *, origin=None, is_package=None):
+    """
+    function used to temporarily redirect search for laoders
+    to hickle_loader directory in test directory for testing
+    loading of new loaders
+    """
+    return spec_from_loader("hickle.tests." + name.replace('.','_',1),loader,origin=origin,is_package=is_package)
+
+def patch_importlib_util_spec_from_file_location(name, location, *, loader=None, submodule_search_locations=None):
+    """
+    function used to temporarily redirect search for laoders
+    to hickle_loader directory in test directory for testing
+    loading of new loaders
+    """
+    return spec_from_file_location("hickle.tests." + name.replace('.','_',1),location,loader=loader,submodule_search_locations =submodule_search_locations)
+
+
 def patch_importlib_util_find_no_spec(name,package=None):
     """
     function used to simulate situation where no appropriate loader 
@@ -372,10 +417,115 @@ def patch_importlib_util_find_no_spec(name,package=None):
     """
     return None
 
-
-def test_load_loader(loader_table,monkeypatch):
+def patch_importlib_util_no_spec_from_loader(name, loader, *, origin=None, is_package=None):
     """
-    test load_loader function
+    function used to simulate situation where no appropriate loader 
+    could be found for object
+    """
+    return None
+
+def patch_importlib_util_no_spec_from_file_location(name, location, *, loader=None, submodule_search_locations=None):
+    """
+    function used to simulate situation where no appropriate loader 
+    could be found for object
+    """
+    return None
+
+def test_LoaderManager(loader_table,h5_data):
+    """
+    tests LoaderManager constructor
+    """
+    manager = lookup.LoaderManager(h5_data,False)
+    assert isinstance(manager.types_dict,collections.ChainMap)
+    assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__[None]
+    assert isinstance(manager.hkl_types_dict,collections.ChainMap)
+    assert manager.hkl_types_dict.maps[0] is lookup.LoaderManager.__hkl_functions__[None]
+    assert isinstance(manager.hkl_container_dict,collections.ChainMap)
+    assert manager.hkl_container_dict.maps[0] is lookup.LoaderManager.__hkl_container__[None]
+    assert manager._mro is type.mro
+    assert manager._file.id == h5_data.file.id
+    manager = lookup.LoaderManager(h5_data,True)
+    assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__['hickle-4.0']
+    assert manager.types_dict.maps[1] is lookup.LoaderManager.__py_types__[None]
+    assert manager.hkl_types_dict.maps[0] is lookup.LoaderManager.__hkl_functions__['hickle-4.0']
+    assert manager.hkl_types_dict.maps[1] is lookup.LoaderManager.__hkl_functions__[None]
+    assert manager.hkl_container_dict.maps[0] is lookup.LoaderManager.__hkl_container__['hickle-4.0']
+    assert manager.hkl_container_dict.maps[1] is lookup.LoaderManager.__hkl_container__[None]
+    assert manager._mro is lookup.type_legacy_mro
+    assert manager._file.id == h5_data.file.id
+
+    ###### ammend #####
+    manager = lookup.LoaderManager(h5_data,False,{'custom':True})
+    assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__['custom']
+    assert manager.types_dict.maps[1] is lookup.LoaderManager.__py_types__[None]
+    assert manager.hkl_types_dict.maps[0] is lookup.LoaderManager.__hkl_functions__['custom']
+    assert manager.hkl_types_dict.maps[1] is lookup.LoaderManager.__hkl_functions__[None]
+    assert manager.hkl_container_dict.maps[0] is lookup.LoaderManager.__hkl_container__['custom']
+    assert manager.hkl_container_dict.maps[1] is lookup.LoaderManager.__hkl_container__[None]
+    assert manager._file.id == h5_data.file.id
+    assert h5_data.attrs.get('{}CUSTOM'.format(attribute_prefix),None)
+    manager = lookup.LoaderManager(h5_data,False,None)
+    assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__['custom']
+    assert manager.types_dict.maps[1] is lookup.LoaderManager.__py_types__[None]
+    assert manager.hkl_types_dict.maps[0] is lookup.LoaderManager.__hkl_functions__['custom']
+    assert manager.hkl_types_dict.maps[1] is lookup.LoaderManager.__hkl_functions__[None]
+    assert manager.hkl_container_dict.maps[0] is lookup.LoaderManager.__hkl_container__['custom']
+    assert manager.hkl_container_dict.maps[1] is lookup.LoaderManager.__hkl_container__[None]
+    assert manager._file.id == h5_data.file.id
+    h5_data.attrs.pop('{}CUSTOM'.format(attribute_prefix),None)
+    manager = lookup.LoaderManager(h5_data,False,{'custom':False})
+    assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__[None]
+    assert manager.hkl_types_dict.maps[0] is lookup.LoaderManager.__hkl_functions__[None]
+    assert manager.hkl_container_dict.maps[0] is lookup.LoaderManager.__hkl_container__[None]
+    assert h5_data.attrs.get('{}CUSTOM'.format(attribute_prefix),h5_data) is h5_data
+
+    with pytest.raises(lookup.LookupError):
+        manager = lookup.LoaderManager(h5_data,False,{'compact':True})
+
+
+def test_LoaderManager_drop_manager(h5_data):
+    """
+    test static LoaderManager._drop_table method
+    """
+    loader = lookup.LoaderManager(h5_data)
+    lookup.LoaderManager.__managers__[h5_data.file.id] = (loader,)
+    some_other_file = h5py.File('someother.hdf5','w')
+    some_other_root = some_other_file.create_group('root')
+    lookup.LoaderManager._drop_manager(some_other_root.file.id)
+    lookup.LoaderManager.__managers__[some_other_file.file.id] = (lookup.LoaderManager(some_other_root),)
+    assert lookup.LoaderManager.__managers__.get(h5_data.file.id,None) == (loader,)
+    lookup.LoaderManager._drop_manager(h5_data.file.id)
+    assert lookup.LoaderManager.__managers__.get(h5_data.file.id,None) is None
+    lookup.LoaderManager._drop_manager(some_other_root.file.id)
+    assert not lookup.LoaderManager.__managers__
+    some_other_file.close()
+    
+def test_LoaderManager_create_manager(h5_data):
+    """
+    test public static LoaderManager.create_manager function
+    """
+    second_tree = h5_data.file.create_group('seondary_root')
+    loader = lookup.LoaderManager.create_manager(h5_data)
+    assert lookup.LoaderManager.__managers__[h5_data.file.id][0] is loader
+    with pytest.raises(lookup.LookupError):
+        second_table = lookup.LoaderManager.create_manager(second_tree)
+    lookup.LoaderManager._drop_manager(h5_data.file.id)
+
+def test_LoaderManager_context(h5_data):
+    """
+    test use of LoaderManager as context manager
+    """
+    with lookup.LoaderManager.create_manager(h5_data) as loader:
+        assert lookup.LoaderManager.__managers__[h5_data.file.id][0] is loader
+    assert loader._file is None
+    with pytest.raises(RuntimeError):
+        with loader as loader2:
+            pass
+    loader.__exit__(None,None,None)
+
+def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
+    """
+    test LoaderManager.load_loader method
     """
 
     # some data to check loader for
@@ -383,76 +533,123 @@ def test_load_loader(loader_table,monkeypatch):
     py_object = dict()
     loader_name = "hickle.loaders.load_builtins"
     with monkeypatch.context() as moc_import_lib:
+        with lookup.LoaderManager.create_manager(h5_data) as loader:
 
-        # hide loader from hickle.lookup.loaded_loaders and check that 
-        # fallback loader for python object is returned
-        moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_no_spec)
-        moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_no_spec)
-        moc_import_lib.delitem(sys.modules,"hickle.loaders.load_builtins",raising=False)
-        py_obj_type,nopickleloader = lookup.load_loader(py_object.__class__)
-        assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            # hide loader from hickle.lookup.loaded_loaders and check that 
+            # fallback loader for python object is returned
+            moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_no_spec)
+            moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_no_spec)
+            moc_import_lib.setattr("importlib.util.spec_from_loader",patch_importlib_util_no_spec_from_loader)
+            moc_import_lib.setattr("hickle.lookup.spec_from_loader",patch_importlib_util_no_spec_from_loader)
+            moc_import_lib.setattr("importlib.util.spec_from_file_location",patch_importlib_util_no_spec_from_file_location)
+            moc_import_lib.setattr("hickle.lookup.spec_from_file_location",patch_importlib_util_no_spec_from_file_location)
+            moc_import_lib.delitem(sys.modules,"hickle.loaders.load_builtins",raising=False)
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
 
-        # redirect load_builtins loader to tests/hickle_loader path
-        moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_spec)
-        moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_spec)
+            lookup._custom_loader_enabled_builtins[py_obj_type.__class__.__module__] = ('','')
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            
+            backup_builtins = sys.modules['builtins']
+            moc_import_lib.delitem(sys.modules,'builtins')
+            # TODO when warning is added run check for warning
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            moc_import_lib.setitem(sys.modules,'builtins',backup_builtins)
 
-        # preload dataset only loader and check that it can be resolved directly
-        loader_spec = loader_table[0]
-        lookup.register_class(*loader_spec)
-        assert lookup.load_loader((12).__class__) == (loader_spec[0],(*loader_spec[2:0:-1],loader_spec[5]))
 
-        # try to find appropriate loader for dict object, a moc of this
-        # loader should be provided by hickle/tests/hickle_loaders/load_builtins
-        # module ensure that this module is the one found by load_loader function
-        import hickle.tests.hickle_loaders.load_builtins as load_builtins
-        moc_import_lib.setitem(sys.modules,loader_name,load_builtins)
-        assert lookup.load_loader(py_object.__class__) == (dict,(load_builtins.create_package_test,b'dict',True))
+            # redirect load_builtins loader to tests/hickle_loader path
+            moc_import_lib.setattr("importlib.util.spec_from_file_location",patch_importlib_util_spec_from_file_location)
+            moc_import_lib.setattr("hickle.lookup.spec_from_file_location",patch_importlib_util_spec_from_file_location)
+            #py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            #assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_spec)
+            moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_spec)
+            moc_import_lib.setattr("importlib.util.spec_from_loader",patch_importlib_util_spec_from_loader)
+            moc_import_lib.setattr("hickle.lookup.spec_from_loader",patch_importlib_util_spec_from_loader)
+    
+            # try to find appropriate loader for dict object, a moc of this
+            # loader should be provided by hickle/tests/hickle_loaders/load_builtins
+            # module ensure that this module is the one found by load_loader function
+            import hickle.tests.hickle_loaders.load_builtins as load_builtins
+            moc_import_lib.setitem(sys.modules,loader_name,load_builtins)
+            moc_import_lib.setattr("importlib.util.spec_from_loader",patch_importlib_util_spec_from_tests_loader)
+            moc_import_lib.setattr("hickle.lookup.spec_from_loader",patch_importlib_util_spec_from_tests_loader)
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict and nopickleloader == (load_builtins.create_package_test,b'dict',True)
 
-        # remove loader again and undo redirection again. dict should now be
-        # processed by create_pickled_dataset
-        moc_import_lib.delitem(sys.modules,loader_name)
-        del lookup.types_dict[dict]
-        py_obj_type,nopickleloader = lookup.load_loader(py_object.__class__)
-        assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
-        
-        # check that load_loader prevenst redefinition of loaders to be predefined by hickle core
-        with pytest.raises(
-            RuntimeError,
-            match = r"objects\s+defined\s+by\s+hickle\s+core\s+must\s+be"
-                    r"\s+registerd\s+before\s+first\s+dump\s+or\s+load"
-        ):
-            py_obj_type,nopickleloader = lookup.load_loader(ToBeInLoadersOrNotToBe)
-        monkeypatch.setattr(ToBeInLoadersOrNotToBe,'__module__','hickle.loaders')
-
-        # check that load_loaders issues drop warning upon loader definitions for
-        # dummy objects defined within hickle package but outsied loaders modules
-        with pytest.warns(
-            RuntimeWarning,
-            match = r"ignoring\s+'.+'\s+dummy\s+type\s+not\s+defined\s+by\s+loader\s+module"
-        ):
-            py_obj_type,nopickleloader = lookup.load_loader(ToBeInLoadersOrNotToBe)
-            assert py_obj_type is ToBeInLoadersOrNotToBe
-            assert nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
-
-        # check that loader definitions for dummy objets defined by loaders work as expected
-        # by loader module 
-        monkeypatch.setattr(ToBeInLoadersOrNotToBe,'__module__',loader_name)
-        py_obj_type,(create_dataset,base_type,memoise) = lookup.load_loader(ToBeInLoadersOrNotToBe)
-        assert py_obj_type is ToBeInLoadersOrNotToBe and base_type == b'NotHicklable'
-        assert create_dataset is not_dumpable
-        assert memoise == False
-
-        # remove loader_name from list of loaded loaders and check that loader is loaded anew
-        # and that values returned for dict object correspond to loader 
-        # provided by freshly loaded loader module
-        lookup.loaded_loaders.remove(loader_name)
-        py_obj_type,(create_dataset,base_type,memoise) = lookup.load_loader(py_object.__class__)
-        load_builtins_moc = sys.modules.get(loader_name,None)
-        assert load_builtins_moc is not None
-        loader_spec = load_builtins_moc.class_register[0]
-        assert py_obj_type is dict and create_dataset is loader_spec[2]
-        assert base_type is loader_spec[1]
-        assert memoise == True
+            backup_load_builtins = sys.modules.pop('hickle.loaders.load_builtins',None)
+            backup_py_obj_type = loader.types_dict.pop(dict,None)
+            backup_loaded_loaders = lookup.LoaderManager.__loaded_loaders__.discard('hickle.loaders.load_builtins')
+            moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_spec_no_load_builtins)
+            moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_spec_no_load_builtins)
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict 
+            assert nopickleloader == (sys.modules['hickle.loaders.load_builtins'].create_package_test,b'dict',True)
+            moc_import_lib.setattr("importlib.util.spec_from_loader",patch_importlib_util_spec_from_loader)
+            moc_import_lib.setattr("hickle.lookup.spec_from_loader",patch_importlib_util_spec_from_loader)
+            moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_spec)
+            moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_spec)
+            sys.modules['hickle.loaders.load_builtins'] = backup_load_builtins
+            loader.types_dict[dict] = backup_py_obj_type
+            lookup._custom_loader_enabled_builtins.pop(py_obj_type.__class__.__module__,None)
+    
+            # preload dataset only loader and check that it can be resolved directly
+            loader_spec = loader_table[0]
+            lookup.LoaderManager.register_class(*loader_spec)
+            assert loader.load_loader((12).__class__) == (loader_spec[0],(*loader_spec[2:0:-1],loader_spec[5]))
+    
+            # try to find appropriate loader for dict object, a moc of this
+            # should have already been imported above 
+            assert loader.load_loader(py_object.__class__) == (dict,(load_builtins.create_package_test,b'dict',True))
+    
+            # remove loader again and undo redirection again. dict should now be
+            # processed by create_pickled_dataset
+            moc_import_lib.delitem(sys.modules,loader_name)
+            del lookup.LoaderManager.__py_types__[None][dict]
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            
+            # check that load_loader prevenst redefinition of loaders to be predefined by hickle core
+            with pytest.raises(
+                RuntimeError,
+                match = r"objects\s+defined\s+by\s+hickle\s+core\s+must\s+be"
+                        r"\s+registerd\s+before\s+first\s+dump\s+or\s+load"
+            ):
+                py_obj_type,nopickleloader = loader.load_loader(ToBeInLoadersOrNotToBe)
+            monkeypatch.setattr(ToBeInLoadersOrNotToBe,'__module__','hickle.loaders')
+    
+            # check that load_loaders issues drop warning upon loader definitions for
+            # dummy objects defined within hickle package but outsied loaders modules
+            with pytest.warns(
+                RuntimeWarning,
+                match = r"ignoring\s+'.+'\s+dummy\s+type\s+not\s+defined\s+by\s+loader\s+module"
+            ):
+                py_obj_type,nopickleloader = loader.load_loader(ToBeInLoadersOrNotToBe)
+                assert py_obj_type is ToBeInLoadersOrNotToBe
+                assert nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+    
+            # check that loader definitions for dummy objets defined by loaders work as expected
+            # by loader module 
+            monkeypatch.setattr(ToBeInLoadersOrNotToBe,'__module__',loader_name)
+            py_obj_type,(create_dataset,base_type,memoise) = loader.load_loader(ToBeInLoadersOrNotToBe)
+            assert py_obj_type is ToBeInLoadersOrNotToBe and base_type == b'NotHicklable'
+            assert create_dataset is not_dumpable
+            assert memoise == False
+    
+            # remove loader_name from list of loaded loaders and check that loader is loaded anew
+            # and that values returned for dict object correspond to loader 
+            # provided by freshly loaded loader module
+            lookup.LoaderManager.__loaded_loaders__.remove(loader_name)
+            py_obj_type,(create_dataset,base_type,memoise) = loader.load_loader(py_object.__class__)
+            load_builtins_moc = sys.modules.get(loader_name,None)
+            assert load_builtins_moc is not None
+            loader_spec = load_builtins_moc.class_register[0]
+            assert py_obj_type is dict and create_dataset is loader_spec[2]
+            assert base_type is loader_spec[1]
+            assert memoise == True
 
 def test_type_legacy_mro():
     """
@@ -479,12 +676,19 @@ def test_create_pickled_dataset(h5_data):
     # check if create_pickled_dataset issues SerializedWarning for objects which
     # either do not support copy protocol
     py_object = ClassToDump('hello',1)
+    pickled_py_object = pickle.dumps(py_object)
     data_set_name = "greetings"
     with pytest.warns(lookup.SerializedWarning,match = r".*type\s+not\s+understood,\s+data\s+is\s+serialized:.*") as warner:
         h5_node,subitems = lookup.create_pickled_dataset(py_object, h5_data,data_set_name)
         assert isinstance(h5_node,h5py.Dataset) and not subitems and iter(subitems)
-        assert bytes(h5_node[()]) == pickle.dumps(py_object) and h5_node.name.split('/')[2] == data_set_name
+        assert bytes(h5_node[()]) == pickled_py_object and h5_node.name.rsplit('/',1)[-1] == data_set_name
         assert lookup.load_pickled_data(h5_node,b'pickle',object) == py_object
+        backup_class_to_dump = globals()['ClassToDump']
+        backup_class_to_dump = globals().pop('ClassToDump',None)
+        recovered = lookup.load_pickled_data(h5_node,b'pickle',object)
+        assert isinstance(recovered,lookup.RecoveredDataset)
+        assert bytes(recovered) == pickled_py_object
+        globals()['ClassToDump'] = backup_class_to_dump
     
     
 def test__DictItemContainer():
@@ -577,6 +781,9 @@ def test_ReferenceManager_get_root(h5_data):
     assert lookup.ReferenceManager.get_root(some_list_item).id == root_group.file.id
         
 
+class not_a_surviver():
+    """does not survive pickle.dumps"""
+
 def test_ReferenceManager(h5_data):
     """
     test for creation of ReferenceManager object (__init__)
@@ -606,15 +813,28 @@ def test_ReferenceManager(h5_data):
     list_base_type = b'list'
     list_base_type = type_table.create_dataset(list_base_type,shape=None,dtype="S1")
     list_entry.attrs['base_type'] = list_base_type.ref
+
+    missing_pickle_string = bytearray(pickle.dumps(not_a_surviver))
+    missing_np_entry = np.array(missing_pickle_string,copy = False)
+    missing_np_entry.dtype = 'S1'
+    missing_entry = type_table.create_dataset(str(len(type_table)),data = missing_np_entry,shape=(1,missing_np_entry.size))
+    missing_base_type = b'lost'
+    missing_base_type = type_table.create_dataset(missing_base_type,shape=None,dtype="S1")
+    missing_entry.attrs['base_type'] = missing_base_type.ref
+    hide_not_a_surviver = globals().pop('not_a_surviver',None)
     reference_manager = lookup.ReferenceManager(h5_data)
+    globals()['not_a_surviver'] = hide_not_a_surviver
     assert reference_manager._py_obj_type_link[id(int)] == int_entry
-    assert reference_manager._py_obj_type_link[int_entry.id] == (id(int),b'int')
+    assert reference_manager._py_obj_type_link[int_entry.id] == (int,b'int')
     assert reference_manager._base_type_link[b'int'] == int_base_type
     assert reference_manager._base_type_link[int_base_type.id] == b'int'
     assert reference_manager._py_obj_type_link[id(list)] == list_entry
-    assert reference_manager._py_obj_type_link[list_entry.id] == (id(list),b'list')
+    assert reference_manager._py_obj_type_link[list_entry.id] == (list,b'list')
     assert reference_manager._base_type_link[b'list'] == list_base_type
     assert reference_manager._base_type_link[list_base_type.id] == b'list'
+    assert reference_manager._base_type_link[b'lost'] == missing_base_type
+    assert reference_manager._base_type_link[missing_base_type.id] == b'lost'
+    assert reference_manager._py_obj_type_link[missing_entry.id] == (lookup.AttemptRecoverCustom,'!recover!',b'lost')
     backup_attr = list_entry.attrs['base_type']
     list_entry.attrs.pop('base_type',None)
     with pytest.raises(lookup.ReferenceError):
@@ -628,9 +848,10 @@ def test_ReferenceManager(h5_data):
     with pytest.raises(lookup.ReferenceError):
         reference_manager = lookup.ReferenceManager(h5_data)
     list_entry.attrs['base_type']=backup_attr
+    
     old_hickle_file_root = h5_data.file.create_group('old_root')
     h5_data.file.flush()
-    base_name,ext = h5_data.file.filename.split('.')
+    base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
     shutil.copyfile(h5_data.file.filename,file_name)
     data_name = h5_data.name
@@ -643,8 +864,9 @@ def test_ReferenceManager(h5_data):
     assert overlay_file.mode == 'r+' and overlay_file.driver == 'core'
     assert overlay_file.id != read_only_handle.id
     reference_manager = lookup.ReferenceManager(h5_read_data)
+    
+    
     read_only_handle.close()
-
     class SubReferenceManager(lookup.ReferenceManager):
         __managers__ = ()
     assert SubReferenceManager.__managers__ is lookup.ReferenceManager.__managers__
@@ -658,6 +880,8 @@ def test_ReferenceManager(h5_data):
     with pytest.raises(NotImplementedError):
         with OtherManager() as invalid_manager:
             pass
+
+    
 
     
 def test_ReferenceManager_drop_manager(h5_data):
@@ -677,7 +901,6 @@ def test_ReferenceManager_drop_manager(h5_data):
     assert not lookup.ReferenceManager.__managers__
     some_other_file.close()
     
-
 def test_ReferenceManager_create_manager(h5_data):
     """
     test public static ReferenceManager.create_manager function
@@ -685,8 +908,9 @@ def test_ReferenceManager_create_manager(h5_data):
     second_tree = h5_data.file.create_group('seondary_root')
     h5_data_table = lookup.ReferenceManager.create_manager(h5_data)
     assert lookup.ReferenceManager.__managers__[h5_data.file.id][0] is h5_data_table
-    with pytest.raises(lookup.ReferenceError):
+    with pytest.raises(lookup.LookupError):
         second_table = lookup.ReferenceManager.create_manager(second_tree)
+    lookup.ReferenceManager._drop_manager(h5_data.file.id)
 
 def test_ReferenceManager_context(h5_data):
     """
@@ -701,7 +925,7 @@ def test_ReferenceManager_context(h5_data):
     memo.__exit__(None,None,None)
     old_hickle_file_root = h5_data.file.create_group('old_root')
     h5_data.file.flush()
-    base_name,ext = h5_data.file.filename.split('.')
+    base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
     shutil.copyfile(h5_data.file.filename,file_name)
     data_name = old_hickle_file_root.name
@@ -730,7 +954,25 @@ def test_ReferenceManager_store_type(h5_data):
         type_table_entry = h5_data.file[h_node.attrs['type']]
         assert pickle.loads(type_table_entry[()]) is list
         assert isinstance(type_table_entry.attrs['base_type'],h5py.Reference)
-        assert h5_data.file[type_table_entry.attrs['base_type']].name.split('/')[-1].encode('ascii') == b'list'
+        assert h5_data.file[type_table_entry.attrs['base_type']].name.rsplit('/',1)[-1].encode('ascii') == b'list'
+    
+def test_ReferenceManager_get_manager(h5_data):
+    h_node = h5_data.create_group('some_list')
+    item_data = np.array(memoryview(b'hallo welt lore grueszet dich ipsum aus der lore von ipsum gelort in ipsum'),copy=False)
+    item_data.dtype = 'S1'
+    h_item = h_node.create_dataset('0',data=item_data,shape=(1,item_data.size))
+    with lookup.ReferenceManager.create_manager(h5_data) as memo:
+        memo.store_type(h_node,list,b'list')
+        memo.store_type(h_item,bytes,b'bytes')
+        assert lookup.ReferenceManager.get_manager(h_item) == memo
+
+        backup_manager = lookup.ReferenceManager.__managers__.pop(h5_data.file.id,None)
+        assert backup_manager is not None
+        with pytest.raises(lookup.ReferenceError):
+            manager = lookup.ReferenceManager.get_manager(h_item)
+        lookup.ReferenceManager.__managers__[h5_data.file.id] = backup_manager
+    with pytest.raises(lookup.ReferenceError):
+        manager = lookup.ReferenceManager.get_manager(h_item)
 
 def test_ReferenceManager_resolve_type(h5_data):
     """
@@ -752,6 +994,7 @@ def test_ReferenceManager_resolve_type(h5_data):
     new_style_typed = h5_data.create_dataset('new_style_typed',data = 12)
     stale_new_style = h5_data.create_dataset('stale_new_style',data = 12)
     new_style_typed_no_link = h5_data.create_dataset('new_style_typed_no_link',data = 12.5)
+    has_not_recoverable_type = h5_data.create_dataset('no_recoverable_type',data = 42.56)
     with lookup.ReferenceManager.create_manager(h5_data) as memo:
         with pytest.raises(lookup.ReferenceError):
             memo.resolve_type(invalid_pickle_and_ref)
@@ -789,8 +1032,21 @@ def test_ReferenceManager_resolve_type(h5_data):
         del memo._base_type_link[b'float']
         float_entry.attrs['base_type'] = float_base
         assert memo.resolve_type(new_style_typed_no_link) == (float,b'float',False)
-        
         assert memo.resolve_type(new_style_typed_no_link) 
+        memo.store_type(has_not_recoverable_type,not_a_surviver,b'lost')
+        del memo._py_obj_type_link[memo._py_obj_type_link[id(not_a_surviver)].id]
+        del memo._py_obj_type_link[id(not_a_surviver)]
+        hide_not_a_surviver = globals().pop('not_a_surviver',None)
+        assert memo.resolve_type(has_not_recoverable_type) == (lookup.AttemptRecoverCustom,b'!recover!',False)
+        assert memo.resolve_type(has_not_recoverable_type,base_type_type=2) == (lookup.AttemptRecoverCustom,b'lost',False)
+        globals()['not_a_surviver'] = hide_not_a_surviver
+        has_not_recoverable_type.attrs['type'] = np.array(pickle.dumps(not_a_surviver))
+        has_not_recoverable_type.attrs['base_type'] = b'lost'
+        hide_not_a_surviver = globals().pop('not_a_surviver',None)
+        assert memo.resolve_type(has_not_recoverable_type) == (lookup.AttemptRecoverCustom,b'!recover!',False)
+        assert memo.resolve_type(has_not_recoverable_type,base_type_type=2) == (lookup.AttemptRecoverCustom,b'lost',False)
+        globals()['not_a_surviver'] = hide_not_a_surviver
+    
     
 def test_ExpandReferenceContainer(h5_data):
     """
@@ -814,18 +1070,80 @@ def test_ExpandReferenceContainer(h5_data):
             sub_container.append(name,content,subitem.attrs)
 
 
+def test_recover_custom_data(h5_data):
+    array_to_recover = np.random.random_sample([4,2])
+    with lookup.ReferenceManager.create_manager(h5_data) as memo:
+        dataset_to_recover = h5_data.create_dataset('to_recover',data=array_to_recover)
+        dataset_to_recover.attrs['world'] = 2
+        memo.store_type(dataset_to_recover,ClassToDump,b'myclass')
+        group_to_recover = h5_data.create_group('need_recover')
+        memo.store_type(group_to_recover,ClassToDump,b'myclass')
+        backup_class_to_dump = globals().pop('ClassToDump',None)
+        memo._py_obj_type_link.pop(id('ClassToDump'),None)
+        memo._base_type_link.pop(b'myclass')
+        type_entry = memo._py_obj_type_table[dataset_to_recover.attrs['type']]
+        memo._py_obj_type_link.pop(type_entry.id,None)
+        py_obj_type,base_type,is_group = memo.resolve_type(dataset_to_recover)
+        assert issubclass(py_obj_type,lookup.AttemptRecoverCustom) and base_type == b'!recover!'
+        recovered = lookup.recover_custom_dataset(dataset_to_recover,base_type,py_obj_type) 
+        assert recovered.dtype == array_to_recover.dtype and np.all(recovered == array_to_recover)
+        assert recovered.attrs == {'base_type':b'myclass','world':2}
+        assert not is_group
+        type_entry = memo._py_obj_type_table[group_to_recover.attrs['type']]
+        memo._py_obj_type_link.pop(type_entry.id,None)
+        some_int=group_to_recover.create_dataset('some_int',data=42)
+        some_float=group_to_recover.create_dataset('some_float',data=42.0)
+        group_to_recover.attrs['so'] = 'long'
+        group_to_recover.attrs['and'] = 'thanks'
+        some_float.attrs['for'] = 'all'
+        some_float.attrs['the'] = 'fish'
+        py_obj_type,base_type,is_group = memo.resolve_type(group_to_recover)
+        assert issubclass(py_obj_type,lookup.AttemptRecoverCustom) and base_type == b'!recover!'
+        assert is_group
+        recover_container = lookup.RecoverGroupContainer(group_to_recover.attrs,base_type,py_obj_type)
+        for name,item in recover_container.filter(group_to_recover):
+            recover_container.append(name,item[()],item.attrs)
+        recover_container.append('some_other',recovered,recovered.attrs)
+        recovered_group = recover_container.convert()
+        assert isinstance(recovered_group,dict)
+        assert some_float[()] == recovered_group['some_float'][0] and some_float.attrs == recovered_group['some_float'][1]
+        assert some_int[()] == recovered_group['some_int'][0] and some_int.attrs == recovered_group['some_int'][1]
+        assert recovered_group['some_other'] is recovered
+        assert recovered_group.attrs['base_type'] == memo.resolve_type(group_to_recover,base_type_type=2)[1]
+        assert len(recovered_group.attrs) == 3
+        assert recovered_group.attrs['so'] == 'long' and recovered_group.attrs['and'] == 'thanks'
+        globals()['ClassToDump'] = backup_class_to_dump 
+
     
 # %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.monkeypatch import monkeypatch
     from _pytest.fixtures import FixtureRequest
+    for h5_root in h5_data(FixtureRequest(test_create_pickled_dataset)):
+        test_AttemptRecoverCustom_classes(h5_data)
     for table in loader_table():
-        test_register_class(table)
+        test_LoaderManager_register_class(table)
     for table in loader_table():
-        test_register_class_exclude(table)
-    for monkey in monkeypatch():
-        for table in loader_table():
-            test_load_loader(table,monkey)
+        test_LoaderManager_register_class_exclude(table)
+    for table,h5_root in (
+        (tab,root)
+        for tab in loader_table()
+        for root in h5_data(FixtureRequest(test_LoaderManager))
+    ):
+        test_LoaderManager(table,h5_root)
+    for h5_root in h5_data(FixtureRequest(test_LoaderManager_drop_manager)):
+        test_LoaderManager_drop_manager(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_LoaderManager_create_manager)):
+        test_LoaderManager_create_manager(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_LoaderManager_context)):
+        test_LoaderManager_context(h5_root)
+    for table,h5_root,monkey in (
+        (tab,root,mpatch)
+        for tab in loader_table()
+        for root in h5_data(FixtureRequest(test_LoaderManager_load_loader))
+        for mpatch in monkeypatch()
+    ):
+            test_LoaderManager_load_loader(table,h5_root,monkey)
     test_type_legacy_mro()
     for h5_root in h5_data(FixtureRequest(test_create_pickled_dataset)):
         test_create_pickled_dataset(h5_root)
@@ -837,18 +1155,22 @@ if __name__ == "__main__":
         test_ReferenceManager_get_root(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ReferenceManager)):
         test_ReferenceManager(h5_root)
-    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_drop_table)):
-        test_ReferenceManager_drop_table(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_drop_manager)):
+        test_ReferenceManager_drop_manager(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ReferenceManager_create_manager)):
         test_ReferenceManager_create_manager(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ReferenceManager_context)):
         test_ReferenceManager_context(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ReferenceManager_get_manager)):
+        test_ReferenceManager_get_manager(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ReferenceManager_store_type)):
         test_ReferenceManager_store_type(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ReferenceManager_resolve_type)):
         test_ReferenceManager_resolve_type(h5_root)
     for h5_root in h5_data(FixtureRequest(test_ExpandReferenceContainer)):
         test_ExpandReferenceContainer(h5_root)
+    for h5_root in h5_data(FixtureRequest(test_ExpandReferenceContainer)):
+        test_recover_custom_data(h5_data)
 
 
     
