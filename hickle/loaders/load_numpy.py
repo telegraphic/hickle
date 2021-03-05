@@ -22,10 +22,17 @@ def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
-        py_obj: python object to dump; should be a numpy scalar, e.g.
-            np.float16(1)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj (np.scalar):
+            python object to dump; should be a numpy scalar, e.g.  np.float16(1)
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+             the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         Dataset and empty list of subitems
@@ -41,10 +48,17 @@ def create_np_dtype(py_obj, h_group, name, **kwargs):
     """ dumps an np dtype object to h5py file
 
     Args:
-        py_obj: python object to dump; should be a numpy dtype, e.g.
-            np.float16
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj (np.dtype):
+            python object to dump; should be a numpy dtype, e.g.  np.float16
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         Dataset and empty list of subitems
@@ -57,10 +71,17 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an ndarray object to h5py file
 
     Args:
-        py_obj: python object to dump; should be a numpy array or np.ma.array
-            (masked)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset or group
+        py_obj (np.ndarray):
+            python object to dump; should be a numpy array or np.ma.array (masked)
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset or group
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         Datset and empty list of subitems or Group and iterable of subitems
@@ -94,7 +115,9 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
             h_node = h_group.create_group(name)
             sub_items = ("data",py_obj,{},kwargs),
     else:
-        h_node = h_group.create_dataset(name, data=py_obj, **( no_compression(kwargs) if "bytes" in dtype.name else kwargs ))
+        h_node = h_group.create_dataset(
+            name, data=py_obj, **( no_compression(kwargs) if "bytes" in dtype.name else kwargs )
+        )
         sub_items = ()
     h_node.attrs['np_dtype'] = dtype.str.encode('ascii')
     return h_node,sub_items
@@ -103,10 +126,17 @@ def create_np_masked_array_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an np.ma.core.MaskedArray object to h5py file
 
     Args:
-        py_obj: python object to dump; should be a numpy array or np.ma.array
-            (masked)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset or group
+        py_obj (np.ma.array):
+            python object to dump; should be a numpy array or np.ma.array (masked)
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset or group
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         Group and subitems list representing masked array:
@@ -123,6 +153,21 @@ def create_np_masked_array_dataset(py_obj, h_group, name, **kwargs):
 def load_np_dtype_dataset(h_node,base_type,py_obj_type):
     """
     restores dtype from dataset
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type (np.dtype):
+            final type of restored dtype
+
+    Returns:
+    --------
+        resulting np.dtype
     """
     return np.dtype(bytes(h_node[()]))
 
@@ -139,6 +184,21 @@ def load_np_scalar_dataset(h_node,base_type,py_obj_type):
 def load_ndarray_dataset(h_node,base_type,py_obj_type):
     """
     restores ndarray like object from dataset
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type (np.ndarray, np.ma.array, ...):
+            final type of restored array
+
+    Returns:
+    --------
+        resulting np.ndarray, np.ma.array
     """
     dtype = np.dtype(h_node.attrs['np_dtype'])
     if "str" in dtype.name:
@@ -161,6 +221,21 @@ def load_ndarray_masked_dataset(h_node,base_type,py_obj_type):
     """
     restores masked array forom data and mask datasets as stored by
     hickle version 4.0.0
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type (np.ndarray, np.ma.array, ...):
+            final type of restored array
+
+    Returns:
+    --------
+        resulting np.ndarray, np.ma.array
     """
     masked_array = NDMaskedArrayContainer(h_node.attrs,base_type,py_obj_type)
     masked_array.append('data',h_node[()],h_node.attrs),
@@ -231,7 +306,7 @@ class_register = [
     #       just needed to link old ndarray_masked_data base_type to load_ndarray_masked_dataset
     #       loader module selection will be triggered by np.ma.core.MaskedArray object_type anyway
     #       but base_type is used to select proper load_function
-    [np.ma.core.MaskedArray, b"ndarray_masked_data",None , load_ndarray_masked_dataset],
+    [np.ma.core.MaskedArray, b"ndarray_masked_data",None , load_ndarray_masked_dataset,None,False,'hickle-4.x'],
 
     # NOTE: numpy.matrix is obsolete and just an alias for numpy.array therefore 
     # to keep things simple np.matrix will be handled by same functions as 
@@ -241,4 +316,6 @@ class_register = [
     [np.matrix, b"np_matrix", create_np_array_dataset, load_ndarray_dataset]
 ]
 
-exclude_register = [b"ndarray_masked_mask"]
+exclude_register = [
+    (b"ndarray_masked_mask",'hickle-4.x')
+]

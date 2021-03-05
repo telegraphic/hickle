@@ -92,11 +92,11 @@ def test_load_hickle_4_0_X_string(h5_data):
     else:
         utf_entry = h5_data.create_dataset('utf_entry',data = string_data)
         bytes_entry = h5_data.create_dataset('bytes_entry',data = bytes_data)
-    assert load_builtins.load_hickle_4_0_x_string(utf_entry,b'str',str) == string_data
+    assert load_builtins.load_hickle_4_x_string(utf_entry,b'str',str) == string_data
     bytes_entry.attrs['str_type'] = b'str'
-    assert load_builtins.load_hickle_4_0_x_string(bytes_entry,b'str',str) == string_data
+    assert load_builtins.load_hickle_4_x_string(bytes_entry,b'str',str) == string_data
     object_entry = h5_data.create_dataset('utf_h5py2_entry',data = string_data,dtype = np.dtype('O',metadata={'vlen':bytes}))
-    assert load_builtins.load_hickle_4_0_x_string(object_entry,b'str',bytes) == bytes_data
+    assert load_builtins.load_hickle_4_x_string(object_entry,b'str',bytes) == bytes_data
     
     
 def test_non_dataset(h5_data,compression_kwargs):

@@ -21,10 +21,18 @@ def create_sparse_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an sparse array to h5py file
 
     Args:
-        py_obj: python object to dump; should be a numpy array or np.ma.array
-            (masked)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+    -----
+        py_obj (scipy.sparse.csr_matrix,scipy.sparse.csc_matrix, scipy.sparse.bsr_matrix):
+            python object to dump
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         Group and list of subitems to dump into
@@ -60,7 +68,7 @@ class SparseMatrixContainer(PyContainer):
     def __init__(self,h5_attrs, base_type, object_type):
         super(SparseMatrixContainer,self).__init__(h5_attrs,base_type,object_type,_content = [None]*4)
         
-        # in case object type is return_first (hickle 4.0.0 file) than switch filter
+        # in case object type is return_first (hickle 4.x file) than switch filter
         # to redirect loading of sub items to numpy ndarray type. Otherwise set to 
         # PyContainer.filter method
         if object_type is return_first:

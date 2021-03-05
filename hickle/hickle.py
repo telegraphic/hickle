@@ -20,6 +20,15 @@ on Linux and vice versa is likely to fail with errors like "Insecure string
 pickle". HDF5 files will load fine, as long as both machines have
 h5py installed.
 
+3) pickle.dumps() and pickle.loads() functions can be mimicked by passing
+a BytesIO type to hickle.dump() or hickle.load() function and setting the
+filename parameter to a non empty string.
+
+    hicklestring = BytesIO()
+    hickle.dump(my_data,hicklestring,mode='w',filename='<string>')
+
+    loaded_data = hickle.load(hicklestring,mode='r',filename='<string>')
+
 """
 
 
@@ -45,7 +54,7 @@ from .fileio import ClosedFileError, FileError, file_opener
 from .lookup import (
     #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
     create_pickled_dataset, load_nothing, fix_lambda_obj_type,ReferenceManager,
-    LoaderManager,link_dtype
+    LoaderManager,link_dtype, RecoverGroupContainer, recover_custom_dataset
 )
 
 
@@ -67,31 +76,43 @@ def _dump(py_obj, h_group, name, memo, loader,attrs={} , **kwargs):
 
     Parameters:
     -----------
-        py_obj: python object to dump.
-        h_group (h5.File.group): group to dump data into.
-        name (bytes): name of resultin hdf5 group or dataset 
-        memo (ReferenceManager): the ReferenceManager object
-            responsible for handling all object and type memoisation
-            related issues
-        attrs (dict): addtional attributes to be stored along with the
-            resulting hdf5 group or hdf5 dataset
-        kwargs (dict): keyword arguments to be passed to create_dataset
-            function
+        py_obj (object):
+             python object to dump.
+
+        h_group (h5.File.group):
+             group to dump data into.
+
+        name (str):
+             name of resulting hdf5 group or dataset 
+
+        memo (ReferenceManager):
+            the ReferenceManager object responsible for handling all
+            object and type memoisation related issues
+
+        attrs (dict):
+            addtional attributes to be stored along with the resulting
+            hdf5 group or hdf5 dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
     """
 
     py_obj_id = id(py_obj)
     py_obj_ref = memo.get(py_obj_id,None)
     if py_obj_ref is not None:
-        # reference data sets do not have any base_type and no py_obj_type set
-        # as they can be distinguished from pickled data due to their dtype 
-        # of type ref_dtype and thus load implicitly will be assigned b'!node-reference!'
-        # base_type and hickle.lookup.NodeReference as their py_obj_type
+
+        # py_object already dumped to hdf5 file store a refrence to it instead
+        # instead of dumping it again.
+        #
+        # Note: reference dataset share their base_type and py_obj_type with the
+        #       referenced h5py.Group or h5py.Dataset. On load their link_dtype type 
+        #       dtype is used to distinguish them from datasets hosting pickled data.
         h_link = h_group.create_dataset(name,data = py_obj_ref[0].ref,dtype = link_dtype)
         h_link.attrs.update(attrs)
         return
 
-    # Check if we have a unloaded loader for the provided py_obj and 
-    # retrive the most apropriate method for creating the corresponding
+    # Check if loader has already been loaded for the provided py_obj and 
+    # retrieve the most apropriate method for creating the corresponding
     # representation within HDF5 file
     py_obj_type, (create_dataset, base_type,memoise) = loader.load_loader(py_obj.__class__)
     try:
@@ -102,16 +123,14 @@ def _dump(py_obj, h_group, name, memo, loader,attrs={} , **kwargs):
         # store base_type and type unless py_obj had to be picled by create_pickled_dataset
         memo.store_type(h_node,py_obj_type,base_type,**kwargs)
 
-    # add addtional attributes and set 'base_type' and 'type'
-    # attributes accordingly
+    # add addtional attributes and prevent modification of 'type' attribute
     h_node.attrs.update((name,attr) for name,attr in attrs.items() if name != 'type' )
 
-    # ask pickle to try to store
-    # if h_node shall be memoised for representing multiple references
-    # to the same py_obj instance in the hdf5 file store h_node
-    # in the memo dictionary. Store py_obj along with h_node to ensure
-    # py_obj_id which represents the memory address of py_obj referrs
-    # to py_obj until the whole structure is stored within hickle file.
+    # if py_object shall be memoized to properly represent mutliple references
+    # to it in HDF5 file store it along with created h_node in the memo dictionary.
+    # remembering the py_object along with the h_node ensures that py_object_id
+    # which represents the memory address of py_obj refers to py_obj until the
+    # whole structure is stored within hickle file.
     if memoise:
         memo[py_obj_id] = (h_node,py_obj)
 
@@ -127,68 +146,68 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
 
     Parameters
     ----------
-    py_obj : object
-        Python object to hickle to HDF5.
-
-    file_obj : file object, str, pathlib.Path or :obj:`~h5py.Group` object
-        File in which to store the object.
-        If str or pathlib.Path, `file_obj` provides the path of the HDF5-file
-        that must be used.
-        If :file_obj:`~h5py.Group`, the group (or file) in an open
-        HDF5-file that must be used.
-        If :file_obj: `file`, `file like`, the file handle of the file to
-        dump :py_obj: to
-
-    mode : str, optional
-        Accepted values are 'r' (read only), 'w' (write; default) or 'a'
-        (append). 
-        Note: A trailing binary mode flag ('b') is ignored
-
-    path : str, optional
-        Path within HDF5-file or group to save data to.
-        Defaults to root ('/').
-
-    filename : str,  optional
-        name of file, file like object of HDF5 file. 
-        Ignored if file_obj is a path string, pathlib.Path object or
-        represents an accesible h5py.File, h5py.Group or h5py.Dataset 
-
-    options (dict):
-        Each entry in this dict modifies how hickle dumps data to file.
-        For example 
-            { compact_expand = True }
-        would enforce use of compact_expand loader on all classes
-        registered with this kind of loader.
-            { compact_expand = False }
-        would disable compact_expand loader for dumped data even if
-        globally turned on. More options may follow.
-
-    kwargs : keyword arguments
-        Additional keyword arguments that must be provided to the
-        :meth:`~h5py.Group.create_dataset` method.
+        py_obj (object):
+            Python object to hickle to HDF5.
+    
+        file_obj (file, file-like, h5py.File, str, (file,str),{'file':file,'name':str} ):
+            File to open for dumping or loading purposes.
+            str:
+                the path of the HDF5-file that must be used.
+            ~h5py.Group:
+                 the group (or file) in an open HDF5-file that must be used.
+            file, file-lik: 
+                file or like object which provides `read`, `seek`, `tell` and write methods
+            tuple:
+                two element tuple with the first beeing the file or file like object
+                to dump to and the second the filename to be used instead of 'filename'
+                parameter
+            dict:
+                dictionary with 'file' and 'name' items
+    
+        mode (str): optional
+            string indicating how the file shall be opened. For details see Python `open`.
+            
+            Note: The 'b' flag is optional as all files are a and have to be opened in
+                binary mode.
+    
+        path (str): optional
+            Path within HDF5-file or group to dump to/load from.
+        
+        filename (str): optional
+            The name of the file. Ignored when f is `str` or `h5py.File` object.
+    
+        options (dict): optional
+            Each entry in this dict modifies how hickle dumps data to file.
+            For example 
+                { compact_expand = True }
+            would enforce use of compact_expand loader on all classes
+            registered with this kind of loader.
+                { compact_expand = False }
+            would disable compact_expand loader for dumped data even if
+            globally turned on. More options may follow.
+    
+        kwargs : keyword arguments
+            Additional keyword arguments that must be provided to the
+            :meth:`~h5py.Group.create_dataset` method. For example compression=True
 
     Raises:
     -------
         CloseFileError:
             If passed h5py.File, h5py.Group or h5py.Dataset object is not
-            accessible which in most cases indicate that unterlying HDF5
-            was closed or if file or file like object has already been 
+            accessible. This in most cases indicates that unterlying HDF5
+            was closed or if file or file or file-like object has already been 
             closed.
 
         FileError
-            If passed file or file like object is not opened for reading or
+            If passed file or file-like object is not opened for reading or
             in addtion for writing in case mode corresponds to any
             of 'w', 'w+', 'x', 'x+' or a.
 
         ValueError:
             If anything else than str, bytes or None specified for filename
-             
-
+            or for mode is anything else specified than 'w','w+','x','x+','r','r+','a'
+            or contains any optional open flag other than 'b'
     """
-
-    # Make sure that file is not closed unless modified
-    # This is to avoid trying to close a file that was never opened
-    close_flag = False
 
     # Open the file
     h5f, path, close_flag = file_opener(file_obj, path, mode,filename)
@@ -211,8 +230,7 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
             with ReferenceManager.create_manager(h_root_group) as memo:
                 _dump(py_obj, h_root_group,'data', memo ,loader,**kwargs)
     finally:
-        # Close the file if requested.
-        # Closing a file twice will not cause any problems
+        # Close the h5py.File if it was opened by hickle.
         if close_flag:
             h5f.close()
 
@@ -230,24 +248,6 @@ class RootContainer(PyContainer):
         return self._content[0]
 
 
-class NoMatchContainer(PyContainer): # pragma: no cover
-    """
-    PyContainer used by load when no appropriate container
-    could be found for specified base_type. 
-    """
-
-    __slots__ = ()
-
-    def __init__(self,h5_attrs, base_type, object_type): # pragma: no cover
-        raise RuntimeError("Cannot load container proxy for %s data type " % base_type)
-        
-
-def no_match_load(key,*args,**kwargs):     # pragma: no cover
-    """ 
-    If no match is made when loading dataset , need to raise an exception
-    """
-    raise RuntimeError("Cannot load %s data type" % key)
-
 def load(file_obj, path='/', safe=True, filename = None):
     """
     Load the Python object stored in `file_obj` at `path` and return it.
@@ -255,28 +255,35 @@ def load(file_obj, path='/', safe=True, filename = None):
     Parameters
     ----------
 
-    file_obj : file object, str, pathlib.Path or :obj:`~h5py.Group` object
-        File in which to store the object.
-        If str or pathlib.Path, `file_obj` provides the path of the HDF5-file
-        that must be used.
-        If :file_obj:`~h5py.Group`, the group (or file) in an open
-        HDF5-file that must be used.
-        If :file_obj: `file`, `file like`, the file handle of the file to
-        load :py_obj: from.
+        file_obj (file, file-like, h5py.File, str, (file,str),{'file':file,'name':str} ):
+            File to open for dumping or loading purposes.
+            str:
+                the path of the HDF5-file that must be used.
+            ~h5py.Group:
+                 the group (or file) in an open HDF5-file that must be used.
+            file, file-lik: 
+                file or like object which provides `read`, `seek`, `tell` and write methods
+            tuple:
+                two element tuple with the first beeing the file or file like object
+                to dump to and the second the filename to be used instead of 'filename'
+                parameter
+            dict:
+                dictionary with 'file' and 'name' items
 
-    path : str, optional
-        Path within HDF5-file or group to load data from.
-        Defaults to root ('/').
+    
+    path (str): optional
+            Path within HDF5-file or group to dump to/load from.
 
-    safe : bool, optional
+    safe (bool): optional
         Disable automatic depickling of arbitrary python objects.
         DO NOT set this to False unless the file is from a trusted source.
         (See https://docs.python.org/3/library/pickle.html for an explanation)
 
-    filename : str,  optional
-        name of file, file like object of HDF5 file. 
-        Ignored if file_obj is a path string, pathlib.Path object or
-        represents an accesible h5py.File, h5py.Group or h5py.Dataset 
+        Note: ignored when loading hickle 4.x and newer files
+
+        
+    filename (str): optional
+        The name of the file. Ignored when f is `str` or `h5py.File` object.
 
     Returns
     -------
@@ -287,22 +294,16 @@ def load(file_obj, path='/', safe=True, filename = None):
     -------
         CloseFileError:
             If passed h5py.File, h5py.Group or h5py.Dataset object is not
-            accessible which in most cases indicate that unterlying HDF5
-            was closed or if file or file like object has already been 
+            accessible. This in most cases indicates that unterlying HDF5
+            was closed or if file or file or file-like object has already been 
             closed.
 
         FileError
-            If passed file or file like object is not opened for reading or
-            in addtion for writing in case mode corresponds to any
-            of 'w', 'w+', 'x', 'x+' or a.
+            If passed file or file-like object is not opened for reading
 
         ValueError:
             If anything else than str, bytes or None specified for filename
     """
-
-    # Make sure that the file is not closed unless modified
-    # This is to avoid trying to close a file that was never opened
-    close_flag = False
 
     # Try to read the provided file_obj as a hickle file
     h5f, path, close_flag = file_opener(file_obj, path, 'r')
@@ -386,20 +387,26 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
     Recursive funnction to load hdf5 data into a PyContainer()
 
     Args:
-        py_container (PyContainer): Python container to load data into
-        h_name (string): the name of the resulting h5py object group or dataset
-        h_node (h5 group or dataset): h5py object, group or dataset, to spider
-            and load all datasets.
-        memo (ReferenceManager): the ReferenceManager object
-            responsible for handling all object and type memoisation
-            related issues
-        load_loader (FunctionType,MethodType): defaults to lookup.load_loader and
-            will be switched to load_legacy_loader if file to be loaded was
-            created by hickle 4.0.x version
+        py_container (PyContainer):
+            Python container to load data into
+
+        h_name (str):
+            the name of the resulting h5py.Group or h5py.Dataset
+
+        h_node (h5py.Group, h5py.Dataset):
+            h5py.Group or h5py.Dataset to restore data from.
+
+        memo (ReferenceManager):
+            the ReferenceManager object responsible for handling all object
+            and type memoisation related issues
+
+        loader (LoaderManager):
+            the LoaderManager object managing the loaders required to properly
+            restore the content of h_node and append it to py_container.
     """
 
-    # if h_node has already been loaded cause a reference to it was encountered earlier
-    # direcctly append it to its parent container and return
+    # if h_node has already been loaded cause a reference to it was encountered
+    # earlier directly append it to its parent container and return
     node_ref = memo.get(h_node.id,h_node)
     if node_ref is not h_node:
         py_container.append(h_name,node_ref,h_node.attrs)
@@ -412,26 +419,29 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
     if is_container:
         # Either a h5py.Group representing the structure of complex objects or
         # a h5py.Dataset representing a h5py.Reference to the node of an object
-        # referred to from multiple places within the objet structure to be dumped 
+        # referred to from multiple places within the objekt structure on dump 
+        # is to be restored.
+        # If no appropriate PyContainer is available use RecoverGroupContainer
+        # instead to at least recover its contained data
 
-        py_container_class = loader.hkl_container_dict.get(base_type,NoMatchContainer)
+        py_container_class = loader.hkl_container_dict.get(base_type,RecoverGroupContainer)
         py_subcontainer = py_container_class(h_node.attrs,base_type,py_obj_type)
     
-        # NOTE: Sorting of container items according to their key Name is
-        #       to be handled by container class provided by loader only
-        #       as loader has all the knowledge required to properly decide
-        #       if sort is necessary and how to sort and at what stage to sort 
         for h_key,h_subnode in py_subcontainer.filter(h_node):
-            _load(py_subcontainer, h_key, h_subnode, memo ,loader) # load_loader)
+            _load(py_subcontainer, h_key, h_subnode, memo ,loader)
 
         # finalize subitem
         sub_data = py_subcontainer.convert()
         py_container.append(h_name,sub_data,h_node.attrs)
     else:
-        # must be a dataset load it and append to parent container
-        load_fn = loader.hkl_types_dict.get(base_type, no_match_load)
+
+        # must be a dataset load it and append to parent container.
+        # In case no appropriate loader could be found use recover_custom_dataset
+        # instead to at least recover the contained data
+        load_fn = loader.hkl_types_dict.get(base_type, recover_custom_dataset)
         sub_data = load_fn(h_node,base_type,py_obj_type)
         py_container.append(h_name,sub_data,h_node.attrs)
+
     # store loaded object for properly restoring addtional references to it
     if memoise:
         memo[h_node.id] = sub_data

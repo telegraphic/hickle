@@ -155,15 +155,26 @@ Installation guidelines
 ### Easy method
 Install with `pip` by running `pip install hickle` from the command line.
 
+#### Install on Windows 32 bit
+
+Prebuilt Python wheels packages are available on PyPi until H5PY version 2.10 and Python 3.8.
+Any newer versions have to be built and installed Manually.
+
+1) Install h5py 2.10 with `pip` by running `pip install "h5py<3.0"` from the commandline
+
+2) Install with `pip` by running `pip install hickle` form the command line
+
 ### Manual install
 
 1. You should have Python 3.5 and above installed
 
-2. Install h5py
-(Official page: http://docs.h5py.org/en/latest/build.html)
-
-3. Install hdf5
+2. Install hdf5
 (Official page: http://www.hdfgroup.org/ftp/HDF5/current/src/unpacked/release_docs/INSTALL)
+(Binary Downloads: https://portal.hdfgroup.org/display/support/Downloads)
+__Note:__ On Windows 32 bit install prebuilt binary package for libhdf5 [1.10.4](https://portal.hdfgroup.org/display/support/HDF5+1.10.4), which is the latest version supportin 32 bit on Windows
+
+3. Install h5py
+(Official page: http://docs.h5py.org/en/latest/build.html)
 
 4. Download `hickle`:
 via terminal: git clone https://github.com/telegraphic/hickle.git
@@ -173,6 +184,7 @@ via manual download: Go to https://github.com/telegraphic/hickle and on right ha
 
 6. Then run the following command in the `hickle` directory:
      `python setup.py install`
+
 
 ### Testing
 

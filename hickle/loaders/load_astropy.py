@@ -16,10 +16,17 @@ def create_astropy_quantity(py_obj, h_group, name, **kwargs):
     """ dumps an astropy quantity
 
     Args:
-        py_obj: python object to dump; should be a python type (int, float,
-            bool etc)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj:
+            python object to dump; should be a python type
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         dataset representing astropy quantity and empty subitems
@@ -35,10 +42,17 @@ def create_astropy_angle(py_obj, h_group, name, **kwargs):
     """ dumps an astropy quantity
 
     Args:
-        py_obj: python object to dump; should be a python type (int, float,
-            bool etc)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj:
+            python object to dump; should be a python type
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         dataset representing astropy angle and empty subitems
@@ -54,10 +68,17 @@ def create_astropy_skycoord(py_obj, h_group, name, **kwargs):
     """ dumps an astropy quantity
 
     Args:
-        py_obj: python object to dump; should be a python type (int, float,
-            bool etc)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj:
+            python object to dump; should be a python type
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         dataset representing astorpy SkyCoord and empty subitems
@@ -79,10 +100,17 @@ def create_astropy_time(py_obj, h_group, name, **kwargs):
     """ dumps an astropy Time object
 
     Args:
-        py_obj: python object to dump; should be a python type (int, float,
-            bool etc)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj:
+            python object to dump; should be a python type
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         dataset representing string astropy time and empty subitems
@@ -109,10 +137,17 @@ def create_astropy_constant(py_obj, h_group, name, **kwargs):
     """ dumps an astropy constant
 
     Args:
-        py_obj: python object to dump; should be a python type (int, float,
-            bool etc)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj:
+            python object to dump; should be a python type
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
 
     Returns:
         dataset representing astropy constant and empty subitems list
@@ -135,10 +170,17 @@ def create_astropy_table(py_obj, h_group, name, **kwargs):
     """ Dump an astropy Table
 
     Args:
-        py_obj: python object to dump; should be a python type (int, float,
-            bool etc)
-        h_group (h5.File.group): group to dump data into.
-        name (str): the name of the resulting dataset
+        py_obj:
+            python object to dump; should be a python type
+
+        h_group (h5.File.group):
+            group to dump data into.
+
+        name (str):
+            the name of the resulting dataset
+
+        kwargs (dict):
+            keyword arguments to be passed to create_dataset function
   
     Returns:
         dataset representing astorpy table and empty subitems list
@@ -156,6 +198,21 @@ def create_astropy_table(py_obj, h_group, name, **kwargs):
 def load_astropy_quantity_dataset(h_node,base_type,py_obj_type):
     """
     loads astropy unit
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type :
+            final type of restored dtype
+
+    Returns:
+    --------
+        resulting py_obj_type
     """
     unit = h_node.attrs["unit"]
     return py_obj_type(h_node[()], unit)
@@ -164,6 +221,21 @@ def load_astropy_quantity_dataset(h_node,base_type,py_obj_type):
 def load_astropy_time_dataset(h_node,base_type,py_obj_type):
     """
     loads astropy time
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type :
+            final type of restored dtype
+
+    Returns:
+    --------
+        resulting py_obj_type
     """
     fmt = load_str_attr_ascii(h_node.attrs,"format")
     scale = load_str_attr_ascii(h_node.attrs,"scale")
@@ -179,6 +251,21 @@ def load_astropy_time_dataset(h_node,base_type,py_obj_type):
 def load_astropy_angle_dataset(h_node,base_type,py_obj_type):
     """
     loads astropy angle
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type :
+            final type of restored dtype
+
+    Returns:
+    --------
+        resulting py_obj_type
     """
     unit = h_node.attrs["unit"]
     q = py_obj_type(h_node[()], unit)
@@ -188,6 +275,21 @@ def load_astropy_angle_dataset(h_node,base_type,py_obj_type):
 def load_astropy_skycoord_dataset(h_node,base_type,py_obj_type):
     """
     loads astropy SkyCoord
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type :
+            final type of restored dtype
+
+    Returns:
+    --------
+        resulting py_obj_type
     """
     data = h_node[()]
     lon_unit = load_str_attr_ascii(h_node.attrs,"lon_unit")
@@ -199,6 +301,21 @@ def load_astropy_skycoord_dataset(h_node,base_type,py_obj_type):
 def load_astropy_constant_dataset(h_node,base_type,py_obj_type):
     """
     loads astropy constant
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type :
+            final type of restored dtype
+
+    Returns:
+    --------
+        resulting py_obj_type
     """
     unit = h_node.attrs["unit"]
     abbrev = h_node.attrs["abbrev"]
@@ -217,6 +334,21 @@ def load_astropy_constant_dataset(h_node,base_type,py_obj_type):
 def load_astropy_table(h_node,base_type,py_obj_type):
     """
     loads astropy table
+
+    Args:
+    -----
+        h_node (h5py.Dataset):
+            the hdf5 node to load data from
+
+        base_type (bytes):
+            bytes string denoting base_type
+
+        py_obj_type :
+            final type of restored dtype
+
+    Returns:
+    --------
+        resulting py_obj_type
     """
 
     colnames = load_str_list_attr_ascii(h_node.attrs,"colnames")

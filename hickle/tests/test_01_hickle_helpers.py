@@ -162,11 +162,11 @@ def test_not_io_base_like(test_file_name):
         assert not not_io_base_like(f,'strange_read',0)()
         assert not not_io_base_like(f,'seek',0,'strange_tell')()
     with open(test_file_name,'r') as f:
-        assert not_io_base_like(f,'seek',0,'tell')()
-        assert not not_io_base_like(f,'seek',0,'tell',())()
-        assert not_io_base_like(f,'read',0)()
-        assert not not_io_base_like(f,'tell',())()
-        assert not_io_base_like(f,'tell')()
+        assert not_io_base_like(f,('seek',0),('tell',))()
+        assert not not_io_base_like(f,('seek',0),('tell',()))()
+        assert not_io_base_like(f,('read',0))()
+        assert not not_io_base_like(f,('tell',()))()
+        assert not_io_base_like(f,('tell',))()
     
 
 def test_file_opener(h5_data,test_file_name):

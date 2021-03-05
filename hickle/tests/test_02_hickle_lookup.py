@@ -334,8 +334,10 @@ def test_LoaderManager_register_class(loader_table):
     loader_spec = loader_table[5]
     lookup.LoaderManager.register_class(*loader_spec)
     loader_spec = loader_table[0]
+    lookup.LoaderManager.__hkl_functions__[None][b'!node-reference!'] = loader_spec[3:5]
     with pytest.raises(ValueError):
         lookup.LoaderManager.register_class(loader_spec[0],b'!node-reference!',*loader_spec[2:],'custom')
+    lookup.LoaderManager.__hkl_functions__[None].pop(b'!node-reference!')
     with pytest.raises(lookup.LookupError):
         lookup.LoaderManager.register_class(*loader_spec,'mine')
 
@@ -440,11 +442,11 @@ def test_LoaderManager(loader_table,h5_data):
     assert manager._mro is type.mro
     assert manager._file.id == h5_data.file.id
     manager = lookup.LoaderManager(h5_data,True)
-    assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__['hickle-4.0']
+    assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__['hickle-4.x']
     assert manager.types_dict.maps[1] is lookup.LoaderManager.__py_types__[None]
-    assert manager.hkl_types_dict.maps[0] is lookup.LoaderManager.__hkl_functions__['hickle-4.0']
+    assert manager.hkl_types_dict.maps[0] is lookup.LoaderManager.__hkl_functions__['hickle-4.x']
     assert manager.hkl_types_dict.maps[1] is lookup.LoaderManager.__hkl_functions__[None]
-    assert manager.hkl_container_dict.maps[0] is lookup.LoaderManager.__hkl_container__['hickle-4.0']
+    assert manager.hkl_container_dict.maps[0] is lookup.LoaderManager.__hkl_container__['hickle-4.x']
     assert manager.hkl_container_dict.maps[1] is lookup.LoaderManager.__hkl_container__[None]
     assert manager._mro is lookup.type_legacy_mro
     assert manager._file.id == h5_data.file.id
@@ -549,8 +551,8 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             
             backup_builtins = sys.modules['builtins']
             moc_import_lib.delitem(sys.modules,'builtins')
-            # TODO when warning is added run check for warning
-            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            with pytest.warns(lookup.PackageImportDropped):# TODO when warning is added run check for warning
+                py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
             assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
             moc_import_lib.setitem(sys.modules,'builtins',backup_builtins)
 
@@ -1112,7 +1114,8 @@ def test_recover_custom_data(h5_data):
         memo._py_obj_type_link.pop(type_entry.id,None)
         py_obj_type,base_type,is_group = memo.resolve_type(dataset_to_recover)
         assert issubclass(py_obj_type,lookup.AttemptRecoverCustom) and base_type == b'!recover!'
-        recovered = lookup.recover_custom_dataset(dataset_to_recover,base_type,py_obj_type) 
+        with pytest.warns(lookup.DataRecoveredWarning):
+            recovered = lookup.recover_custom_dataset(dataset_to_recover,base_type,py_obj_type) 
         assert recovered.dtype == array_to_recover.dtype and np.all(recovered == array_to_recover)
         assert recovered.attrs == {'base_type':b'myclass','world':2}
         assert not is_group
@@ -1128,8 +1131,9 @@ def test_recover_custom_data(h5_data):
         assert issubclass(py_obj_type,lookup.AttemptRecoverCustom) and base_type == b'!recover!'
         assert is_group
         recover_container = lookup.RecoverGroupContainer(group_to_recover.attrs,base_type,py_obj_type)
-        for name,item in recover_container.filter(group_to_recover):
-            recover_container.append(name,item[()],item.attrs)
+        with pytest.warns(lookup.DataRecoveredWarning):
+            for name,item in recover_container.filter(group_to_recover):
+                recover_container.append(name,item[()],item.attrs)
         recover_container.append('some_other',recovered,recovered.attrs)
         recovered_group = recover_container.convert()
         assert isinstance(recovered_group,dict)

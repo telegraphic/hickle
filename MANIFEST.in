@@ -14,10 +14,11 @@ exclude .nojekyll
 exclude .pylintrc
 exclude paper*
 recursive-exclude * __pycache__
-recursive-exclude * *.py[co] *.bk
+recursive-exclude * *.py[co] *.bk *.swp
 recursive-exclude * old .old
 recursive-exclude * *.tox
 recursive-exclude * *.h5
+recursive-exclude ci *
 exclude *_mv.txt
 exclude *_tox.txt
 recursive-exclude * .bashrcrun
