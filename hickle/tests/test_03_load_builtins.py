@@ -36,7 +36,7 @@ dummy_data = (1,2,3)
 def h5_data(request):
     """
     create dummy hdf5 test data file providing parent group
-    hosting createed datasets and groups. Name of test function
+    hosting created datasets and groups. Name of test function
     is included in filename
     """
     dummy_file = h5.File('load_builtins_{}.hdf5'.format(request.function.__name__),'w')
@@ -60,14 +60,14 @@ def test_scalar_dataset(h5_data,compression_kwargs):
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'float',float) == floatvalue
 
-    # check that intger value less thatn 64 bit is stored as int
+    # check that integer value less than 64 bit is stored as int
     intvalue = 11
     h_dataset,subitems = load_builtins.create_scalar_dataset(intvalue,h5_data,"intvalue",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and h_dataset[()] == intvalue
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == intvalue
 
-    # check that integer larger than 64 bit is stored as ascii byte string
+    # check that integer larger than 64 bit is stored as ASCII byte string
     non_mappable_int = int(2**65)
     h_dataset,subitems = load_builtins.create_scalar_dataset(non_mappable_int,h5_data,"non_mappable_int",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset)
@@ -75,7 +75,7 @@ def test_scalar_dataset(h5_data,compression_kwargs):
     assert not [ item for item in subitems ]
     assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == non_mappable_int
 
-    # check that integer larger than 64 bit is stored as ascii byte string
+    # check that integer larger than 64 bit is stored as ASCII byte string
     non_mappable_neg_int = -int(-2**63-1)
     h_dataset,subitems = load_builtins.create_scalar_dataset(non_mappable_neg_int,h5_data,"non_mappable_neg_int",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset)
@@ -84,7 +84,7 @@ def test_scalar_dataset(h5_data,compression_kwargs):
     assert load_builtins.load_scalar_dataset(h_dataset,b'int',int) == non_mappable_neg_int
 
 def test_load_hickle_4_0_X_string(h5_data):
-    string_data = "just tes me as utf8 string"
+    string_data = "just test me as utf8 string"
     bytes_data = string_data.encode('utf8')
     if h5.version.version_tuple[0] >= 3:
         utf_entry = h5_data.create_dataset('utf_entry',data = string_data)#,dtype = 'U{}'.format(len(string_data)))
@@ -130,7 +130,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     assert h_dataset.attrs["str_type"] in ('str',b'str')
     assert load_builtins.load_list_dataset(h_dataset,b'str',str) == stringdata
 
-    # check that byte string is proprly stored as array of bytes which
+    # check that byte string is properly stored as array of bytes which
     # supports compression
     bytesdata = b'bytes_data'
     h_dataset,subitems = load_builtins.create_listlike_dataset(bytesdata, h5_data, "bytes_data",**compression_kwargs)
@@ -140,7 +140,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     assert load_builtins.load_list_dataset(h_dataset,b'bytes',bytes) == bytesdata
 
     # check that string dataset created by hickle 4.0.x is properly loaded 
-    # utilizing numpy.array method. Mimick dumped data
+    # utilizing numpy.array method. Mimic dumped data
     h_dataset = h5_data.create_dataset("legacy_np_array_bytes_data",data=np.array(stringdata.encode('utf8')))
     h_dataset.attrs['str_type'] = b'str'
     assert load_builtins.load_list_dataset(h_dataset,b'str',str) == stringdata
@@ -186,7 +186,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     assert index_from_string.convert() == not_so_homogenous_list
 
     # check that list groups which do not provide num_items attribute 
-    # are automatically expanded to properly cover the highes index encountered
+    # are automatically expanded to properly cover the highest index encountered
     # for any of the list items.
     no_num_items = {key:value for key,value in h_dataset.attrs.items() if key != "num_items"}
     no_num_items_container = load_builtins.ListLikeContainer(no_num_items,b'list',list)
@@ -201,8 +201,8 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     # check that list the first of which is not a scalar is properly mapped
     # to a group. Also check that ListLikeContainer.append raises exception
     # in case neither item_index is provided nor an index value can be parsed
-    # from the taile of its name. Also check that ListLikeContainer.append
-    # raises exceptoin in case value for item_index already has been loaded
+    # from the tail of its name. Also check that ListLikeContainer.append
+    # raises exception in case value for item_index already has been loaded
     object_list = [ [4, 5 ] ,6, [ 1, 2, 3 ] ]
     h_dataset,subitems = load_builtins.create_listlike_dataset(object_list,h5_data,"object_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
@@ -222,7 +222,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
         loaded_list.append(name,item,item_dataset.attrs)
         with pytest.raises(KeyError,match = r"List\s+like\s+item name\s+'\w+'\s+not\s+understood"):
             index_from_string.append(wrong_item_name.format(index),item,{})
-        # check that previous error is not triggerd when
+        # check that previous error is not triggered when
         # legacy 4.0.x loader injects the special value helpers.nobody_is_my_name which
         # is generated by load_nothing function. this is for example used as load method
         # for legacy 4.0.x np.masked.array objects where the mask is injected in parallel
@@ -236,7 +236,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
             loaded_list.append(name,item,{"item_index":index-1})
     assert index + 1 == len(object_list)
 
-    # assert that list of strings where first string has lenght 1 is properly mapped
+    # assert that list of strings where first string has length 1 is properly mapped
     # to group
     string_list = test_set = ['I','confess','appriciate','hickle','times']
     h_dataset,subitems = load_builtins.create_listlike_dataset(string_list,h5_data,"string_list",**compression_kwargs)
@@ -305,7 +305,7 @@ def test_set_container(h5_data,compression_kwargs):
         set_container.append(name,item,attrs)
     assert set_container.convert() == test_set_3
 
-    # check that empty set is represented by emtpy dataset
+    # check that empty set is represented by empty dataset
     h_setdataset,subitems = load_builtins.create_setlike_dataset(set(),h5_data,"empty_set",**compression_kwargs)
     assert isinstance(h_setdataset,h5.Dataset) and h_setdataset.size == 0
     assert not subitems and iter(subitems)
@@ -363,7 +363,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
     assert last_entry + 1 == len(allkeys_dict) 
     assert load_dict.convert() == allkeys_dict
 
-    # verify that DictLikeContainer.append raises error incase invalid key_base_type
+    # verify that DictLikeContainer.append raises error in case invalid key_base_type
     # is provided
     with pytest.raises(ValueError, match = r"key\s+type\s+'.+'\s+not\s+understood"):
         load_dict.append("invalid_key_type",12,{"key_idx":9,"key_base_type":b"invalid_type"})
@@ -376,7 +376,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
         load_dict.append(str(tuple_key),9,{"item_index":9,"key_base_type":b"tuple"})
 
     # check that helpers.nobody_is_my_name injected for example by load_nothing is silently
-    # ignored in case no key could be retireved from dataset or sub group
+    # ignored in case no key could be retrieved from dataset or sub group
     load_dict.append(
         str(tuple_key), helpers.nobody_is_my_name,
         {"item_index":9,"key_base_type":b"tuple"}

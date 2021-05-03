@@ -19,23 +19,25 @@ from hickle.helpers import PyContainer,no_compression
 # %% FUNCTION DEFINITIONS
 
 def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
-    """ dumps an np dtype object to h5py file
+    """ dumps an numpy.dtype object to h5py file
 
-    Args:
-        py_obj (np.scalar):
-            python object to dump; should be a numpy scalar, e.g.  np.float16(1)
+    Parameters
+    ----------
+    py_obj (numpy.scalar):
+        python object to dump; should be a numpy scalar, e.g.  numpy.float16(1)
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-             the name of the resulting dataset
+    name (str):
+         the name of the resulting dataset
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-        Dataset and empty list of subitems
+    Returns
+    -------
+    tuple containing h5py.Dataset and empty list of subitems
     """
 
     d = h_group.create_dataset(name, data=py_obj, **no_compression(kwargs))
@@ -45,23 +47,25 @@ def create_np_scalar_dataset(py_obj, h_group, name, **kwargs):
 
 
 def create_np_dtype(py_obj, h_group, name, **kwargs):
-    """ dumps an np dtype object to h5py file
+    """ dumps an numpy dtype object to h5py file
 
-    Args:
-        py_obj (np.dtype):
-            python object to dump; should be a numpy dtype, e.g.  np.float16
+    Parameters
+    ----------
+    py_obj (numpy.dtype):
+        python object to dump; should be a numpy dtype, e.g.  numpy.float16
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset
+    name (str):
+        the name of the resulting dataset
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-        Dataset and empty list of subitems
+    Returns
+    -------
+    tuple containing h5py.Dataset and empty list of subitems
     """
     d = h_group.create_dataset(name, data=bytearray(py_obj.str,"ascii"), **kwargs)
     return d,()
@@ -70,21 +74,24 @@ def create_np_dtype(py_obj, h_group, name, **kwargs):
 def create_np_array_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an ndarray object to h5py file
 
-    Args:
-        py_obj (np.ndarray):
-            python object to dump; should be a numpy array or np.ma.array (masked)
+    Parameters
+    ----------
+    py_obj (numpy.ndarray):
+        python object to dump; should be a numpy.ndarray or numpy.ma.array (masked)
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset or group
+    name (str):
+        the name of the resulting dataset or group
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-        Datset and empty list of subitems or Group and iterable of subitems
+    Returns
+    -------
+    tuple containing h5py.Datset and empty list of subitems or h5py.Group
+    and iterable of subitems
     """
 
     # Obtain dtype of py_obj
@@ -123,23 +130,25 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
     return h_node,sub_items
 
 def create_np_masked_array_dataset(py_obj, h_group, name, **kwargs):
-    """ dumps an np.ma.core.MaskedArray object to h5py file
+    """ dumps an numpy.ma.core.MaskedArray object to h5py file
 
-    Args:
-        py_obj (np.ma.array):
-            python object to dump; should be a numpy array or np.ma.array (masked)
+    Parameters
+    ----------
+    py_obj (numpy.ma.array):
+        python object to dump; should be a numpy.ndarray or numpy.ma.array (masked)
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset or group
+    name (str):
+        the name of the resulting dataset or group
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-        Group and subitems list representing masked array:
+    Returns
+    -------
+    tuple containing h5py.Group and subitems list representing masked array contents:
 
     """
 
@@ -154,20 +163,20 @@ def load_np_dtype_dataset(h_node,base_type,py_obj_type):
     """
     restores dtype from dataset
 
-    Args:
-    -----
-        h_node (h5py.Dataset):
-            the hdf5 node to load data from
+    Parameters
+    ----------
+    h_node (h5py.Dataset):
+        the hdf5 node to load data from
 
-        base_type (bytes):
-            bytes string denoting base_type
+    base_type (bytes):
+        bytes string denoting base_type
 
-        py_obj_type (np.dtype):
-            final type of restored dtype
+    py_obj_type (numpy.dtype):
+        final type of restored dtype
 
-    Returns:
-    --------
-        resulting np.dtype
+    Returns
+    -------
+    resulting numpy.dtype
     """
     return np.dtype(bytes(h_node[()]))
 
@@ -175,6 +184,21 @@ def load_np_dtype_dataset(h_node,base_type,py_obj_type):
 def load_np_scalar_dataset(h_node,base_type,py_obj_type):
     """
     restores scalar value from dataset
+
+    Parameters
+    ----------
+    h_node (h5py.Dataset):
+        the hdf5 node to load data from
+
+    base_type (bytes):
+        bytes string denoting base_type
+
+    py_obj_type (numpy.dtype):
+        final type of restored dtype
+
+    Returns
+    -------
+    resulting numpy.scalar
     """
 
     dtype = np.dtype(h_node.attrs["np_dtype"])
@@ -185,26 +209,26 @@ def load_ndarray_dataset(h_node,base_type,py_obj_type):
     """
     restores ndarray like object from dataset
 
-    Args:
-    -----
-        h_node (h5py.Dataset):
-            the hdf5 node to load data from
+    Parameters
+    ----------
+    h_node (h5py.Dataset):
+        the hdf5 node to load data from
 
-        base_type (bytes):
-            bytes string denoting base_type
+    base_type (bytes):
+        bytes string denoting base_type
 
-        py_obj_type (np.ndarray, np.ma.array, ...):
-            final type of restored array
+    py_obj_type (numpy.ndarray, numpy.ma.array, ...):
+        final type of restored array
 
-    Returns:
-    --------
-        resulting np.ndarray, np.ma.array
+    Returns
+    -------
+    resulting numpy.ndarray, numpy.ma.array
     """
     dtype = np.dtype(h_node.attrs['np_dtype'])
     if "str" in dtype.name:
         string_data = h_node[()]
         if h_node.dtype.itemsize <= 1 or 'bytes' not in h_node.dtype.name:
-            # in hickle 4.0.X np.arrays containing multiple strings are 
+            # in hickle 4.0.X numpy.ndarrays containing multiple strings are 
             # not converted to list of string but saved as ar consequently
             # itemsize of dtype is > 1
             string_data = bytes(string_data).decode("utf8")
@@ -219,23 +243,23 @@ def load_ndarray_dataset(h_node,base_type,py_obj_type):
 
 def load_ndarray_masked_dataset(h_node,base_type,py_obj_type):
     """
-    restores masked array forom data and mask datasets as stored by
+    restores masked array from data and mask datasets as stored by
     hickle version 4.0.0
 
-    Args:
-    -----
-        h_node (h5py.Dataset):
-            the hdf5 node to load data from
+    Parameters
+    ----------
+    h_node (h5py.Dataset):
+        the hdf5 node to load data from
 
-        base_type (bytes):
-            bytes string denoting base_type
+    base_type (bytes):
+        bytes string denoting base_type
 
-        py_obj_type (np.ndarray, np.ma.array, ...):
-            final type of restored array
+    py_obj_type (numpy.ndarray, numpy.ma.array, ...):
+        final type of restored array
 
-    Returns:
-    --------
-        resulting np.ndarray, np.ma.array
+    Returns
+    -------
+    resulting numpy.ndarray, numpy.ma.array
     """
     masked_array = NDMaskedArrayContainer(h_node.attrs,base_type,py_obj_type)
     masked_array.append('data',h_node[()],h_node.attrs),
@@ -256,9 +280,9 @@ class NDArrayLikeContainer(ListLikeContainer):
     
     def append(self,name,item,h5_attrs):
 
-        # if group contains only one item which eithr has been
+        # if group contains only one item which either has been
         # dumped using create_pickled_dataset or its name reads
-        # data than assume single non listtype object otherwise
+        # data than assume single non list-type object otherwise
         # pass item on to append method of ListLikeContainer
         if h5_attrs.get("base_type",'') == b'pickle' or name == "data":
             self._content = item
@@ -295,7 +319,7 @@ class_register = [
     [np.dtype, b"np_dtype", create_np_dtype, load_np_dtype_dataset],
     [np.number, b"np_scalar", create_np_scalar_dataset, load_np_scalar_dataset,None,False],
 
-    # for all scalars which are not derived from np.number which itself is np.generic subclass
+    # for all scalars which are not derived from numpy.number which itself is numpy.generic subclass
     # to properly catch and handle they will be caught by the following
     [np.generic, b"np_scalar", create_np_scalar_dataset, load_np_scalar_dataset,None,False],
 
@@ -304,15 +328,14 @@ class_register = [
 
     # NOTE: The following is load only
     #       just needed to link old ndarray_masked_data base_type to load_ndarray_masked_dataset
-    #       loader module selection will be triggered by np.ma.core.MaskedArray object_type anyway
+    #       loader module selection will be triggered by numpy.ma.core.MaskedArray object_type anyway
     #       but base_type is used to select proper load_function
     [np.ma.core.MaskedArray, b"ndarray_masked_data",None , load_ndarray_masked_dataset,None,False,'hickle-4.x'],
 
-    # NOTE: numpy.matrix is obsolete and just an alias for numpy.array therefore 
-    # to keep things simple np.matrix will be handled by same functions as 
-    # numpy.ndarray. As long as just required cause np.ma.core.MaskedArray 
-    # uses it for data and no other use redirect it on load to ndarray which
-    # matrix is for long just an alias for ndarray
+    # NOTE: numpy.matrix is obsolete and just an alias for numpy.ndarray therefore 
+    # to keep things simple numpy.matrix will be handled by same functions as 
+    # numpy.ndarray. As long as just required cause numpy.ma.core.MaskedArray 
+    # uses it for data
     [np.matrix, b"np_matrix", create_np_array_dataset, load_ndarray_dataset]
 ]
 

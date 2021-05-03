@@ -43,7 +43,7 @@ def h5_data(request):
 # %% FUNCTION DEFINITIONS
 def test_create_astropy_quantity(h5_data,compression_kwargs):
     """
-    test proper storage and loading of astorpy quantities
+    test proper storage and loading of astropy quantities
     """
 
     for index,uu in enumerate(['m^3', 'm^3 / s', 'kg/pc']):
@@ -116,7 +116,7 @@ def test_astropy_table(h5_data,compression_kwargs):
 
 def test_astropy_quantity_array(h5_data,compression_kwargs):
     """
-    tet proper storage and loading of array of astropy quantities 
+    test proper storage and loading of array of astropy quantities 
     """
     a = Quantity([1, 2, 3], unit='m')
     h_dataset,subitems = load_astropy.create_astropy_quantity(a,h5_data,"quantity_array",**compression_kwargs)

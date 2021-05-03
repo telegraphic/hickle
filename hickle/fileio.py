@@ -3,7 +3,7 @@
 #fileio.py
 
 contains functions, classes and constants related to file management.
-These functions may also be used by loader modules eventhough currently
+These functions may also be used by loader modules even though currently
 no related use-case is known and storing dicts as independent files as
 requested by @gpetty in issue #133 is better handled on hdf5 or h5py level
 and not on hickle level.
@@ -36,31 +36,31 @@ def not_io_base_like(f,*args):
     IOBase.isreadable, IOBase.isseekable and IOBase.iswriteable
     methods in case f would not provide any of them.
 
-    Parameters:
-    ===========
-        f (file or file like):
-            file or file like object to which hickle shall
-            dump data to.
+    Parameters
+    ----------
+    f (file or file like):
+        file or file like object to which hickle shall
+        dump data to.
 
-        *args (tuple):
-            list of one or more tuples containig the comands to be checked 
-            in replacement tests for IOBase.isreadable, IOBase.isseekable or
-            IOBase.iswriteable and the arguments required to perform the tests
-            
-            Note: **kwargs not supported
+    *args (tuple):
+        list of one or more tuples containing the commands to be checked 
+        in replacement tests for IOBase.isreadable, IOBase.isseekable or
+        IOBase.iswriteable and the arguments required to perform the tests
+        
+        Note: **kwargs not supported
 
-    Returns:
-    ========
+    Returns
+    -------
         function to be called in replacement of any of not implemented
         IOBase.isreadable, IOBase.isseekable or IOBase.isreadable
 
-    Example:
-    ========
+    Example
+    -------
         if not getattr(f, 'isreadable', not_io_base_like(f, 'read', 0))():
             raise ValueError("Not a readable file or file like object")
     """
     def must_test():
-        if not args: # pragma: nocover
+        if not args:
             return False
         for cmd,*call_args in args:
             cmd = getattr(f,cmd,None)
@@ -81,48 +81,61 @@ def file_opener(f, path, mode='r',filename = None):
 
     Parameters
     ----------
-        f (file, file-like, h5py.File, str, (file,str),{'file':file,'name':str} ):
-            File to open for dumping or loading purposes.
-            str:
-                the path of the HDF5-file that must be used.
-            `~h5py.Group`:
-                 the group (or file) in an open HDF5-file that must be used.
-            file, file-lik: 
-                file or like object which provides `read`, `seek`, `tell` and write methods
-            tuple:
-                two element tuple with the first beeing the file or file like object
-                to dump to and the second the filename to be used instead of 'filename'
-                parameter
-            dict:
-                dictionary with 'file' and 'name' items
-    
-        path : str
-            Path within HDF5-file or group to dump to/load from.
-    
-        mode (str): optional
-            string indicating how the file shall be opened. For details see Python `open`.
-            
-            Note: The 'b' flag is optional as all files are a and have to be opened in
-                binary mode.
+    f (file, file-like, h5py.File, str, (file,str),{'file':file,'name':str} ):
+        File to open for dumping or loading purposes.
+        str:
+            the path of the HDF5-file that must be used.
+        `~h5py.Group`:
+             the group (or file) in an open HDF5-file that must be used.
+        file, file-like: 
+            file or like object which provides `read`, `seek`, `tell` and write methods
+        tuple:
+            two element tuple with the first being the file or file like object
+            to dump to and the second the filename to be used instead of 'filename'
+            parameter
+        dict:
+            dictionary with 'file' and 'name' items
+
+    path (str):
+        Path within HDF5-file or group to dump to/load from.
+
+    mode (str): optional
+        string indicating how the file shall be opened. For details see Python `open`.
         
-        filename (str): optional
-            The name of the file. Ignored when f is `str` or `h5py.File` object.
+        Note: The 'b' flag is optional as all files are a and have to be opened in
+            binary mode.
+    
+    filename (str): optional
+        The name of the file. Ignored when f is `str` or `h5py.File` object.
 
-    Raises:
+    Returns
     -------
-        CloseFileError:
-            If passed h5py.File, h5py.Group or h5py.Dataset object is not
-            accessible. This in most cases indicates that unterlying HDF5
-            was closed or if file or file or file-like object has already been 
-            closed.
+    tuple containing (file, path, closeflag)
 
-        FileError
-            If passed file or file-like object is not opened for reading or
-            in addtion for writing in case mode corresponds to any
-            of 'w', 'w+', 'x', 'x+' or a.
+    file (h5py.File):
+        The h5py.File object the data is to be dumped to or loaded from
 
-        ValueError:
-            If anything else than str, bytes or None specified for filename
+    path (str):
+        Absolute path within HDF5-file or group to dump to/load from.
+
+    closeflag:
+        True .... file was opened by file_opener and must be closed by caller.
+        False ... file shall not be closed by caller unless opened by caller
+
+    Raises
+    ------
+    CloseFileError:
+        If passed h5py.File, h5py.Group or h5py.Dataset object is not
+        accessible. This in most cases indicates that underlying HDF5.File,
+        file or file-like object has already been closed.
+
+    FileError
+        If passed file or file-like object is not opened for reading or
+        in addition for writing in case mode corresponds to any
+        of 'w', 'w+', 'x', 'x+' or a.
+
+    ValueError:
+        If anything else than str, bytes or None specified for filename
     """
 
     # Make sure that the given path always starts with '/'
@@ -167,8 +180,8 @@ def file_opener(f, path, mode='r',filename = None):
     if getattr(f,'closed',False):
         raise ClosedFileError(
             "HDF5 file {}has been closed or h5py.Group or h5py.Dataset are not accessible. "
-            "Please pass either a filename string, a pathlib.Paht, a file or file like object, "
-            "an opened h5py.File or h5py.Group or h5py.Dataset there outof.".format(
+            "Please pass either a filename string, a pathlib.Path, a file or file like object, "
+            "an opened h5py.File or h5py.Group or h5py.Dataset there out of.".format(
                 "'{}' ".format(filename) if isinstance(filename,(str,bytes)) and filename else ''
             )
         )
@@ -186,11 +199,11 @@ def file_opener(f, path, mode='r',filename = None):
                 raise FileError(
                     "file '{}' not writable. Please pass either a filename string, "
                     "a pathlib.Path,  a file or file like object, "
-                    "an opened h5py.File or h5py.Group or h5py.Dataset there outof.".format(filename)
+                    "an opened h5py.File or h5py.Group or h5py.Dataset there out of.".format(filename)
                 )
         elif mode[0] != 'r':
             raise ValueError(
-                "invalid file mode must be one outof 'w','w+','x','x+','r','r+','a'. "
+                "invalid file mode must be one out of 'w','w+','x','x+','r','r+','a'. "
                 "at max including a 'b' which will be ignored"
         )
         return h5.File(
@@ -200,13 +213,6 @@ def file_opener(f, path, mode='r',filename = None):
             fileobj = f
         ), path, True
 
-    if ( mode[0] != 'r' or '+' in mode[1:] ) and getattr(f,'mode','') in ('r','rb'):  # pragma: nocover
-        raise FileError( 
-            "file or file like object '{}' not opened for reading and writing ".format(
-                filename
-            )
-        )
-        
     raise FileError(
         "'file_obj' must be a valid path string, pahtlib.Path, h5py.File, h5py.Group, "
         "h5py.Dataset, file  or file like object'"

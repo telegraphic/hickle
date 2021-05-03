@@ -69,7 +69,7 @@ def test_recursive_dump(h5_data,compression_kwargs):
             assert memo.resolve_type(dumped_data) == (data.__class__,b'list',False)
             assert np.all(dumped_data[()] == simple_list)
         
-            # check that dump function properly creats a group representing
+            # check that dump function properly creates a group representing
             # a dictionary and its keys and values and sets appropriate values
             # for 'type', 'base_type' and 'key_base_type' attributes
             data = {
@@ -81,7 +81,7 @@ def test_recursive_dump(h5_data,compression_kwargs):
             assert memo.resolve_type(dumped_data) == (data.__class__,b'dict',True)
         
             # check that the name of the resulting dataset for the first dict item
-            # resembles double quouted string key and 'type', 'base_type 'key_base_type'
+            # resembles double quoted string key and 'type', 'base_type 'key_base_type'
             # attributes the resulting dataset are set accordingly
             first_item = dumped_data['"12"']
             assert first_item[()] == 12 and first_item.attrs['key_base_type'] in (b'str','str')
@@ -110,7 +110,7 @@ def test_recursive_dump(h5_data,compression_kwargs):
             # and value.attrs['base_type'] == b'str'
             assert memo.resolve_type(value) == (str,b'str',False)
         
-            # check that objects for which no loader has been registred or for which
+            # check that objects for which no loader has been registered or for which
             # available loader raises NotHicklable exception are handled by 
             # create_pickled_dataset function 
             def fail_create_dict(py_obj,h_group,name,**kwargs):
@@ -149,7 +149,7 @@ def test_recursive_load(h5_data,compression_kwargs):
             assert py_container.convert() == data
         
             
-            # check that objects for which no loader has been registred or for which
+            # check that objects for which no loader has been registered or for which
             # available loader raises NotHicklable exception are properly restored on load
             # from corresponding copy protocol group or pickled data string 
             def fail_create_dict(py_obj,h_group,name,**kwargs):

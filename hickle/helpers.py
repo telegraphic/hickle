@@ -10,6 +10,7 @@ by all components of hickle including the loader modules
 # Built-in imports
 import collections
 import h5py as h5
+import functools as ft
 
 # Package imports
 
@@ -40,27 +41,27 @@ class PyContainer():
     properly map these structure when converting it into the corresponding
     python object structure.
 
-    Parameters:
-    -----------
-        h5_attrs (h5py.AttributeManager):
-            attributes defined on h5py.Group object represented by this PyContainer
+    Parameters
+    ----------
+    h5_attrs (h5py.AttributeManager):
+        attributes defined on h5py.Group object represented by this PyContainer
 
-        base_type (bytes):
-            the basic type used for representation in the HDF5 file
+    base_type (bytes):
+        the basic type used for representation in the HDF5 file
 
-        object_type:
-            type of Python object to be restored. May be used by PyContainer.convert
-            to convert loaded Python object into final one.
+    object_type:
+        type of Python object to be restored. May be used by PyContainer.convert
+        to convert loaded Python object into final one.
         
-    Attributes:
-    -----------
-        base_type (bytes):
-            the basic type used for representation on the HDF5 file
+    Attributes
+    ----------
+    base_type (bytes):
+        the basic type used for representation on the HDF5 file
 
-        object_type:
-            type of Python object to be restored. Dependent upon container may
-            be used by PyContainer.convert to convert loaded Python object into
-            final one.
+    object_type:
+        type of Python object to be restored. Dependent upon container may
+        be used by PyContainer.convert to convert loaded Python object into
+        final one.
         
     """
 
@@ -70,11 +71,11 @@ class PyContainer():
         """
         Parameters (protected):
         -----------------------
-            _content (default: list):
-                container to be used to collect the Python objects representing
-                the sub items or the state of the final Python object. Shall only
-                be set by derived PyContainer classes and not be set when default
-                list container shall be used.
+        _content (default: list):
+            container to be used to collect the Python objects representing
+            the sub items or the state of the final Python object. Shall only
+            be set by derived PyContainer classes and not be set when default
+            list container shall be used.
 
         """
         # the base type used to select this PyContainer
@@ -91,7 +92,7 @@ class PyContainer():
 
     def filter(self, h_parent):
         """
-        PyContainer type child chasses may overload this generator function
+        PyContainer type child classes may overload this generator function
         to filter and preprocess the content of h_parent h5py.Group content 
         to ensure it can be properly processed by recursive calls to
         hickle._load function.
@@ -108,30 +109,31 @@ class PyContainer():
         """
         adds the passed item to the content of this container.
        
-        Parameters:
-        -----------
-            name (string):
-                the name of the h5py.Dataset or h5py.Group subitem was loaded from
+        Parameters
+        ----------
+        name (string):
+            the name of the h5py.Dataset or h5py.Group sub item was loaded from
 
-            item:
-                the Python object of the subitem
+        item:
+            the Python object of the sub item
 
-            h5_attrs:
-                attributes defined on h5py.Group or h5py.Dataset sub item
-                was loaded from.
+        h5_attrs:
+            attributes defined on h5py.Group or h5py.Dataset sub item
+            was loaded from.
         """
         self._content.append(item)
 
     def convert(self):
         """
         creates the final object and populates it with the items stored in the _content
-        slot. 
+        attribute. 
 
         Note: Must be implemented by the derived PyContainer child classes
 
-        Returns:
-        --------
-            py_obj: The final Python object loaded from file
+        Returns
+        -------
+        py_obj:
+            The final Python object loaded from file
 
         
         """
@@ -140,26 +142,26 @@ class PyContainer():
 
 class H5NodeFilterProxy():
     """
-    Proxy class which allows to temporarily modify h5_node.attrs content.
-    Original attributes of underlying h5_node are left unchanged.
+    Proxy class which allows to temporarily modify the content of h5_node.attrs
+    attribute. Original attributes of underlying h5_node are left unchanged.
     
-    Parameters:
-    -----------
-        h5_node:
-            node for which attributes shall be replaced by a temporary value
+    Parameters
+    ----------
+    h5_node:
+        node for which attributes shall be replaced by a temporary value
     """
 
     __slots__ = ('_h5_node','attrs','__dict__')
 
     def __init__(self,h5_node):
         # the h5py.Group or h5py.Dataset the attributes should temporarily
-        # be modiefied.
+        # be modified.
         self._h5_node = h5_node
         # the temporarily modified attributes structure
         super().__setattr__( 'attrs', collections.ChainMap({}, h5_node.attrs))
 
     def __getattribute__(self, name):
-        # for attrs and wrapped _h5_node return local copy any other request
+        # for attrs and wrapped _h5_node return local copy. Any other request
         # redirect to wrapped _h5_node
         if name in {"attrs", "_h5_node"}:
             return super(H5NodeFilterProxy,self).__getattribute__(name)
@@ -172,7 +174,7 @@ class H5NodeFilterProxy():
         if name in {'_h5_node'}:
             super().__setattr__(name, value)
             return
-        if name in {'attrs'}: # pragma: nocover
+        if name in {'attrs'}: # pragma: no cover
             raise AttributeError('attribute is read-only')
         _h5_node = super().__getattribute__('_h5_node')
         setattr(_h5_node, name, value)    
@@ -186,8 +188,8 @@ class H5NodeFilterProxy():
 
 class no_compression(dict):
     """
-    named dict comprehension which which temporarily removes any compression or
-    data filter related arguments from the passed iterable. 
+    named dict comprehension which temporarily removes any compression or
+    data filter related argument from the passed iterable. 
     """
 
     # list of keyword parameters to filter
@@ -205,34 +207,33 @@ class no_compression(dict):
 
 # %% FUNCTION DEFINITIONS
 
-def not_dumpable( py_obj, h_group, name, **kwargs): # pragma: nocover
+def not_dumpable( py_obj, h_group, name, **kwargs): # pragma: no cover
     """
-    create_dataset method attached to dummy py_objects which are used to
-    mimic container groups by hickle 4.x. 
+    create_dataset method attached to loader of dummy py_object which is used to
+    mimic PyContainer class for  groups in legacy hickle 4.x file. 
         
-    Raises:
-    -------
-        RuntimeError:
-            in any case as this function shall never be called    
+    Raises
+    ------
+    RuntimeError:
+        in any case as this function shall never be called    
     """
 
-    raise RuntimeError("types defined by loaders not dumpable")
+    raise RuntimeError("types defined by loaders not dump able")
 
+def convert_str_attr(attrs,name,*,encoding='utf8'):
+    return attrs[name].decode(encoding)
 
-if h5.version.version_tuple[0] >= 3: # pragma: nocover
+def convert_str_list_attr(attrs,name,*,encoding='utf8'):
+    return [ value.decode(encoding) for value in attrs[name]]
+  
+
+if h5.version.version_tuple[0] >= 3: # pragma: no cover
     load_str_list_attr_ascii = load_str_list_attr = h5.AttributeManager.get
     load_str_attr_ascii = load_str_list_attr = h5.AttributeManager.get
 
-else: # pragma: nocover
-    def load_str_list_attr_ascii(attrs,name):
-        return [ value.decode('ascii') for value in attrs[name]]
-
-    def load_str_list_attr(attrs,name):
-        return [ value.decode('utf8') for value in attrs[name]]
-
-    def load_str_attr_ascii(attrs,name):
-        return attrs[name].decode('ascii')
-
-    def load_str_attr(attrs,name):
-        return attrs[name].decode('utf8')
+else: # pragma: no cover
+    load_str_list_attr_ascii = ft.partial(convert_str_list_attr,encoding='ascii')
+    load_str_list_attr = convert_str_list_attr
+    load_str_attr_ascii = ft.partial(convert_str_attr,encoding='ascii')
+    load_str_attr = convert_str_attr
 

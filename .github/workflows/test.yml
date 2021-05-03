@@ -1,0 +1,59 @@
+name: Python package
+
+on: [push, pull_request_target] #pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.os}} ${{ matrix.architecture }}, Python ${{ matrix.python_version }}
+    #if: github.repository == "telegraphic/hickle"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        architecture: [x86, x64]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.6, 3.7, 3.8] #, 3.9] still disabled as astropy has problems
+        exclude:
+          - os: ubuntu-latest
+            architecture: x86
+          - os: macos-latest
+            architecture: x86
+          # disabled for now as python 3.9 not yet in matrix
+          #- python-version: [3.9] # exclude python >= 3.9 cause no h5py win32 wheels
+          #  - os: windows-latest
+          #    architecture: x86
+      fail-fast: false
+
+    steps:
+     - uses: actions/checkout@v2
+     - name: Set up Python ${{ matrix.python-version }} ${{ matrix.architecture }}
+       uses: actions/setup-python@v2
+       with:
+         python-version: ${{ matrix.python-version }}
+         architecture: ${{ matrix.architecture }}
+     - name: Install dependencies
+       run: |
+         python -m pip install --upgrade pip setuptools wheel virtualenv
+         pip install -r requirements_test.txt
+         pip install tox tox-gh-actions
+     - name: Test deployment
+       run: |
+         check-manifest
+         python setup.py sdist bdist_wheel
+         twine check dist/*
+     - name: Test package
+       run: |
+         tox
+       env:
+         TOX_H5PY_REQIREMENTS: ${{ matrix.architecture == 'x86' && '32' || ''}}
+         PLATFORM: ${{ matrix.platform }}
+     - name: Upload coverage
+       run: |
+         curl -s https://codecov.io/bash | bash
+     - name: Deploy package
+       if: ${{ success() && matrix.os == 'ubuntu-latest' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+       env:
+         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+       run: |
+         twine upload --skip-existing dist/*
+

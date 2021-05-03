@@ -18,6 +18,7 @@ recursive-exclude * *.py[co] *.bk *.swp
 recursive-exclude * old .old
 recursive-exclude * *.tox
 recursive-exclude * *.h5
+recursive-exclude * *.bak
 recursive-exclude ci *
 exclude *_mv.txt
 exclude *_tox.txt

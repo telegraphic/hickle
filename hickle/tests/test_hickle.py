@@ -64,7 +64,7 @@ def test_file_name(request):
 
 # Define a test function that must be serialized and unpacked again
 def func(a, b, c=0):
-    """ just somethin to do """
+    """ just something to do """
     return(a, b, c)
 
 # the following is required as package name of with_state is hickle
@@ -88,7 +88,7 @@ def make_visible_to_dumps(obj,protocol=None,*,fix_imports=True):
 
 def hide_from_hickle(bytes_obj,*,fix_imports=True,encoding="ASCII",errors="strict"):
     """
-    simulat loader function defined outside hickle package
+    simulate loader function defined outside hickle package
     """
     obj = pickle_loads(bytes_obj,fix_imports = fix_imports, encoding = encoding, errors = errors)
     if obj in types_to_hide:
@@ -100,7 +100,7 @@ def hide_from_hickle(bytes_obj,*,fix_imports=True,encoding="ASCII",errors="stric
 # Define a class that must always be pickled
 class with_state(object):
     """
-    A class that allways must be handled by create_pickled_dataset
+    A class that always must be handled by create_pickled_dataset
     """
     def __init__(self):
         self.a = 12

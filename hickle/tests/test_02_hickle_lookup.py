@@ -13,8 +13,11 @@ import sys
 import shutil
 import types
 import weakref
+import compileall
+import os
 
 # Package imports
+import re
 import collections
 import numpy as np
 import h5py
@@ -64,7 +67,7 @@ def loader_table():
     1: PyContainer only loader
     2: not dumped loader
     3: external loader module trying to overwrite hickle core loader
-    4: hickle loader moudle trying to overload hickle core loader
+    4: hickle loader module trying to overload hickle core loader
     3: loader defined by hickle core
     
     """
@@ -123,7 +126,7 @@ def loader_table():
 
     # cleanup and reload hickle.lookup module to reset it to its initial state
     # in case hickle.hickle has already been preloaded by pytest also reload it
-    # to ensure no sideffectes occur during later tests
+    # to ensure no side effects occur during later tests
     lookup.LoaderManager.__loaded_loaders__.clear()
     tuple( True for opt in lookup.LoaderManager.__py_types__.values() if opt.clear() )
     tuple( True for opt in lookup.LoaderManager.__hkl_functions__.values() if opt.clear() )
@@ -234,11 +237,11 @@ class ClassToDumpCompactDataset(ClassToDump):
 
 class SimpleClass():
     """
-    simple classe used to check that instance __dict__ is properly dumped and
+    simple class used to check that instance __dict__ is properly dumped and
     restored by create_pickled_dataset and PickledContainer
     """
     def __init__(self):
-        self.someattr = "im some attr"
+        self.someattr = "I'm some attr"
         self.someother = 12
 
     def __eq__(self,other):
@@ -263,7 +266,7 @@ class NoExtendList(list):
 
 def function_to_dump(hallo,welt,with_default=1):
     """
-    non class function to be dumpled and restored through
+    non class function to be dumped and restored through
     create_pickled_dataset and load_pickled_data
     """
     return hallo,welt,with_default
@@ -299,7 +302,7 @@ def test_LoaderManager_register_class(loader_table):
         lookup.LoaderManager.__hkl_container__[None][loader_spec[1]] is None
 
     # try to register PyContainer only loader specified by loader_table
-    # and retrive its contents from types_dict and hkl_contianer_dict
+    # and retrieve its contents from types_dict and hkl_container_dict
     loader_spec = loader_table[1]
     lookup.LoaderManager.register_class(*loader_spec)
     assert lookup.LoaderManager.__py_types__[None][loader_spec[0]] == (*loader_spec[2:0:-1],loader_spec[5])
@@ -309,7 +312,7 @@ def test_LoaderManager_register_class(loader_table):
 
 
     # try to register container without dump_function specified by
-    # loader table and try to retrive load_function and PyContainer from
+    # loader table and try to retrieve load_function and PyContainer from
     # hkl_types_dict and hkl_container_dict
     loader_spec = loader_table[2]
     lookup.LoaderManager.register_class(*loader_spec)
@@ -343,7 +346,7 @@ def test_LoaderManager_register_class(loader_table):
 
 def test_LoaderManager_register_class_exclude(loader_table):
     """
-    test registr class exclude function
+    test register class exclude function
     """
 
     # try to disable loading of loader preset by hickle core
@@ -362,7 +365,7 @@ def test_LoaderManager_register_class_exclude(loader_table):
 
 def patch_importlib_util_find_spec(name,package=None):
     """
-    function used to temporarily redirect search for laoders
+    function used to temporarily redirect search for loaders
     to hickle_loader directory in test directory for testing
     loading of new loaders
     """
@@ -370,7 +373,7 @@ def patch_importlib_util_find_spec(name,package=None):
 
 def patch_importlib_util_find_spec_no_load_builtins(name,package=None):
     """
-    function used to temporarily redirect search for laoders
+    function used to temporarily redirect search for loaders
     to hickle_loader directory in test directory for testing
     loading of new loaders
     """
@@ -380,7 +383,7 @@ def patch_importlib_util_find_spec_no_load_builtins(name,package=None):
 
 def patch_importlib_util_spec_from_tests_loader(name, loader, *, origin=None, is_package=None):
     """
-    function used to temporarily redirect search for laoders
+    function used to temporarily redirect search for loaders
     to hickle_loader directory in test directory for testing
     loading of new loaders
     """
@@ -392,7 +395,7 @@ def patch_importlib_util_spec_from_tests_loader(name, loader, *, origin=None, is
 
 def patch_importlib_util_spec_from_loader(name, loader, *, origin=None, is_package=None):
     """
-    function used to temporarily redirect search for laoders
+    function used to temporarily redirect search for loaders
     to hickle_loader directory in test directory for testing
     loading of new loaders
     """
@@ -400,7 +403,7 @@ def patch_importlib_util_spec_from_loader(name, loader, *, origin=None, is_packa
 
 def patch_importlib_util_spec_from_file_location(name, location, *, loader=None, submodule_search_locations=None):
     """
-    function used to temporarily redirect search for laoders
+    function used to temporarily redirect search for loaders
     to hickle_loader directory in test directory for testing
     loading of new loaders
     """
@@ -427,6 +430,10 @@ def patch_importlib_util_no_spec_from_file_location(name, location, *, loader=No
     could be found for object
     """
     return None
+def patch_hide_collections_loader(name,package=None):
+    if name in ('hickle.loaders.load_collections'):
+        return None
+    return find_spec(name,package)
 
 def test_LoaderManager(loader_table,h5_data):
     """
@@ -451,7 +458,7 @@ def test_LoaderManager(loader_table,h5_data):
     assert manager._mro is lookup.type_legacy_mro
     assert manager._file.id == h5_data.file.id
 
-    ###### ammend #####
+    ###### amend #####
     manager = lookup.LoaderManager(h5_data,False,{'custom':True})
     assert manager.types_dict.maps[0] is lookup.LoaderManager.__py_types__['custom']
     assert manager.types_dict.maps[1] is lookup.LoaderManager.__py_types__[None]
@@ -567,7 +574,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             moc_import_lib.setattr("importlib.util.spec_from_loader",patch_importlib_util_spec_from_loader)
             moc_import_lib.setattr("hickle.lookup.spec_from_loader",patch_importlib_util_spec_from_loader)
     
-            # try to find appropriate loader for dict object, a moc of this
+            # try to find appropriate loader for dict object, a mock of this
             # loader should be provided by hickle/tests/hickle_loaders/load_builtins
             # module ensure that this module is the one found by load_loader function
             import hickle.tests.hickle_loaders.load_builtins as load_builtins
@@ -577,6 +584,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
             assert py_obj_type is dict and nopickleloader == (load_builtins.create_package_test,b'dict',True)
 
+            # simulate loading of package or local loader from hickle_loaders directory
             backup_load_builtins = sys.modules.pop('hickle.loaders.load_builtins',None)
             backup_py_obj_type = loader.types_dict.pop(dict,None)
             backup_loaded_loaders = lookup.LoaderManager.__loaded_loaders__.discard('hickle.loaders.load_builtins')
@@ -585,12 +593,37 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
             assert py_obj_type is dict 
             assert nopickleloader == (sys.modules['hickle.loaders.load_builtins'].create_package_test,b'dict',True)
+            ## back to start test successful fallback to legacy .pyc in case no source is available for package
+            sys.modules.pop('hickle.loaders.load_builtins','None')
+            loader.types_dict.pop(dict,None)
+            lookup.LoaderManager.__loaded_loaders__.discard('hickle.loaders.load_builtins')
+            pyc_path = load_builtins.__file__ + 'c'
+            if not os.path.isfile(pyc_path):
+                compileall.compile_file(load_builtins.__file__,legacy=True)
+                assert os.path.isfile(pyc_path)
+            base_dir,base_name = os.path.split(load_builtins.__file__)
+            hidden_source = os.path.join(base_dir,'.{}h'.format(base_name))
+            os.rename(load_builtins.__file__,hidden_source)
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict 
+            assert nopickleloader == (sys.modules['hickle.loaders.load_builtins'].create_package_test,b'dict',True)
+            #once again just checking that if no legacy .pyc next base is tried
+            sys.modules.pop('hickle.loaders.load_builtins','None')
+            loader.types_dict.pop(dict,None)
+            lookup.LoaderManager.__loaded_loaders__.discard('hickle.loaders.load_builtins')
+            os.remove(pyc_path)
+            py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
+            assert py_obj_type is dict
+            assert nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            os.rename(hidden_source,load_builtins.__file__)
             moc_import_lib.setattr("importlib.util.spec_from_loader",patch_importlib_util_spec_from_loader)
             moc_import_lib.setattr("hickle.lookup.spec_from_loader",patch_importlib_util_spec_from_loader)
             moc_import_lib.setattr("importlib.util.find_spec",patch_importlib_util_find_spec)
             moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_spec)
             sys.modules['hickle.loaders.load_builtins'] = backup_load_builtins
             loader.types_dict[dict] = backup_py_obj_type
+            # not added by missing legacy .pyc test readd manually here
+            lookup.LoaderManager.__loaded_loaders__.add('hickle.loaders.load_builtins')
             lookup._custom_loader_enabled_builtins.pop(py_obj_type.__class__.__module__,None)
     
             # preload dataset only loader and check that it can be resolved directly
@@ -598,7 +631,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             lookup.LoaderManager.register_class(*loader_spec)
             assert loader.load_loader((12).__class__) == (loader_spec[0],(*loader_spec[2:0:-1],loader_spec[5]))
     
-            # try to find appropriate loader for dict object, a moc of this
+            # try to find appropriate loader for dict object, a mock of this
             # should have already been imported above 
             assert loader.load_loader(py_object.__class__) == (dict,(load_builtins.create_package_test,b'dict',True))
     
@@ -609,17 +642,17 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
             assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
             
-            # check that load_loader prevenst redefinition of loaders to be predefined by hickle core
+            # check that load_loader prevents redefinition of loaders to be predefined by hickle core
             with pytest.raises(
                 RuntimeError,
                 match = r"objects\s+defined\s+by\s+hickle\s+core\s+must\s+be"
-                        r"\s+registerd\s+before\s+first\s+dump\s+or\s+load"
+                        r"\s+registered\s+before\s+first\s+dump\s+or\s+load"
             ):
                 py_obj_type,nopickleloader = loader.load_loader(ToBeInLoadersOrNotToBe)
-            monkeypatch.setattr(ToBeInLoadersOrNotToBe,'__module__','hickle.loaders')
+            moc_import_lib.setattr(ToBeInLoadersOrNotToBe,'__module__','hickle.loaders')
     
             # check that load_loaders issues drop warning upon loader definitions for
-            # dummy objects defined within hickle package but outsied loaders modules
+            # dummy objects defined within hickle package but outside loaders modules
             with pytest.warns(
                 RuntimeWarning,
                 match = r"ignoring\s+'.+'\s+dummy\s+type\s+not\s+defined\s+by\s+loader\s+module"
@@ -628,9 +661,9 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
                 assert py_obj_type is ToBeInLoadersOrNotToBe
                 assert nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
     
-            # check that loader definitions for dummy objets defined by loaders work as expected
+            # check that loader definitions for dummy objects defined by loaders work as expected
             # by loader module 
-            monkeypatch.setattr(ToBeInLoadersOrNotToBe,'__module__',loader_name)
+            moc_import_lib.setattr(ToBeInLoadersOrNotToBe,'__module__',loader_name)
             py_obj_type,(create_dataset,base_type,memoise) = loader.load_loader(ToBeInLoadersOrNotToBe)
             assert py_obj_type is ToBeInLoadersOrNotToBe and base_type == b'NotHicklable'
             assert create_dataset is not_dumpable
@@ -647,6 +680,25 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             assert py_obj_type is dict and create_dataset is loader_spec[2]
             assert base_type is loader_spec[1]
             assert memoise == True
+            # check that package path is properly resolved if package module
+            # for which to find loader for is not found on sys. modules or 
+            # its __spec__ attribute is set to None typically on __main__ or
+            # builtins and other c modules
+            lookup.LoaderManager.__loaded_loaders__.remove(loader_name)
+            backup_module = ClassToDump.__module__
+            moc_import_lib.setattr(ClassToDump,'__module__',re.sub(r'^\s*hickle\.','',ClassToDump.__module__))
+            py_obj_type,(create_dataset,base_type,memoise) = loader.load_loader(ClassToDump)
+            assert py_obj_type is ClassToDump
+            assert create_dataset is lookup.create_pickled_dataset
+            assert base_type == b'pickle' and memoise == True
+            ClassToDump.__module__ = backup_module
+            moc_import_lib.setattr("hickle.lookup.find_spec",patch_hide_collections_loader)
+            py_obj_type,(create_dataset,base_type,memoise) = loader.load_loader(collections.OrderedDict)
+            moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_spec)
+            assert py_obj_type is collections.OrderedDict
+            assert create_dataset is sys.modules[loader_name].create_package_test
+            assert base_type == b'dict' and memoise == True
+            
 
 def test_type_legacy_mro():
     """
@@ -690,7 +742,7 @@ def test_create_pickled_dataset(h5_data,compression_kwargs):
     
 def test__DictItemContainer():
     """
-    tests _DictItemContainer class which represent dict_item goup 
+    tests _DictItemContainer class which represent dict_item group 
     used by version 4.0.0 files to represent values of dictionary key
     """
     container = lookup._DictItemContainer({},b'dict_item',lookup._DictItem)
@@ -703,11 +755,11 @@ def test__DictItemContainer():
 def test__moc_numpy_array_object_lambda():
     """
     test the _moc_numpy_array_object_lambda function
-    which mimicks the effect of lambda function created
+    which mimics the effect of lambda function created
     py pickle when expanding pickle `'type'` string set
     for numpy arrays containing a single object not expandable
     into a list. Mocking is necessary from Python 3.8.X on
-    as it seems in Python 3.8 and onwards trying to pickle
+    as it seems in Python 3.8 and onward trying to pickle
     a lambda now causes a TypeError whilst it seems to be silently
     accepted in Python < 3.8
     """
@@ -717,7 +769,7 @@ def test__moc_numpy_array_object_lambda():
 #@pytest.mark.no_compression
 def test_fix_lambda_obj_type():
     """
-    test _moc_numpy_array_object_lambda function it self. When invokded
+    test _moc_numpy_array_object_lambda function it self. When invoked
     it should return the first element of the passed list
     """
     assert lookup.fix_lambda_obj_type(None) is object
@@ -731,7 +783,7 @@ def test_ReferenceManager_get_root(h5_data):
     tests the static ReferenceManager._get_root method
     """
 
-    # create an artivicial 'hickle_types_table' with some entries
+    # create an artificial 'hickle_types_table' with some entries
     # and link their h5py.Reference objects to the 'type' attributes 
     # of some data such that ReferenceManager._get_root can resolve
     # h5_data root_group independent which node it was passed
@@ -748,7 +800,7 @@ def test_ReferenceManager_get_root(h5_data):
     int_base_type = type_table.create_dataset(int_base_type,shape=None,dtype="S1")
     int_entry.attrs['base_type'] = int_base_type.ref
     content.attrs['type'] = int_entry.ref
-    # try to reslove root_group from various kinds of nodes including 
+    # try to resolve root_group from various kinds of nodes including 
     # root_group it self.
     assert lookup.ReferenceManager.get_root(content).id == root_group.id
     assert lookup.ReferenceManager.get_root(root_group).id == root_group.id
@@ -990,7 +1042,7 @@ def test_ReferenceManager_resolve_type(h5_data):
     """
     invalid_pickle_and_ref = h5_data.create_group('invalid_pickle_and_ref')
     pickled_data = h5_data.create_dataset('pickled_data',data = bytearray())
-    shared_ref = h5_data.create_dataset('shared_ref',data = pickled_data.ref,dtype = lookup.link_dtype)
+    shared_ref = h5_data.create_dataset('shared_ref',data = pickled_data.ref,dtype = h5py.ref_dtype)
     old_style_typed = h5_data.create_dataset('old_style_typed',data = 12)
     old_style_typed.attrs['type'] = np.array(pickle.dumps(int))
     old_style_typed.attrs['base_type'] = b'int'
@@ -1019,7 +1071,7 @@ def test_ReferenceManager_resolve_type(h5_data):
         # dataset h5py 3 returns an anonymous group when resolving a stale 
         # reference to it if any body still holds a strong reference to its
         # h5py.Dataset or h5py.Group object. Therefore drop all references to
-        # the removed entries to simulate that sombody has removed them from
+        # the removed entries to simulate that somebody has removed them from
         # a hickle file before it was passed to hickle.load for restoring its
         # content.
         memo._py_obj_type_link.pop(memo._py_obj_type_table[str(entry_id)].id,None)
@@ -1077,12 +1129,12 @@ def test_ReferenceManager_resolve_type(h5_data):
     
 def test_ExpandReferenceContainer(h5_data):
     """
-    test ExpandReferenceContainer which resolves object link stored as h5py.Refernce
+    test ExpandReferenceContainer which resolves object link stored as h5py.Reference
     type dataset
     """
     expected_data = np.random.randint(-13,13,12)
     referred_data = h5_data.create_dataset('referred_data',data = expected_data)
-    referring_node = h5_data.create_dataset('referring_node',data = referred_data.ref,dtype = lookup.link_dtype)
+    referring_node = h5_data.create_dataset('referring_node',data = referred_data.ref,dtype = h5py.ref_dtype)
     h5_data.file.flush()
     sub_container = lookup.ExpandReferenceContainer(referring_node.attrs,b'!node-reference!',lookup.NodeReference)
     content = None
@@ -1091,7 +1143,7 @@ def test_ExpandReferenceContainer(h5_data):
         content = np.array(subitem[()])
         sub_container.append(name,content,subitem.attrs)
     assert np.all(sub_container.convert()==expected_data)
-    referring_node = h5_data.create_dataset('stale_reference',shape=(),dtype=lookup.link_dtype)
+    referring_node = h5_data.create_dataset('stale_reference',shape=(),dtype=h5py.ref_dtype)
     sub_container = lookup.ExpandReferenceContainer(referring_node.attrs,b'!node-reference!',lookup.NodeReference)
     with pytest.raises(lookup.ReferenceError):
         for name,subitem in sub_container.filter(referring_node):
@@ -1145,126 +1197,6 @@ def test_recover_custom_data(h5_data):
         assert recovered_group.attrs['so'] == 'long' and recovered_group.attrs['and'] == 'thanks'
         globals()['ClassToDump'] = backup_class_to_dump 
 
-# =======
-# def test_create_compact_dataset(h5_data,compression_kwargs):
-#     """
-#     test create_compact_dataset, load_compact_dataset function and 
-#     CompactContainer object
-#     """
-#     py_obj = ClassToDump('hello','i lore love ipsum in my lore made by ipsum',42)
-#     py_obj_compact = ClassToDumpCompact('hello','i lore love ipsum in my lore made by ipsum',42)
-#     py_obj_compact_set = ClassToDumpCompactDataset('hello','i lore love ipsum in my lore made by ipsum',42)
-#     py_obj_compact_off = ClassToDumpCompactOff('hello','i lore love ipsum in my lore made by ipsum',42)
-#     
-#     data_set_name = ("some_object","some_object_compact","some_object_dataset","some_object_compact_off")
-#     with pytest.warns(lookup.SerializedWarning,match = r".*type\s+not\s+understood,\s+data\s+is\s+serialized:.*") as warner:
-#         h5_node,subitems = lookup.create_compact_dataset(py_obj,h5_data,data_set_name[0],**compression_kwargs)
-#         assert isinstance(h5_node,h5py.Dataset) and not subitems and iter(subitems)
-#         assert bytes(h5_node[()]) == pickle.dumps(py_obj) and h5_node.name.rsplit('/',1)[-1] == data_set_name[0]
-#         assert lookup.load_pickled_data(h5_node,b'pickle',object) == py_obj
-#         h5_node_off,subitems = lookup.create_compact_dataset(py_obj_compact_off,h5_data,data_set_name[3],**compression_kwargs)
-#         assert isinstance(h5_node_off,h5py.Dataset) and not subitems and iter(subitems)
-#         assert bytes(h5_node_off[()]) == pickle.dumps(py_obj_compact_off) and h5_node_off.name.rsplit('/',1)[-1] == data_set_name[3]
-#         assert lookup.load_pickled_data(h5_node_off,b'pickle',object) == py_obj_compact_off
-# 
-#     # mock loader required to store and later load data as none of the known
-#     # loader modules has successfully passed its unit test and thus none of the
-#     # can be considered reliable yet.
-#     compacted_set_data = py_obj_compact_set.__compact__()
-#     assert isinstance(compacted_set_data,str) and "ClassToDumpCompactDataset compacted type changed"# ensure tests is consistent
-#     def dump_compacted_set(py_obj,h_group,name,**kwargs):
-#         stored_data = np.array(bytearray(py_obj,'utf8'),copy=False)
-#         stored_data.dtype = 'S1'
-#         return h_group.create_dataset(name,data = stored_data,**kwargs),()
-# 
-#     def load_compacted_set(h_node,base_type,py_obj_type):
-#         return bytes(h_node[()]).decode('utf8')
-#     # TODO make backups of str, list and tuple and restore at end of test
-#     backup__py_types__None = { key:entry for key,entry in lookup.LoaderManager.__py_types__[None].items() }
-#     backup__hkl_functions__None = { key:entry for key,entry in lookup.LoaderManager.__hkl_functions__[None].items() }
-#     backup__hkl_container__None = { key:entry for key,entry in lookup.LoaderManager.__hkl_container__[None].items() }
-#     lookup.LoaderManager.__py_types__[None][str] = ( dump_compacted_set,b'str',True)
-#     lookup.LoaderManager.__hkl_functions__[None][b'str'] = load_compacted_set
-#     compacted_data = py_obj_compact.__compact__()
-#     assert isinstance(compacted_data,(list,tuple))
-#     def dump_compacted_data(py_obj,h_group,name,**kwargs):
-#         return h_group.create_group(name),(('ignoreme',None,{},{}),)
-#     class MockListContainer(PyContainer):
-#         def convert(self):
-#             return compacted_data
-#     lookup.LoaderManager.__py_types__[None][tuple] = ( dump_compacted_data,b'tuple',True)
-#     lookup.LoaderManager.__py_types__[None][list] = ( dump_compacted_data,b'list',True)
-#     lookup.LoaderManager.__hkl_container__[None][b'tuple'] = MockListContainer
-#     lookup.LoaderManager.__hkl_container__[None][b'list'] = MockListContainer
-#     
-#     with lookup.ReferenceManager.create_manager(h5_data) as memo:
-#         with lookup.LoaderManager.create_manager(h5_data) as loader:
-#             h5_node_compact_set,subitems = lookup.create_compact_dataset(py_obj_compact_set,h5_data,data_set_name[2],**compression_kwargs)
-#             memo.store_type(h5_node_compact_set,ClassToDumpCompactDataset,b'!compact',**compression_kwargs)
-#             assert isinstance(h5_node_compact_set,h5py.Dataset) and not subitems and iter(subitems)
-#             assert h5_node_compact_set.name.rsplit('/',1)[-1] == data_set_name[2]
-#             assert lookup.load_compact_dataset(h5_node_compact_set,b'!compact!',ClassToDumpCompactDataset) == py_obj_compact_set
-#             h5_node_compact,subitems = lookup.create_compact_dataset(py_obj_compact,h5_data,data_set_name[1],**compression_kwargs)
-#             memo.store_type(h5_node_compact,ClassToDumpCompact,b'!compact',**compression_kwargs)
-#             assert isinstance(h5_node_compact,h5py.Group) and subitems and iter(subitems)
-#             assert h5_node_compact.name.rsplit('/',1)[-1] == data_set_name[1]
-#             expand_container = lookup.CompactContainer(h5_node_compact.attrs,b'!compact!',ClassToDumpCompact)
-#             with pytest.raises(RuntimeError):
-#                 expand_container.append('may_not',None,{})
-#             failed_subexpand = expand_container.convert()
-#             assert isinstance(failed_subexpand,ClassToDumpCompact) and getattr(failed_subexpand,'_data',failed_subexpand) is failed_subexpand
-#             for sub_name,sub_item in expand_container.filter(h5_node_compact): pass
-#             assert expand_container._compact_container is not None
-#             assert expand_container.append == expand_container._compact_container.append
-#             for h_subname,py_subobj,h_subattrs,sub_kwargs in subitems:
-#                 expand_container.append(h_subname,py_subobj,h_subattrs)
-#             assert expand_container.convert() == py_obj_compact
-#     lookup.LoaderManager.__py_types__[None].pop(str,None)
-#     lookup.LoaderManager.__py_types__[None].pop(list,None)
-#     lookup.LoaderManager.__py_types__[None].pop(tuple,None)
-#     lookup.LoaderManager.__hkl_functions__[None].pop(b'str',None)
-#     lookup.LoaderManager.__hkl_functions__[None].pop(b'list',None)
-#     lookup.LoaderManager.__hkl_functions__[None].pop(b'tuple',None)
-#     lookup.LoaderManager.__hkl_container__[None].pop(b'str',None)
-#     lookup.LoaderManager.__hkl_container__[None].pop(b'list',None)
-#     lookup.LoaderManager.__hkl_container__[None].pop(b'tuple',None)
-#     lookup.LoaderManager.__py_types__[None].update(backup__py_types__None)
-#     lookup.LoaderManager.__hkl_functions__[None].update(backup__hkl_functions__None)
-#     lookup.LoaderManager.__hkl_container__[None].update(backup__hkl_container__None)
-#         
-# 
-# @pytest.mark.no_compression
-# def test_register_compact_expand():
-#     """
-#     test register_compact_expand function
-#     """
-#     with pytest.raises(TypeError):
-#         lookup.register_compact_expand(ClassToDump('welt','hallo',42))
-#     with pytest.raises(TypeError):
-#         lookup.register_compact_expand(ClassToDump)
-#     to_enable_disable = (
-#         ClassToDump,
-#         ClassToDumpCompact,
-#         ClassToDumpCompact,
-#         ClassToDumpCompactDataset,
-#         ClassToDumpCompactOff,
-#         ClassToDumpCompactStrange,
-#         ClassToDumpCompactStrange2
-#     )
-#     module_backups = { cls:cls.__module__ for cls in to_enable_disable }
-#     for cls in to_enable_disable:
-#         cls.__module__ = cls.__module__.split('.',1)[-1]
-#     lookup.register_compact_expand(*to_enable_disable[1:-2])
-#     with pytest.raises(TypeError):
-#         lookup.register_compact_expand(to_enable_disable[-2])
-#     with pytest.raises(TypeError):
-#         lookup.register_compact_expand(to_enable_disable[-1])
-#     for cls,module in module_backups.items():
-#         cls.__module__ = module
-#         
-#     
-# >>>>>>> 76fb657... stale refdataset fix on h5py3 and fix of spourious race
-# %% MAIN SCRIPT
 if __name__ == "__main__":
     from _pytest.monkeypatch import monkeypatch
     from _pytest.fixtures import FixtureRequest

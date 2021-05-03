@@ -8,6 +8,7 @@ import os.path
 import importlib
 import collections
 import ctypes
+import re
 
 # list of function names which shall not be
 # traced when compression keyword hardening
@@ -143,6 +144,8 @@ _trace_function_arg_names = {'dump_function'}
 # keywords is activated for
 _traced_session = None
 
+_loader_file_pattern = re.compile(r'^load_\w+\.py$')
+
 def pytest_sessionstart(session):
     """
     pytest hook called at start of session.
@@ -201,7 +204,7 @@ def pytest_sessionstart(session):
     # extract all dump functions from any known loader module
     hickle_loaders_path = os.path.join(os.path.dirname(lookup_module.__file__),'loaders')
     for loader in os.scandir(hickle_loaders_path):
-        if not loader.is_file() or not loader.name.startswith('load_'):
+        if not loader.is_file() or _loader_file_pattern.match(loader.name) is None:
             continue
         loader_module_name = "hickle.loaders.{}".format(loader.name.rsplit('.',1)[0])
         loader_module = sys.modules.get(loader_module_name,None)

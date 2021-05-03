@@ -34,7 +34,7 @@ dict_key_types_dict = {
     b'int': int,
     b'complex': complex,
     b'NoneType': eval,
-    # str type keys requred for h5py >= 3.x
+    # str type keys required for h5py >= 3.x
     'float': float,
     'bool': bool,
     'int': int,
@@ -47,27 +47,27 @@ dict_key_types_dict = {
 def create_scalar_dataset(py_obj, h_group, name, **kwargs):
     """ dumps a python dtype object to h5py file
 
-    Args:
-    -----
-        py_obj (object):
-            python object to dump; should be a scalar (int, float, bool, str, etc)
+    Parameters
+    ----------
+    py_obj (object):
+        python object to dump; should be a scalar (int, float, bool, str, etc)
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset
+    name (str):
+        the name of the resulting dataset
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-    --------
-        correspoinding h5py.Dataset and empty subitems list
+    Returns
+    -------
+    tuple containing corresponding h5py.Dataset and empty subitems list
     """
 
     # If py_obj is an integer and cannot be stored in 64-bits, convert to str
-    # the sign is not counted by bit_length thus any integert which has more than
+    # the sign is not counted by bit_length thus any integer which has more than
     # 63 bits has to be converted into string
     if isinstance(py_obj, int) and (py_obj.bit_length() > 63):# and ( py_obj < -2**63 or py_obj >= 2**63 ) :
         return h_group.create_dataset(name,data = bytearray(str(py_obj), 'ascii'),**kwargs),()
@@ -78,23 +78,23 @@ def create_scalar_dataset(py_obj, h_group, name, **kwargs):
 def create_none_dataset(py_obj, h_group, name, **kwargs):
     """ Dump None type to file
 
-    Args:
-    -----
-        py_obj (NoneType):
-            python object to dump; must be None object
+    Parameters
+    ----------
+    py_obj (NoneType):
+        python object to dump; must be None object
 
-        h_group (h5.File.Group):
-            group to dump data into.
+    h_group (h5.File.Group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset
+    name (str):
+        the name of the resulting dataset
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
             
-    Returns:
-    --------
-        correspoding empty h5py.Dataset and empty subitems list
+    Returns
+    -------
+    tuple containing corresponding empty h5py.Dataset and empty subitems list
     """
     return h_group.create_dataset(name, shape = None,dtype = 'V1',**no_compression(kwargs)),()
 
@@ -104,17 +104,17 @@ def check_iterable_item_type(first_item,iter_obj):
     checks if for all items of an iterable sequence (list, tuple, etc.) a least common
     dtype exists to which all items can be safely be casted.
 
-    Args:
-    -----
-        first_item:
-            the first item of the iterable sequence used to initialize the dtype
+    Parameters
+    ----------
+    first_item:
+        the first item of the iterable sequence used to initialize the dtype
 
-        iter_obj:
-            the remaing items of the iterable sequence
+    iter_obj:
+        the remaining items of the iterable sequence
 
-    Returns:
-    --------
-        the least common dtype or none if not all items can be casted
+    Returns
+    -------
+    the least common dtype or none if not all items can be casted
     """
 
     if (
@@ -144,24 +144,25 @@ def check_iterable_item_type(first_item,iter_obj):
 def create_listlike_dataset(py_obj, h_group, name,list_len = -1,item_dtype = None, **kwargs):
     """ Dumper for list, set, tuple
 
-    Args:
-    -----
-        py_obj (list, set, tuple, ...):
-            python object to dump; should be list-like
+    Parameters
+    ----------
+    py_obj (list, set, tuple, ...):
+        python object to dump; should be list-like
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset
+    name (str):
+        the name of the resulting dataset
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-    --------
-        Group or Dataset representing listlike object and a list of subitems to
-        be stored within this group. In case of Dataset this list is allways empty 
+    Returns
+    -------
+    tuple containing h5py.Group or h5py.Dataset representing list-like object and
+    a list of subitems to be stored within this group. In case of h5py.Dataset returned
+    this list is always empty 
     """
 
     if isinstance(py_obj,(str,bytes)):
@@ -176,7 +177,7 @@ def create_listlike_dataset(py_obj, h_group, name,list_len = -1,item_dtype = Non
         return dataset,()
         
     if len(py_obj) < 1:
-        # listlike object is empty just store empty dataset
+        # list-like object is empty just store empty dataset
         return h_group.create_dataset(name,shape=None,dtype='int',**no_compression(kwargs)),()
 
     if list_len < 0:
@@ -205,26 +206,27 @@ def create_listlike_dataset(py_obj, h_group, name,list_len = -1,item_dtype = Non
 
 def create_setlike_dataset(py_obj,h_group,name,**kwargs):
     """
-    Creates a dataset or group for setlike objects. 
+    Creates a dataset or group for set-like objects. 
 
-    Args:
-    -----
-        py_obj (set, ...):
-            python object to dump; should be set-like
+    Parameters
+    ----------
+    py_obj (set, ...):
+        python object to dump; should be set-like
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset
+    name (str):
+        the name of the resulting dataset
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-    --------
-        Group or Dataset representing setlike object and a list of subitems to
-        be stored within this group. In case of Dataset this list is allways empty 
+    Returns
+    -------
+    tuple containing h5py.Group or h5py.Dataset representing set-like object and
+    a list of subitems to be stored within this group. In case of h5py.Dataset this
+    list is always empty 
     """
 
     # set objects do not support indexing thus determination of item dtype has to
@@ -250,24 +252,25 @@ def create_dictlike_dataset(py_obj, h_group, name, **kwargs):
 
     """ Creates a data group for each key in dictionary
 
-    Args:
-    -----
-        py_obj (dict):
-            python object to dump; should be dictionary
+    Parameters
+    ----------
+    py_obj (dict):
+        python object to dump; should be dictionary
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            h5 node name 
+    name (str):
+        h5 node name 
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
-    Returns:
-    --------
-        Group or Dataset representing dictlike object and a list of subitems to
-        be stored within this group. In case of Dataset this list is allways empty 
+    Returns
+    -------
+    tuple containing h5py.Group or h5py.Dataset representing dict-like object and
+    a list of subitems to be stored within this group. In case of h5py.Dataset this
+    list is always empty 
     """
 
     h_dictgroup = h_group.create_group(name)
@@ -289,7 +292,7 @@ def create_dictlike_dataset(py_obj, h_group, name, **kwargs):
                 if not _byte_slashes.search(key):
                     try:
                         h_key = key.decode("utf8")
-                    except UnicodeError: # pragma nocover
+                    except UnicodeError: # pragma no cover
                         pass
                     else:
                         yield r'b"{}"'.format(h_key),py_subobj,{'key_idx':idx,'key_base_type':key_base_type},kwargs
@@ -309,8 +312,8 @@ def load_scalar_dataset(h_node, base_type, py_obj_type):
     """
     loads scalar dataset
 
-    Args:
-    -----
+    Parameters
+    ----------
         h_node (h5py.Dataset):
             the hdf5 node to load data from
 
@@ -320,9 +323,9 @@ def load_scalar_dataset(h_node, base_type, py_obj_type):
         py_obj_type (type):
             final type of restored scalar
 
-    Returns:
-    --------
-        resulting python object of type py_obj_type
+    Returns
+    -------
+    resulting python object of type py_obj_type
     """
     data = h_node[()] if h_node.size < 2 else memoryview(h_node[()])
 
@@ -333,16 +336,20 @@ def load_none_dataset(h_node,base_type,py_obj_type):
     """
     returns None value as represented by underlying empty dataset
 
-    Args:
-        h_node (h5py.Dataset):
-            the hdf5 node to load data from
+    Parameters
+    ----------
+    h_node (h5py.Dataset):
+        the hdf5 node to load data from
 
-        base_type (bytes):
-            bytes string denoting base_type
+    base_type (bytes):
+        bytes string denoting base_type
 
-        py_obj_type (NoneType):
-            final type of restored scalar
+    py_obj_type (NoneType):
+        final type of restored scalar
 
+    Returns
+    -------
+    None
     """
     return None
     
@@ -350,19 +357,19 @@ def load_list_dataset(h_node,base_type,py_obj_type):
     """
     loads any kind of list like dataset
 
-    Args:
-    -----
-        h_node (h5py.Dataset):
-            the hdf5 node to load data from
+    Parameters
+    ----
+    h_node (h5py.Dataset):
+        the hdf5 node to load data from
 
-        base_type (bytes):
-            bytes string denoting base_type
+    base_type (bytes):
+        bytes string denoting base_type
 
-        py_obj_type (list, tuple, set, ...): final type of restored object
+    py_obj_type (list, tuple, set, ...): final type of restored object
 
-    Returns:
-    --------
-        resulting python object of type py_obj_type
+    Returns
+    -------
+    resulting python object of type py_obj_type
     """
 
     if h_node.shape is None:
@@ -387,21 +394,21 @@ def load_list_dataset(h_node,base_type,py_obj_type):
 
 def load_hickle_4_x_string(h_node,base_type,py_obj_type):
     """
-    loads dataset reprensenting python string stored by hickle 4.x 
+    loads dataset representing python string stored by hickle 4.x 
 
-    Args:
-    -----
-        h_node (h5py.Dataset):
-            the hdf5 node to load data from
+    Parameters
+    ----------
+    h_node (h5py.Dataset):
+        the hdf5 node to load data from
 
-        base_type (bytes):
-            bytes string denoting base_type
+    base_type (bytes):
+        bytes string denoting base_type
 
-        py_obj_type (str): final type of restored string
+    py_obj_type (str): final type of restored string
 
-    Returns:
-    --------
-        resulting python object of type py_obj_type
+    Returns
+    -------
+    resulting python str or bytes object as specified by py_obj_type
     """
     if not 'object' in h_node.dtype.name or h_node.attrs.get('str_type',None) is not None:
         return load_list_dataset(h_node,base_type,py_obj_type)
@@ -413,7 +420,7 @@ def load_hickle_4_x_string(h_node,base_type,py_obj_type):
 
 class ListLikeContainer(PyContainer):
     """
-    PyContainer for all list like objects excempt set
+    PyContainer for all list like objects exempt set
     """
 
     __slots__ = ()
@@ -425,8 +432,8 @@ class ListLikeContainer(PyContainer):
     # as None can and may be a valid list entry define an alternative marker for
     # missing items and indices
     def __init__(self,h5_attrs,base_type,object_type):
-        # if number of items is defind upon group resize content to
-        # at least match this ammount of subitems
+        # if number of items is defined upon group resize content to
+        # at least match this amount of subitems
         num_items = h5_attrs.get('num_items',0)
         super(ListLikeContainer,self).__init__(h5_attrs,base_type,object_type,_content = [nobody_is_my_name] * num_items)
 
@@ -441,7 +448,7 @@ class ListLikeContainer(PyContainer):
                     return
                 raise KeyError("List like item name '{}' not understood".format(name))
             index = int(index_match.group(0))
-        # if index exceeds capacity of extend list apropriately
+        # if index exceeds capacity of extend list appropriately
         if len(self._content) <= index:
             self._content.extend([nobody_is_my_name] * ( index - len(self._content) + 1 ))
         if self._content[index] is not nobody_is_my_name:

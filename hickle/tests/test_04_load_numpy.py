@@ -62,7 +62,7 @@ def test_create_np_scalar(h5_data,compression_kwargs):
     tests proper storage and loading of numpy scalars
     """
 
-    # check that scalar dataset is created for nupy scalar
+    # check that scalar dataset is created for numpy scalar
     scalar_data = np.float64(np.pi)
     dtype = scalar_data.dtype
     h_dataset,subitems = load_numpy.create_np_scalar_dataset(scalar_data,h5_data,"scalar_data",**compression_kwargs)
@@ -91,7 +91,7 @@ def test_create_np_dtype(h5_data,compression_kwargs):
 
 def test_create_np_ndarray(h5_data,compression_kwargs):
     """
-    test proper creatoin and loading of numpy ndarray
+    test proper creation and loading of numpy ndarray
     """
 
     # check that numpy array representing python utf8 string is properly 
@@ -103,7 +103,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     assert h_dataset.attrs["np_dtype"] in ( np_array_data.dtype.str.encode("ascii"),np_array_data.dtype.str)
     assert load_numpy.load_ndarray_dataset(h_dataset,b'ndarray',np.ndarray) == np_array_data
 
-    # chekc that numpy array representing python bytes string is properly
+    # check that numpy array representing python bytes string is properly
     # stored as bytearray dataset and reloaded from
     np_array_data = np.array(b"im python bytes")
     h_dataset,subitems = load_numpy.create_np_array_dataset(np_array_data,h5_data,"numpy_bytes_array",**compression_kwargs)
@@ -113,7 +113,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     assert load_numpy.load_ndarray_dataset(h_dataset,b'ndarray',np.ndarray) == np_array_data
 
     # check that numpy array with dtype object representing list of various kinds
-    # of objects is converted to list before storing and reloaded proprly from this
+    # of objects is converted to list before storing and reloaded properly from this
     # list representation
 
     # NOTE: simplified as mixing items of varying length receives
@@ -172,7 +172,7 @@ def test_create_np_ndarray(h5_data,compression_kwargs):
     # hickle file.
     # NOTE/TODO: current versions of numpy issue PendingDeprecationWarning when using
     # numpy.matrix. In order to indicate to pytest that this is known and can safely
-    # be ignored the warning is captured here. Shall it be that future numpy verions
+    # be ignored the warning is captured here. Shall it be that future numpy versions
     # convert PendingDeprecationWarning into any kind of exception like TypeError
     # AttributeError, RuntimeError or alike that also capture these Exceptions not
     # just PendingDeprecationWarning
@@ -214,7 +214,7 @@ def test_create_np_masked_array(h5_data,compression_kwargs):
     assert np.all(masked_array_container.convert() == masked_array)
 
     # check that format used by hickle version 4.0.0 to encode is properly recognized
-    # on loading and masked array is restored accoringly
+    # on loading and masked array is restored accordingly
     h_dataset = h5_data.create_dataset("masked_array_dataset",data = masked_array.data)
     h_dataset.attrs["np_dtype"] = masked_array.dtype.str.encode("ascii")
     with pytest.raises(ValueError,match = r"mask\s+not\s+found"):

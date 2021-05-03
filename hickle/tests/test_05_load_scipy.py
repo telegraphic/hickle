@@ -37,6 +37,10 @@ def h5_data(request):
 
 # %% FUNCTION DEFINITIONS
 
+def test_return_first_function_type():
+    with pytest.raises(TypeError):
+        load_scipy.return_first(['anything','some other thins','nothing'])
+
 def test_create_sparse_dataset(h5_data,compression_kwargs):
     """
     test creation and loading of sparse matrix 
@@ -100,7 +104,7 @@ def test_create_sparse_dataset(h5_data,compression_kwargs):
             attrs["base_type"] = b'csr_matrix'
         h_dataset.attrs.update(attrs)
 
-    # check that dataset representin hickle 4.0.0 representaiton of sparse matrix
+    # check that dataset representing hickle 4.0.0 representation of sparse matrix
     # is properly recognized by SparseMatrixContainer.filter method and sub items of
     # sparse matrix group are properly adjusted to be safely loaded by SparseMatrixContainer
     for name,h_dataset in sparse_container.filter(h_datagroup):
@@ -127,6 +131,8 @@ def test_create_sparse_dataset(h5_data,compression_kwargs):
 if __name__ == "__main__":
     from _pytest.fixtures import FixtureRequest
     from hickle.tests.conftest import compression_kwargs
+
+    test_return_first_function_type()
     for h5_root,keywords in (
         ( h5_data(request),compression_kwargs(request) )
         for request in (FixtureRequest(test_create_sparse_dataset),)

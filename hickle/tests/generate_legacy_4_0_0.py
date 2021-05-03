@@ -11,7 +11,7 @@ that later version are still capable loading hickle 4.0.0 format
 files.
 
 When imported by any of the tests the method generate_py_object
-returns the same datasstructure stored to the prior generated file.
+returns the same datastructure stored to the prior generated file.
 
 """
 import sys
@@ -28,11 +28,11 @@ import os.path
 def generate_py_object():
     """
     create a data structure covering all or at least the most obvious,
-    prominent and most likely breaking differences betwen hickle 
+    prominent and most likely breaking differences between hickle 
     4.0.0/4.0.1 version and Versions > 4.1.0
 
     Returns:
-        listobject containing all the relevant data objects and the 
+        list object containing all the relevant data objects and the 
         filename of the file the data has been stored to or shall be
         stored to. 
     """
@@ -146,7 +146,7 @@ def generate_py_object():
 
 if __name__ == '__main__':
     # create the file by dumping using hickle but only if
-    # the availabe hickle version is >= 4.0.0 and < 4.1.0
+    # the available hickle version is >= 4.0.0 and < 4.1.0
     hickle_version = hickle.__version__.split('.')
     if hickle_version[0] != 4 or hickle_version[1] > 0:
         raise RuntimeError("Shall be run using < 4.1 only")

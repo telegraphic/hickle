@@ -1,12 +1,12 @@
 # names all optional loaders defined by any load_*.py file
 # will be extended by any optional loader managed by hickle
 # core engine. Names of optional_loaders must be all lower case.
-# Correponding option attributes in hickle file will be all
+# Corresponding option attributes in hickle file will be all
 # upper case.
 optional_loaders = {
     # option loader for defining custom loader methods and 
-    # PyContainer classes. By marking them as custom optoin
-    # they are only activate if sepecified by a call to 
+    # PyContainer classes. By marking them as custom option
+    # they are only activate if specified by a call to 
     # hickle.dump. If not specified than custom objects and
     # classes will simply be stored as pickle string.
     # The data may in this case not be recoverable if 

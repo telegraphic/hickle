@@ -12,27 +12,29 @@ from hickle.loaders.load_numpy import load_ndarray_dataset,create_np_array_datas
 
 
 # %% FUNCTION DEFINITIONS
-def return_first(x): # pragma: nocover
-    """ Return first element of a list """
-    return x[0]
+def return_first(x):
+    """
+    Dummy function used as place holder type in loading legacy hickle 4.x files
+    """
+    raise TypeError("'return_first' not callable and deprecated. Create and use PyContainer instead.")
 
 
 def create_sparse_dataset(py_obj, h_group, name, **kwargs):
     """ dumps an sparse array to h5py file
 
-    Args:
-    -----
-        py_obj (scipy.sparse.csr_matrix,scipy.sparse.csc_matrix, scipy.sparse.bsr_matrix):
-            python object to dump
+    Parameters
+    ----------
+    py_obj (scipy.sparse.csr_matrix,scipy.sparse.csc_matrix, scipy.sparse.bsr_matrix):
+        python object to dump
 
-        h_group (h5.File.group):
-            group to dump data into.
+    h_group (h5.File.group):
+        group to dump data into.
 
-        name (str):
-            the name of the resulting dataset
+    name (str):
+        the name of the resulting dataset
 
-        kwargs (dict):
-            keyword arguments to be passed to create_dataset function
+    kwargs (dict):
+        keyword arguments to be passed to create_dataset function
 
     Returns:
         Group and list of subitems to dump into

@@ -18,7 +18,9 @@ import numpy as np
 import h5py
 
 # hickle imports
-from hickle.helpers import PyContainer,H5NodeFilterProxy,no_compression
+from hickle.helpers import (
+    PyContainer,H5NodeFilterProxy,no_compression,convert_str_attr,convert_str_list_attr
+)
 from hickle.fileio import FileError,ClosedFileError,file_opener,not_io_base_like
 from py.path import local
 
@@ -39,7 +41,7 @@ def h5_data(request):
     create dummy hdf5 test data file for testing PyContainer and H5NodeFilterProxy
     """
 
-    # create file and create a dataset the attributes of which will lateron be
+    # create file and create a dataset the attributes of which will later on be
     # modified
     import h5py as h5
     dummy_file = h5.File('hickle_helpers_{}.hdf5'.format(request.function.__name__),'w')
@@ -50,7 +52,7 @@ def h5_data(request):
     test_data.attrs['someattr'] = 12
     test_data.attrs['someother'] = 11
 
-    # writeout the file reopen it read only
+    # write out the file reopen it read only
     dummy_file.flush()
     dummy_file.close()
     dummy_file = h5.File(filename,'r')
@@ -67,7 +69,7 @@ def test_file_name(request):
 
 def test_no_compression():
     """
-    test no_compression filter for temporarily hiding comression related
+    test no_compression filter for temporarily hiding compression related
     kwargs from h5py.create_dataset method
     """
 
@@ -104,7 +106,7 @@ def test_py_container(h5_data):
         my_list = container.convert()
 
     # test default implementation of PyContainer.filter method which
-    # simply shall yield from passed in itrator
+    # simply shall yield from passed in iterator
     assert [ item for item in dummy_data ] == list(dummy_data)
     assert dict(container.filter(h5_data)) == {'somedata':h5_data['somedata']}
 
@@ -112,7 +114,7 @@ def test_py_container(h5_data):
 def test_H5NodeFilterProxy(h5_data):
     """
     tests H5NodeFilterProxy class. This class allows to temporarily rewrite
-    attributes of h5py.Group and h5py.Dataset nodes before beeing loaded by 
+    attributes of h5py.Group and h5py.Dataset nodes before being loaded by 
     hickle._load method. 
     """
 
@@ -156,7 +158,6 @@ def test_not_io_base_like(test_file_name):
     test not_io_base_like function for creating replacement methods
     for IOBase.isreadable, IOBase.isseekable and IOBase.writeable
     """
-    # def not_io_base_like(f,*args):
     with open(test_file_name,'w') as f:
         assert not not_io_base_like(f)()
         assert not not_io_base_like(f,'strange_read',0)()
@@ -176,70 +177,97 @@ def test_file_opener(h5_data,test_file_name):
 
     # check that file like object is properly initialized for writing
     filename = test_file_name.replace(".hkl","_{}.{}")
-    with open(filename.format("w",".hdf5"),"w") as f:
+    with open(filename.format("w","hdf5"),"w") as f:
         with pytest.raises(FileError):
             h5_file,path,close_flag = file_opener(f,"root","w",filename="filename")
-    with open(filename.format("w",".hdf5"),"w+b") as f:
+    with open(filename.format("w","hdf5"),"w+b") as f:
         h5_file,path,close_flag = file_opener(f,"root","w+")
         assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r+'
         h5_file.close()
 
     # check that file like object is properly initialized for reading
-    with open(filename.format("w",".hdf5"),"rb") as f:
+    with open(filename.format("w","hdf5"),"rb") as f:
         h5_file,path,close_flag = file_opener(f,"root","r")
         assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r'
         assert close_flag
         h5_file.close()
+        # check that only str are accepted as filenames
         with pytest.raises(ValueError):
             h5_file,path,close_flag = file_opener(f,"root","r",filename=12)
+        # check that tuple specifying file object and filename string is accepted
         h5_file,path,close_flag = file_opener((f,"not me"),"root","r")
         assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r'
         assert close_flag
         h5_file.close()
+        # check that dict specifying file object and filename is accepted
         h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","r")
         assert isinstance(h5_file,h5py.File) and path == "/root" and h5_file.mode == 'r'
         assert close_flag
         h5_file.close()
+        # check that file is rejected if mode used to open and mode passed to file
+        # opener do not match
         with pytest.raises(FileError):
             h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","r+")
         with pytest.raises(FileError):
             h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","w")
         with pytest.raises(ValueError):
             h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","+")
-    with open(filename.format("w",".hdf5"),"w") as f:
+    # check that only binary files opened for reading and writing are accepted with
+    # mode w
+    with open(filename.format("w","hdf5"),"w") as f:
         with pytest.raises(FileError):
             h5_file,path,close_flag = file_opener({"file":f,"name":"not me"},"root","w")
 
+    # check that closed file objects are rejected
     with pytest.raises(ClosedFileError):
         h5_file,path,close_flag = file_opener(f,"root","r")
         
 
-    # check that h5py.File object is properly intialized for writing
+    # check that h5py.File object is properly initialised for writing
     with pytest.raises(FileError):
         h5_file,path,close_flag = file_opener(h5_data,"","w")
-    with h5py.File(filename.format("w",".whkl"),"w") as hdf5_file:
+    with h5py.File(filename.format("w","whkl"),"w") as hdf5_file:
         h5_file,path,close_flag = file_opener(hdf5_file,"","w")
         assert isinstance(h5_file,h5py.File) and path == "/"
         assert h5_file.mode == 'r+' and not close_flag
         hdf5_group = hdf5_file.create_group("some_group")
     with pytest.raises(ClosedFileError):
         h5_file,path,close_flag = file_opener(hdf5_file,"","w")
-    with h5py.File(filename.format("w",".whkl"),"r") as hdf5_file:
+    with h5py.File(filename.format("w","whkl"),"r") as hdf5_file:
         h5_file,path,close_flag = file_opener(hdf5_file["some_group"],'',"r")
         assert isinstance(h5_file,h5py.File) and path == "/some_group"
         assert h5_file.mode == 'r' and not close_flag
         
 
-    # check that a new file is created for provided filename and properly intialized
+    # check that a new file is created for provided filename and properly initialized
     h5_file,path,close_flag = file_opener(filename.format("w",".hkl"),"root_group","w")
     assert isinstance(h5_file,h5py.File) and path == "/root_group"
     assert h5_file.mode == 'r+' and close_flag
     h5_file.close()
     
-    # check that any other object not beein a file like object, a h5py.File object or
+    # check that any other object not being a file like object, a h5py.File object or
     # a filename string triggers an  FileError exception
     with pytest.raises(FileError):
         h5_file,path,close_flag = file_opener(object(),"root_group","w")
+
+def test_str_attr_converter():
+    """
+    test attribute decoder helper functions used to mimic
+    h5py >= 3.x behaviour when h5py 2.10 is installed
+    """
+    ascii_str_val = 'some ascii encoded string attr'
+    utf8_str_val = 'some utf8 encoded string attr'
+    some_attrs = dict(
+        some_attr_ascii = ascii_str_val.encode('ascii'),
+        some_attr_utf8 = utf8_str_val.encode('utf8'),
+        some_attr_list_ascii = [ strval.encode('ascii') for strval in ascii_str_val.split(' ') ],
+        some_attr_list_utf8 = [ strval.encode('utf8') for strval in utf8_str_val.split(' ') ]
+    )
+    assert convert_str_attr(some_attrs,'some_attr_ascii',encoding='ascii') == ascii_str_val
+    assert convert_str_attr(some_attrs,'some_attr_utf8') == utf8_str_val
+    assert " ".join(convert_str_list_attr(some_attrs,'some_attr_list_ascii',encoding='ascii')) == ascii_str_val
+    assert " ".join(convert_str_list_attr(some_attrs,'some_attr_list_utf8')) == utf8_str_val
+    
 
 # %% MAIN SCRIPT
 if __name__ == "__main__":
@@ -260,4 +288,5 @@ if __name__ == "__main__":
         for request in (FixtureRequest(test_file_opener),)
     ):
         test_file_opener(h5_root,filename)
+    test_str_attr_converter()
 

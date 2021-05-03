@@ -51,7 +51,7 @@ def test_4_0_0_load():
     from hickle.tests.generate_legacy_4_0_0 import generate_py_object
     compare_with,needs_compare = generate_py_object()
     # strange but without forcing garbage collection here h5py might produce 
-    # strange assumingly a race related RuntimeError when h5py file is closed by
+    # strange assuming a race related RuntimeError when h5py file is closed by
     # hickle.load(). Unless observed in wildlife this is only triggered by fast successive
     # calls of h5py methods.
     import gc
