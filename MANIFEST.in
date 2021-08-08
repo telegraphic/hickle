@@ -20,6 +20,7 @@ recursive-exclude * *.tox
 recursive-exclude * *.h5
 recursive-exclude * *.bak
 recursive-exclude ci *
+recursive-exclude * coverage.xml
 exclude *_mv.txt
 exclude *_tox.txt
 recursive-exclude * .bashrcrun

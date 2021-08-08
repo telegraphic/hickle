@@ -1,11 +1,14 @@
 name: Python package
 
-on: [push, pull_request_target] #pull_request]
+on: 
+  push:
+  pull_request:
+    types: [ opened, synchronize, reopened, edited ]
 
 jobs:
   build:
+    if: github.repository_owner == 'telegraphic' 
     name: ${{ matrix.os}} ${{ matrix.architecture }}, Python ${{ matrix.python_version }}
-    #if: github.repository == "telegraphic/hickle"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -47,8 +50,13 @@ jobs:
          TOX_H5PY_REQIREMENTS: ${{ matrix.architecture == 'x86' && '32' || ''}}
          PLATFORM: ${{ matrix.platform }}
      - name: Upload coverage
-       run: |
-         curl -s https://codecov.io/bash | bash
+       if: ${{ success() &&  github.repository == 'telegraphic/hickle' }}
+       uses: codecov/codecov-action@v2
+       with:
+           token: ${{ secrets.CODECOV_TOKEN }}
+           files: coverage.xml
+           fail_ci_if_error: true
+           verbose: true
      - name: Deploy package
        if: ${{ success() && matrix.os == 'ubuntu-latest' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
        env:

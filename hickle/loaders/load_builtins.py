@@ -33,13 +33,13 @@ dict_key_types_dict = {
     b'bool': bool,
     b'int': int,
     b'complex': complex,
-    b'NoneType': eval,
+    b'NoneType': lambda x : None,
     # str type keys required for h5py >= 3.x
     'float': float,
     'bool': bool,
     'int': int,
     'complex': complex,
-    'NoneType': eval,
+    'NoneType': lambda x : None
 }
 
 # %% FUNCTION DEFINITIONS
@@ -501,7 +501,8 @@ class DictLikeContainer(PyContainer):
             if load_key is None:
                 if key_base_type not in {b'tuple','tuple'}:
                     raise ValueError("key type '{}' not understood".format(key_base_type.decode("utf8")))
-                load_key = eval
+                import ast
+                load_key = ast.literal_eval
             item = (
                 load_key(self._swap_key_slashes.sub(r'/',name)),
                 item
