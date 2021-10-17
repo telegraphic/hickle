@@ -102,7 +102,8 @@ from importlib import invalidate_caches
 
 # Package imports
 import collections
-import dill as pickle
+# import dill as pickle
+import pickle
 import numpy as np
 import h5py as h5
 
@@ -627,9 +628,9 @@ class ReferenceManager(BaseManager, dict):
 
         """
 
-        # return immediately if py_obj_type is object as h_node contains pickled byte
-        # string of the actual object dumped
-        if py_obj_type is object:
+        # return immediately if py_obj_type is object or base_type is b'pickle as h_node
+        # contains pickled byte string of the actual object dumped
+        if py_obj_type is object:# or base_type == b'pickle':
             return
 
         # if no entry within the 'hickle_types_table' exists yet
@@ -1128,7 +1129,7 @@ class LoaderManager(BaseManager):
             self._mro = type.mro
         self._file = h_root_group.file
         
-    def load_loader(self, py_obj_type):
+    def load_loader(self, py_obj_type,*,base_type=None):
         """
         Checks if given `py_obj` requires an additional loader to be handled
         properly and loads it if so.
@@ -1173,6 +1174,8 @@ class LoaderManager(BaseManager):
             package_file = None 
             if package_list[0] == 'hickle':
                 if package_list[1] != 'loaders':
+                    if base_type is not None and ( base_type in self.hkl_types_dict or base_type in self.hkl_container_dict):
+                        return py_obj_type,(not_dumpable,base_type,True)
                     print(mro_item,package_list)
                     raise RuntimeError(
                         "objects defined by hickle core must be registered"
@@ -1307,8 +1310,9 @@ class LoaderManager(BaseManager):
             # return loader for base_class mro_item
             return py_obj_type,loader_item
     
-        # no appropriate loader found return fallback to pickle
-        return py_obj_type,(create_pickled_dataset,b'pickle',True)
+        # no appropriate loader found. Lower py_object_type to object and
+        # return fallback to pickle
+        return object,(create_pickled_dataset,b'pickle',True)
 
     @classmethod
     def create_manager(cls, h_node, legacy = False, options = None):

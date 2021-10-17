@@ -18,7 +18,8 @@ from pprint import pprint
 
 # Package imports
 import pytest
-import dill as pickle
+# import dill as pickle
+import pickle
 import h5py
 import numpy as np
 from py.path import local

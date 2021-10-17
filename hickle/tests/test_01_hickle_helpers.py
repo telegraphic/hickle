@@ -12,7 +12,8 @@ import pytest
 # %% IMPORTS
 # Package imports
 import numpy as np
-import dill as pickle
+# import dill as pickle
+import pickle
 import operator
 import numpy as np
 import h5py

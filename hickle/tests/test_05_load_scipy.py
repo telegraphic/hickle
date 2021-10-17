@@ -11,7 +11,8 @@ Unit tests for hickle module -- scipy loader.
 import pytest
 import h5py as h5
 import numpy as np
-import dill as pickle
+# import dill as pickle
+import pickle
 from scipy.sparse import csr_matrix, csc_matrix, bsr_matrix
 from py.path import local
 

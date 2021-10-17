@@ -51,7 +51,8 @@ if PY3:
     file = io.TextIOWrapper
 
 # Import dill as pickle
-import dill as pickle
+# import dill as pickle
+import pickle
 
 try:
     from pathlib import Path

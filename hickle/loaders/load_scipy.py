@@ -1,6 +1,7 @@
 # %% IMPORTS
 # Package imports
-import dill as pickle
+# import dill as pickle
+import pickle
 import numpy as np
 import scipy
 import copy

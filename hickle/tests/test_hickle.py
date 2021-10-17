@@ -11,11 +11,13 @@ Unit test for hickle package.
 # %% IMPORTS
 
 # Built-in imports
+import sys
 from collections import OrderedDict as odict
 import os
 import re
 from pprint import pprint
-import dill as pickle
+# import dill as pickle
+import pickle
 
 
 # Package imports
@@ -560,10 +562,11 @@ def test_tuple_numpy(test_file_name,compression_kwargs):
     assert isinstance(dd_hkl[0], np.ndarray)
 
 
+#@pytest.mark.xfail(sys.version_info[0]> 3 or sys.version_info[1] >= 7, reason="dill does not properly handle metaclass serializeable numpy dtype subclasses",raises=pickle.PicklingError)
 def test_numpy_dtype(test_file_name,compression_kwargs):
     """ Dumping and loading a NumPy dtype """
 
-    dtype = np.dtype('float16')
+    dtype = np.dtype('int64')
     dump(dtype, test_file_name,**compression_kwargs)
     dtype_hkl = load(test_file_name)
     assert dtype == dtype_hkl
