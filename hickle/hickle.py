@@ -233,6 +233,7 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
     finally:
         # Flush the h5py.File and close it lif it was opened by hickle.
         h5f.flush()
+        import gc;gc.collect()
         if close_flag:
             h5f.close()
 
@@ -378,6 +379,7 @@ def load(file_obj, path='/', safe=True, filename = None):
     finally:
         # Flush the h5py.File and close it lif it was opened by hickle.
         h5f.flush()
+        import gc;gc.collect()
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
