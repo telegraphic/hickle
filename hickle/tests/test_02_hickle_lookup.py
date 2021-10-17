@@ -14,6 +14,7 @@ import shutil
 import types
 import weakref
 import compileall
+import time
 import os
 
 # Package imports
@@ -938,6 +939,7 @@ def test_ReferenceManager(h5_data):
     h5_data.file.flush()
     base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
+    for _ in range(20): time.sleep(0.01)
     shutil.copy(h5_data.file.filename,file_name)
     data_name = h5_data.name
     read_only_handle = h5py.File(file_name,'r')
@@ -952,6 +954,7 @@ def test_ReferenceManager(h5_data):
     
     
     read_only_handle.close()
+    for _ in range(20): time.sleep(0.01)
     class SubReferenceManager(lookup.ReferenceManager):
         __managers__ = ()
     assert SubReferenceManager.__managers__ is lookup.ReferenceManager.__managers__
@@ -1012,6 +1015,7 @@ def test_ReferenceManager_context(h5_data):
     h5_data.file.flush()
     base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
+    for _ in range(20): time.sleep(0.01)
     shutil.copy(h5_data.file.filename,file_name)
     data_name = old_hickle_file_root.name
     read_only_handle = h5py.File(file_name,'r')
@@ -1020,6 +1024,7 @@ def test_ReferenceManager_context(h5_data):
         assert isinstance(memo._overlay,weakref.finalize)
     assert memo._overlay is None
     read_only_handle.close()
+    for _ in range(20): time.sleep(0.01)
         
 def test_ReferenceManager_store_type(h5_data,compression_kwargs):
     """
