@@ -7,7 +7,8 @@ on:
 
 jobs:
   build:
-    if: github.repository_owner == 'telegraphic' 
+    # run workflo on whichever repo as there will no pullrequest from this
+    #if: github.repository_owner == 'telegraphic' 
     name: ${{ matrix.os}} ${{ matrix.architecture }}, Python ${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
