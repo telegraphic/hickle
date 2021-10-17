@@ -231,7 +231,8 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
             with ReferenceManager.create_manager(h_root_group) as memo:
                 _dump(py_obj, h_root_group,'data', memo ,loader,**kwargs)
     finally:
-        # Close the h5py.File if it was opened by hickle.
+        # Flush the h5py.File and close it lif it was opened by hickle.
+        h5f.flush()
         if close_flag:
             h5f.close()
 
