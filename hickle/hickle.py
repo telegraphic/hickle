@@ -46,6 +46,11 @@ import pickle
 import h5py as h5
 import numpy as np
 
+#whished it would not be necessary but sometimes garbage collector
+#may kick in while trying to close file. Causing ValueError in close
+#to prevent check if collectoin is necessary after flushing file
+import gc
+
 # hickle imports
 from hickle import __version__
 from .helpers import (
@@ -233,9 +238,11 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
     finally:
         # Flush the h5py.File and close it lif it was opened by hickle.
         h5f.flush()
-        import gc;gc.collect()
+
+        gc.disable()
         if close_flag:
             h5f.close()
+        gc.enable()
 
 ###########
 # LOADERS #
@@ -379,11 +386,12 @@ def load(file_obj, path='/', safe=True, filename = None):
     finally:
         # Flush the h5py.File and close it lif it was opened by hickle.
         h5f.flush()
-        import gc;gc.collect()
+        gc.disable()
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
             h5f.close()
+        gc.enable()
 
 
 
