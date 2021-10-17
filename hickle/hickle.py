@@ -45,6 +45,11 @@ import dill as pickle
 import h5py as h5
 import numpy as np
 
+#whished it would not be necessary but sometimes garbage collector
+#may kick in while trying to close file. Causing ValueError in close
+#to prevent check if collectoin is necessary after flushing file
+import gc
+
 # hickle imports
 from hickle import __version__
 from .helpers import (
@@ -230,9 +235,16 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
             with ReferenceManager.create_manager(h_root_group) as memo:
                 _dump(py_obj, h_root_group,'data', memo ,loader,**kwargs)
     finally:
-        # Close the h5py.File if it was opened by hickle.
+        # Flush the the h5py.File  and close it if it was opened by hickle.
+        h5f.flush()
+
+        # disable python garbage collector while closing to prevent Unrecognized
+        # typecode ValueError caused by h5py objects collected to earlay most 
+        # persistently observed with h5py 2.10 in python 3.7 on 32 bit windows
+        gc.disable()
         if close_flag:
             h5f.close()
+        gc.enable()
 
 ###########
 # LOADERS #
@@ -374,10 +386,16 @@ def load(file_obj, path='/', safe=True, filename = None):
     except Exception as error:
         raise ValueError("Provided argument 'file_obj' does not appear to be a valid hickle file! (%s)" % (error),error) from error
     finally:
-        # Close the file if requested.
-        # Closing a file twice will not cause any problems
+        # Flush the h5py.File and close it lif it was opened by hickle.
+        h5f.flush()
+
+        # disable python garbage collector while closing to prevent Unrecognized
+        # typecode ValueError caused by h5py objects collected to earlay most 
+        # persistently observed with h5py 2.10 in python 3.7 on 32 bit windows
+        gc.disable()
         if close_flag:
             h5f.close()
+        gc.enable()
 
 
 

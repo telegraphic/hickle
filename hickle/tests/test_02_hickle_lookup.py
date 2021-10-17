@@ -54,7 +54,8 @@ def h5_data(request):
     filename = dummy_file.filename
     test_data = dummy_file.create_group("root_group")
     yield test_data
-    dummy_file.close()
+    if dummy_file:
+        dummy_file.close()
 
 @pytest.fixture()
 def loader_table():
@@ -931,8 +932,15 @@ def test_ReferenceManager(h5_data):
     h5_data.file.flush()
     base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
-    shutil.copyfile(h5_data.file.filename,file_name)
     data_name = h5_data.name
+    data_file_name = h5_data.file.filename
+    #################### NOTE #############################
+    # h5_data ficture is invalidated by the following line
+    # as well as all Groups and Datasets read from it
+    # manually reopen it and do not forget to close at
+    # end of iths test
+    h5_data.file.close()
+    shutil.copy(data_file_name,file_name)
     read_only_handle = h5py.File(file_name,'r')
     h5_read_data = read_only_handle[data_name]
     h5_read_old = read_only_handle['old_root']
@@ -1005,8 +1013,15 @@ def test_ReferenceManager_context(h5_data):
     h5_data.file.flush()
     base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
-    shutil.copyfile(h5_data.file.filename,file_name)
+    data_file_name = h5_data.file.filename
     data_name = old_hickle_file_root.name
+    #################### NOTE #############################
+    # h5_data ficture is invalidated by the following line
+    # as well as all Groups and Datasets read from it
+    # manually reopen it and do not forget to close at
+    # end of iths test
+    h5_data.file.close()
+    shutil.copy(data_file_name,file_name)
     read_only_handle = h5py.File(file_name,'r')
     h5_read_data = read_only_handle[data_name]
     with lookup.ReferenceManager.create_manager(h5_read_data) as memo:
