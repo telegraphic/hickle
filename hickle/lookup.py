@@ -1267,6 +1267,7 @@ class LoaderManager(BaseManager):
                         if not getattr(package_spec,'has_location',False):
                             # can't resolve package or base module hosting mro_item
                             continue
+                        package_file = package_spec.origin
                     package_path = os.path.dirname(package_file)
                     package_loader_path = os.path.join(
                         package_path, "hickle_loaders", "load_{:s}.py".format(package_list[0])
