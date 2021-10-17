@@ -376,6 +376,8 @@ def load(file_obj, path='/', safe=True, filename = None):
     except Exception as error:
         raise ValueError("Provided argument 'file_obj' does not appear to be a valid hickle file! (%s)" % (error),error) from error
     finally:
+        # Flush the h5py.File and close it lif it was opened by hickle.
+        h5f.flush()
         # Close the file if requested.
         # Closing a file twice will not cause any problems
         if close_flag:
