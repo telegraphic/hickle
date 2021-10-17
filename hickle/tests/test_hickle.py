@@ -563,7 +563,7 @@ def test_tuple_numpy(test_file_name,compression_kwargs):
 def test_numpy_dtype(test_file_name,compression_kwargs):
     """ Dumping and loading a NumPy dtype """
 
-    dtype = np.dtype('float16')
+    dtype = np.dtype('int64')
     dump(dtype, test_file_name,**compression_kwargs)
     dtype_hkl = load(test_file_name)
     assert dtype == dtype_hkl

@@ -415,7 +415,7 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
 
     # load the type information of node.
     py_obj_type,base_type,is_container = memo.resolve_type(h_node)
-    py_obj_type,(_,_,memoise) = loader.load_loader(py_obj_type)
+    py_obj_type,(_,_,memoise) = loader.load_loader(py_obj_type,base_type=base_type)
     
     if is_container:
         # Either a h5py.Group representing the structure of complex objects or

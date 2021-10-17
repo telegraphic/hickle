@@ -271,6 +271,12 @@ def function_to_dump(hallo,welt,with_default=1):
     """
     return hallo,welt,with_default
 
+def load_anyhing(h_node, base_type , py_obj_type): # pragma: no cover
+    """
+    loads nothing
+    """
+    return None
+
 def test_AttemptRecoverCustom_classes(h5_data):
     recovered_group = lookup.RecoveredGroup({'hello':1},attrs={'world':2,'type':42})
     assert recovered_group == {'hello':1} and recovered_group.attrs == {'world':2}
@@ -549,18 +555,17 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             moc_import_lib.setattr("hickle.lookup.spec_from_file_location",patch_importlib_util_no_spec_from_file_location)
             moc_import_lib.delitem(sys.modules,"hickle.loaders.load_builtins",raising=False)
             py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
-            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
-            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            assert py_obj_type is object and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
 
             lookup._custom_loader_enabled_builtins[py_obj_type.__class__.__module__] = ('','')
             py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
-            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            assert py_obj_type is object and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
             
             backup_builtins = sys.modules['builtins']
             moc_import_lib.delitem(sys.modules,'builtins')
             with pytest.warns(lookup.PackageImportDropped):# TODO when warning is added run check for warning
                 py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
-            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            assert py_obj_type is object and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
             moc_import_lib.setitem(sys.modules,'builtins',backup_builtins)
 
 
@@ -613,7 +618,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             lookup.LoaderManager.__loaded_loaders__.discard('hickle.loaders.load_builtins')
             os.remove(pyc_path)
             py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
-            assert py_obj_type is dict
+            assert py_obj_type is object
             assert nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
             os.rename(hidden_source,load_builtins.__file__)
             moc_import_lib.setattr("importlib.util.spec_from_loader",patch_importlib_util_spec_from_loader)
@@ -640,7 +645,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             moc_import_lib.delitem(sys.modules,loader_name)
             del lookup.LoaderManager.__py_types__[None][dict]
             py_obj_type,nopickleloader = loader.load_loader(py_object.__class__)
-            assert py_obj_type is dict and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
+            assert py_obj_type is object and nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
             
             # check that load_loader prevents redefinition of loaders to be predefined by hickle core
             with pytest.raises(
@@ -649,6 +654,23 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
                         r"\s+registered\s+before\s+first\s+dump\s+or\s+load"
             ):
                 py_obj_type,nopickleloader = loader.load_loader(ToBeInLoadersOrNotToBe)
+            
+            # check that hickle only managed load only loaders without a registered dump function
+            # are properly recognized and reported by LoaderManager.load_loader 
+            loader.register_class( ToBeInLoadersOrNotToBe, b's.pear', None, load_anyhing,None,True)
+            with pytest.raises(
+                RuntimeError,
+                match = r"objects\s+defined\s+by\s+hickle\s+core\s+must\s+be"
+                        r"\s+registered\s+before\s+first\s+dump\s+or\s+load"
+            ):
+                py_obj_type,nopickleloader = loader.load_loader(ToBeInLoadersOrNotToBe)
+            py_obj_type,(create_dataset,base_type,memoise) = loader.load_loader(ToBeInLoadersOrNotToBe,base_type=b's.pear')
+            assert py_obj_type is ToBeInLoadersOrNotToBe
+            assert create_dataset is lookup.not_dumpable and base_type == b's.pear' and memoise == True
+            
+            loader.hkl_types_dict.pop(b's.pear',None)
+            loader.hkl_container_dict.pop(b's.pear',None)
+            loader.types_dict.pop(ToBeInLoadersOrNotToBe,None)
             moc_import_lib.setattr(ToBeInLoadersOrNotToBe,'__module__','hickle.loaders')
     
             # check that load_loaders issues drop warning upon loader definitions for
@@ -658,7 +680,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
                 match = r"ignoring\s+'.+'\s+dummy\s+type\s+not\s+defined\s+by\s+loader\s+module"
             ):
                 py_obj_type,nopickleloader = loader.load_loader(ToBeInLoadersOrNotToBe)
-                assert py_obj_type is ToBeInLoadersOrNotToBe
+                assert py_obj_type is object #ToBeInLoadersOrNotToBe
                 assert nopickleloader == (lookup.create_pickled_dataset,b'pickle',True)
     
             # check that loader definitions for dummy objects defined by loaders work as expected
@@ -688,7 +710,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             backup_module = ClassToDump.__module__
             moc_import_lib.setattr(ClassToDump,'__module__',re.sub(r'^\s*hickle\.','',ClassToDump.__module__))
             py_obj_type,(create_dataset,base_type,memoise) = loader.load_loader(ClassToDump)
-            assert py_obj_type is ClassToDump
+            assert py_obj_type is object #ClassToDump
             assert create_dataset is lookup.create_pickled_dataset
             assert base_type == b'pickle' and memoise == True
             ClassToDump.__module__ = backup_module
