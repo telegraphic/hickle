@@ -938,7 +938,7 @@ def test_ReferenceManager(h5_data):
     h5_data.file.flush()
     base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
-    shutil.copyfile(h5_data.file.filename,file_name)
+    shutil.copy2(h5_data.file.filename,file_name)
     data_name = h5_data.name
     read_only_handle = h5py.File(file_name,'r')
     h5_read_data = read_only_handle[data_name]
@@ -1012,7 +1012,7 @@ def test_ReferenceManager_context(h5_data):
     h5_data.file.flush()
     base_name,ext = h5_data.file.filename.rsplit('.',1)
     file_name = "{}_ro.{}".format(base_name,ext)
-    shutil.copyfile(h5_data.file.filename,file_name)
+    shutil.copy2(h5_data.file.filename,file_name)
     data_name = old_hickle_file_root.name
     read_only_handle = h5py.File(file_name,'r')
     h5_read_data = read_only_handle[data_name]
