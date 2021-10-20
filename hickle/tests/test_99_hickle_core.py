@@ -18,7 +18,6 @@ from pprint import pprint
 
 # Package imports
 import pytest
-# import dill as pickle
 import pickle
 import h5py
 import numpy as np

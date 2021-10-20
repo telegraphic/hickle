@@ -1,3 +1,4 @@
+dill>=0.3.0
 codecov
 pytest>=4.6.0
 pytest-cov

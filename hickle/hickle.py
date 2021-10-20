@@ -41,7 +41,6 @@ import types
 import functools as ft
 
 # Package imports
-# import dill as pickle
 import pickle
 import h5py as h5
 import numpy as np

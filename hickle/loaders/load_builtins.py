@@ -17,7 +17,6 @@ import operator
 
 # Package imports
 import numpy as np
-# import dill as pickle
 import pickle
 import h5py
 import warnings

@@ -22,8 +22,6 @@ import scipy
 import scipy.sparse
 import astropy
 import collections
-# import dill as pickle
-import pickle
 import os.path
 
 def generate_py_object():

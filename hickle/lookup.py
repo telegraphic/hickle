@@ -102,7 +102,6 @@ from importlib import invalidate_caches
 
 # Package imports
 import collections
-# import dill as pickle
 import pickle
 import numpy as np
 import h5py as h5
