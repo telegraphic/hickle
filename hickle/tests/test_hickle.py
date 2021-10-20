@@ -15,7 +15,7 @@ from collections import OrderedDict as odict
 import os
 import re
 from pprint import pprint
-import dill as pickle
+import pickle
 
 
 # Package imports

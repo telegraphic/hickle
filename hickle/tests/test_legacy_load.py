@@ -12,7 +12,6 @@ import h5py
 
 # hickle imports
 import hickle as hkl
-import dill as pickle
 
 
 # %% FUNCTION DEFINITIONS
