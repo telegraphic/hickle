@@ -164,7 +164,11 @@ def load_python_dtype_dataset(h_node):
         b"<class 'int'>": int,
         b"<class 'float'>": float,
         b"<class 'bool'>": bool,
-        b"<class 'complex'>": complex
+        b"<class 'complex'>": complex,
+        "<class 'int'>": int,
+        "<class 'float'>": float,
+        "<class 'bool'>": bool,
+        "<class 'complex'>": complex
     }
 
     tcast = type_dict.get(subtype)
