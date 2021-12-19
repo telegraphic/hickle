@@ -34,16 +34,12 @@ filename parameter to a non empty string.
 
 # %% IMPORTS
 # Built-in imports
-import io
 import sys
 import warnings
-import types
-import functools as ft
 
 # Package imports
 import pickle
 import h5py as h5
-import numpy as np
 
 #whished it would not be necessary but sometimes garbage collector
 #may kick in while trying to close file. Causing ValueError in close
@@ -53,12 +49,12 @@ import gc
 # hickle imports
 from hickle import __version__
 from .helpers import (
-    PyContainer, NotHicklable, nobody_is_my_name, ToDoError
+    PyContainer, NotHicklable
 )
-from .fileio import ClosedFileError, FileError, file_opener
+from .fileio import FileError, file_opener
 from .lookup import (
     #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
-    create_pickled_dataset, load_nothing, fix_lambda_obj_type,ReferenceManager,
+    create_pickled_dataset, fix_lambda_obj_type,ReferenceManager,
     LoaderManager, RecoverGroupContainer, recover_custom_dataset
 )
 
@@ -168,6 +164,8 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
             parameter
         dict:
             dictionary with 'file' and 'name' items
+
+    plugin 
 
     mode (str): optional
         string indicating how the file shall be opened. For details see Python `open`.
@@ -341,7 +339,7 @@ def load(file_obj, path='/', safe=True, filename = None):
                 major_version = int(h5f.attrs['VERSION'][0])
 
             # If this cannot be done, then this is not a v3 file
-            except Exception:  # pragma: no cover
+            except:  # pragma: no cover
                 raise Exception("This file does not appear to be a hickle v3 "
                                 "file.")
 
@@ -464,4 +462,3 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
     # store loaded object for properly restoring additional references to it
     if memoise:
         memo[h_node.id] = sub_data
-
