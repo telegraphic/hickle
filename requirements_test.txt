@@ -7,3 +7,4 @@ scipy>=1.0.0
 pandas>=0.24.0
 check-manifest
 twine>=1.13.0
+hdf5plugin
