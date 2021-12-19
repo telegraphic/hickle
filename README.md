@@ -1,7 +1,5 @@
 [![PyPI - Latest Release](https://img.shields.io/pypi/v/hickle.svg?logo=pypi&logoColor=white&label=PyPI)](https://pypi.python.org/pypi/hickle)
 [![PyPI - Python Versions](https://img.shields.io/pypi/pyversions/hickle.svg?logo=python&logoColor=white&label=Python)](https://pypi.python.org/pypi/hickle)
-[![Travis CI - Build Status](https://img.shields.io/travis/com/telegraphic/hickle/master.svg?logo=travis%20ci&logoColor=white&label=Travis%20CI)](https://travis-ci.com/telegraphic/hickle)
-[![AppVeyor - Build Status](https://img.shields.io/appveyor/ci/telegraphic/hickle/master.svg?logo=appveyor&logoColor=white&label=AppVeyor)](https://ci.appveyor.com/project/telegraphic/hickle)
 [![CodeCov - Coverage Status](https://img.shields.io/codecov/c/github/telegraphic/hickle/master.svg?logo=codecov&logoColor=white&label=Coverage)](https://codecov.io/gh/telegraphic/hickle/branches/master)
 [![JOSS Status](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg)](http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847)
 
@@ -339,6 +337,7 @@ or other data structures which can be mapped to `h5py.Datasets` and `load_MyClas
 Recent changes
 --------------
 
+* December 2021: Release of version 5, support for h5py >= 3.0 and numpy >= 1.21
 * June 2020: Major refactor to version 4, and removal of support for Python 2.
 * December 2018: Accepted to Journal of Open-Source Software (JOSS).
 * June 2018: Major refactor and support for Python 3.
