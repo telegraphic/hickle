@@ -165,8 +165,6 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
         dict:
             dictionary with 'file' and 'name' items
 
-    plugin 
-
     mode (str): optional
         string indicating how the file shall be opened. For details see Python `open`.
         
