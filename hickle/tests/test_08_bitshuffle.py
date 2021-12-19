@@ -39,4 +39,6 @@ def test_08_bitshuffle():
     # Cleanup.
     os.remove(H5_FILE)
 
-test_08_bitshuffle()
+
+if __name__ == "__main__":
+    test_08_bitshuffle()
