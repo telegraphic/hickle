@@ -51,7 +51,7 @@ from hickle import __version__
 from .helpers import (
     PyContainer, NotHicklable
 )
-from .fileio import FileError, file_opener
+from .fileio import ClosedFileError, FileError, file_opener
 from .lookup import (
     #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
     create_pickled_dataset, fix_lambda_obj_type,ReferenceManager,
