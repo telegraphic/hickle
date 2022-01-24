@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pytest
 import hickle as hkl
 from hickle.hickle_bshuf import BitShuffleLz4
 
@@ -19,6 +20,7 @@ def validator(label, array_A, array_B):
     assert np.all((array_A, array_B))
 
 
+@pytest.mark.no_compression
 def test_08_bitshuffle():    
     # Uncompressed.
     hkl.dump(array1, H5_FILE, mode="w")
