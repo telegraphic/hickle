@@ -38,7 +38,7 @@ jobs:
          python -m pip install --upgrade pip setuptools wheel virtualenv
          python -m pip install tox tox-gh-actions
      - name: Install test requirements
-        if: ${{ matrix.architecture  != 'x86' }}
+        if: ${{ matrix.architecture != 'x86' }}
         run: |
           python -m pip install -r requirements_test.txt
      - name: install test windows 32 bit requirements
@@ -46,7 +46,7 @@ jobs:
         run: |
           python -m pip install -r requirements32_test.txt
      - name: Test deployment
-       run: |
+       run: | 
          check-manifest
          python setup.py sdist bdist_wheel
          twine check dist/*
