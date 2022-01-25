@@ -38,6 +38,14 @@ jobs:
          python -m pip install --upgrade pip setuptools wheel virtualenv
          pip install -r requirements_test.txt
          pip install tox tox-gh-actions
+     - name: Install test requirements
+	if: ${{ matrix.architecture  != 'x86' }}
+	run: |
+	  pip install -r requirements_test.txt
+	- name: install test windows 32 bit requirements
+	if: ${{ matrix.architecture  == 'x86' }}
+	run: |
+	  pip install -r requirements32_test.txt
      - name: Test deployment
        run: |
          check-manifest
