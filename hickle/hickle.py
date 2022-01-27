@@ -314,7 +314,7 @@ def load(file_obj, path='/', safe=True, filename = None):
     """
 
     # Try to read the provided file_obj as a hickle file
-    h5f, path, close_flag = file_opener(file_obj, path, 'r')
+    h5f, path, close_flag = file_opener(file_obj, path, 'r', filename)
     try:
         h_root_group = h5f.get(path,None) # only used by v4
         if not isinstance(h_root_group,h5.Group):
