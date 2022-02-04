@@ -14,10 +14,7 @@ class BitShuffleLz4:
 
     
     def __init__(self):
-        try:
-            import hdf5plugin
-        except:
-            raise ModuleNotFoundError("*** BitShuffleLz4: Missing required Python package 'hdf5plugin' ***")
+        import hdf5plugin
         self.compression = hdf5plugin.Bitshuffle(nelems=0, lz4=True)["compression"]
         self.compression_opts = hdf5plugin.Bitshuffle(nelems=0, lz4=True)["compression_opts"]
 
