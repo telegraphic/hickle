@@ -11,7 +11,7 @@ array1 = np.random.rand(16, 1, 1048576)
 
 
 def install_hdf5plugin():
-    cmd = "python3 -m pip install -U --user hdf5plugin"
+    cmd = "python3 -m pip install -U hdf5plugin"
     exit_code = os.system(cmd)
     assert exit_code == 0
 
