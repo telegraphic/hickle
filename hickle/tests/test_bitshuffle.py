@@ -1,7 +1,6 @@
 import os
 import sys
 import numpy as np
-import pytest
 import hickle as hkl
 from hickle.hickle_bshuf import BitShuffleLz4
 
@@ -35,7 +34,6 @@ def validator(label, array_A, array_B):
 
 @pytest.mark.no_compression
 @pytest.mark.skipif(sys.platform == "win32" and sys.maxsize < 2**32, reason="no wheel for hdf5plugin available on windows 32 bit")
-@pytest.mark.order(1)
 def test_using_bitshuffle():
     # Uncompressed.
     hkl.dump(array1, H5_FILE, mode="w")
