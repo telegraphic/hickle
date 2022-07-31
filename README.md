@@ -125,16 +125,16 @@ def create_MyClass_dataset(py_obj, h_group, name, **kwargs):
     **kwargs ... the compression keyword arguments passed to hickle.dump
 
     # if content of MyClass can be represented as single matrix, vector or scalar
-    # values than created a dataset of approriate size. and either set its shape and 
-    # dtype parameters # to the approriate size and tyoe . or directly pass the data
-    # using the data parmameter
+    # values than created a dataset of appropriate size. and either set its shape and 
+    # dtype parameters # to the appropriate size and tyoe . or directly pass the data
+    # using the data parameter
     ds = h_group.create_dataset(name,data = py_obj.value,**kwargs)
 
 	## NOTE: if your class represents a scalar using empty tuple for shape
     ##       than kwargs have to be filtered by no_compression
     # ds = h_group.create_dataset(name,data = py_obj.value,shape=(),**no_compression(kwargs))
 
-	# set addtional attributes providing additional specialisation of content
+	# set additional attributes providing additional specialisation of content
     ds.attrs['name'] = py_obj.name
 
     # when done return the new dataset object and an empty tuple or list
@@ -172,7 +172,7 @@ def create_MyClass_dataset(py_obj, h_group, name, **kwargs):
 
     ds = h_group.create_group(name)
 
-	# set addtional attributes providing additional specialisation of content
+	# set additional attributes providing additional specialisation of content
     ds.attrs['name'] = py_obj.name
 
     # when done return the new dataset object and a tuple, list or generator function
@@ -206,7 +206,7 @@ class MyClassContainer(PyContainer):
 	def filter(self,h_parent): # optional overload
         """
 		generator member functoin which can be overloaded to reorganize subitems
-        of h_parent h5py.Group before beeing restored by hickle. Its default
+        of h_parent h5py.Group before being restored by hickle. Its default
         implementation simply yields from h_parent.items(). 
 		"""
 		yield from super().filter(h_parent)
@@ -248,7 +248,7 @@ LoaderManager.register_class(
    create_MyClass_Dataset, # the create dataset function defined in first example above
    load_MyClass,           # the load dataset function defined in first example above
    None,                   # usually None
-   True,                   # Set to False to force explcit storage of MyClass instances in any case 
+   True,                   # Set to False to force explicit storage of MyClass instances in any case 
    'custom'                # Loader is only used when custom loaders are enabled on calling hickle.dump
 )
 
@@ -259,7 +259,7 @@ LoaderManager.register_class(
    create_MyClass_Dataset, # the create dataset function defined in first example above
    None,                   # usually None
    MyClassContainer        # the PyContainer to be used to restore content of MyClass
-   True,                   # Set to False to force explcit storage of MyClass instances in any case 
+   True,                   # Set to False to force explicit storage of MyClass instances in any case 
    None                    # if set to None loader is enabled unconditionally
 )
 
@@ -299,7 +299,7 @@ class_register = [
      create_MyClass_Dataset, # the create dataset function defined in first example above
      load_MyClass,           # the load dataset function defined in first example above
      None,                   # usually None
-     True,                   # Set to False to force explcit storage of MyClass instances in any case 
+     True,                   # Set to False to force explicit storage of MyClass instances in any case 
      'custom'                # Loader is only used when custom loaders are enabled on calling hickle.dump
    ],
    [ MyClass,                # MyClass type object this loader handles
@@ -307,7 +307,7 @@ class_register = [
      create_MyClass_Dataset, # the create dataset function defined in first example above
      None,                   # usually None
      MyClassContainer        # the PyContainer to be used to restore content of MyClass
-     True,                   # Set to False to force explcit storage of MyClass instances in any case 
+     True,                   # Set to False to force explicit storage of MyClass instances in any case 
      None                    # if set to None loader is enabled unconditionally
    ]
 ]
@@ -325,7 +325,7 @@ such that they can be compressed when stored see default loader modules in  `hic
 
 ### Note: storing complex objects in HDF5 file
 The HDF5 file format is designed to store several big matrices, images and vectors efficiently
-and attache some metadata and to provide a convenient way access the data through a tree structure.
+and attach some metadata and to provide a convenient way access the data through a tree structure.
 It is not designed like python pickle format for efficiently mapping the in memory object structure
 to a file. Therefore mindlessly storing plenty of tiny objects and scalar values without combining
 them into a single datataset will cause the HDF5 and thus the file created by hickle explode. File

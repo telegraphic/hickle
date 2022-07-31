@@ -193,7 +193,7 @@ def create_listlike_dataset(py_obj, h_group, name,list_len = -1,item_dtype = Non
             dataset[index] = item_dtype.type(item)
         return dataset,()
 
-    # crate group and provide generator yielding all subitems to be stored within
+    # create group and provide generator yielding all subitems to be stored within
     item_name = "data{:d}"
     def provide_listlike_items():
         for index,item in enumerate(py_obj,0):

@@ -605,7 +605,7 @@ class ReferenceManager(BaseManager, dict):
         base_type (bytes):
             the base-type bytes string of the loader used to create the h_node and
             restore an object instance form on load. If None no 'hickle_types_table'
-            will be crated for py_obj_type if not already present and a LookupError
+            will be created for py_obj_type if not already present and a LookupError
             exception is raised instead.
 
         attr_name (str):

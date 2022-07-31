@@ -106,7 +106,7 @@ def _dump(py_obj, h_group, name, memo, loader,attrs={} , **kwargs):
     py_obj_ref = memo.get(py_obj_id,None)
     if py_obj_ref is not None:
 
-        # py_object already dumped to hdf5 file store a refrence to it instead
+        # py_object already dumped to hdf5 file store a reference to it instead
         # instead of dumping it again.
         #
         # Note: reference dataset share their base_type and py_obj_type with the
