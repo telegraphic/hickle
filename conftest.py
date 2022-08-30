@@ -68,7 +68,7 @@ def _get_trace_function(trace_function):
 
 # keyword arguments to yield from compression_kwargs fixture below
 # may in future become a list of dictionaries to be yieled for
-# running same test with different sets of compression keywors
+# running same test with different sets of compression keywords
 # (implizit parametrization of tests)
 _compression_args =  dict(
     compression='gzip',
@@ -86,7 +86,7 @@ def pytest_configure(config):
     global _test_compression
 
     config.addinivalue_line(
-        "markers","no_compression: do not enforce h5py comression hardening testing"
+        "markers","no_compression: do not enforce h5py compression hardening testing"
     )
     if _test_compression is not None:
         return
@@ -115,9 +115,9 @@ def compression_kwargs(request):
 # is called
 _trace_register_class = {}
 
-# list of dump_functions to be traced with respect to beeing
-# passed the compression related keywords provided throug compression_kwargs
-# fixture above. In case a call to any of theses does not include at least these
+# list of dump_functions to be traced with respect to being
+# passed the compression related keywords provided through compression_kwargs
+# fixture above. In case a call to any of these does not include at least these
 # keywords an AssertionError Exception is raised.
 _trace_functions = collections.OrderedDict()
 
@@ -135,7 +135,7 @@ def _chain_profile_call(frame,event,arg):
         if next_call:
             _trace_profile_call = next_call
 
-# argument names which correspond to argument beeing passed dump_function
+# argument names which correspond to argument being passed dump_function
 # object
 _trace_function_arg_names = {'dump_function'}
 
@@ -254,7 +254,7 @@ def traceback_from_frame(frame,stopafter):
     
 def pytest_collection_finish(session):
     """
-    collect all test functions for which comression related keyword monitoring
+    collect all test functions for which compression related keyword monitoring
     shall be disabled.
     """
     if not sys.getprofile() == _trace_loader_funcs:
