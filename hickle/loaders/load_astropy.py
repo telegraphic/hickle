@@ -127,15 +127,17 @@ def create_astropy_time(py_obj, h_group, name, **kwargs):
     tuple containing h5py.Dataset representing astropy time and empty subitems
     """
 
-    # Need to catch string times
+    # Need to catch string times, e.g. 1999-01-01T00:00:00.123
+    # Must be encoded into bytes. 
     if 'str' in py_obj.value.dtype.name:
+        bytes_dtype_str = py_obj.value.dtype.str.replace('<U', '|S')
         d = h_group.create_dataset(
             name,
-            data = np.array([item.encode('ascii') for item in py_obj.value ]),
+            data = np.array(py_obj.value.astype(bytes_dtype_str)),
             **kwargs
         )
     else:
-        d = h_group.create_dataset(name,data = py_obj.value,dtype = py_obj.value.dtype)
+        d = h_group.create_dataset(name, data=py_obj.value, dtype=py_obj.value.dtype)
     d.attrs['np_dtype'] = py_obj.value.dtype.str.encode('ascii')
 
     d.attrs['format'] = str(py_obj.format).encode('ascii')
@@ -258,7 +260,9 @@ def load_astropy_time_dataset(h_node,base_type,py_obj_type):
     if dtype:
         dtype = np.dtype(dtype)
         if 'str' in dtype.name:
-            return py_obj_type(np.array([item.decode('ascii') for item in h_node[()]],dtype=dtype), format=fmt, scale=scale)
+            bytes_dtype_str = dtype.str.replace('|S', '<U')
+            time_data = np.array(h_node[()]).astype(bytes_dtype_str)
+            return py_obj_type(time_data, format=fmt, scale=scale)
         return py_obj_type(np.array(h_node[()],dtype=dtype), format=fmt, scale=scale)
     return py_obj_type(np.array(h_node[()],dtype = h_node.dtype), format=fmt, scale=scale)
 
