@@ -130,43 +130,53 @@ def test_astropy_time_array(h5_data,compression_kwargs):
     """
     test proper storage and loading of astropy time representations
     """
+    
+    loop_counter = 0
 
-    times = ['1999-01-01T00:00:00.123456789', '2010-01-01T00:00:00']
-    t1 = Time(times, format='isot', scale='utc')
+    
+    for times in ([58264, 58265, 58266], [[58264, 58265, 58266], [58264, 58265, 58266]]):
+        t1 = Time(times, format='mjd', scale='utc')
+        
+        h_dataset, subitems = load_astropy.create_astropy_time(t1,h5_data, f'time_{loop_counter}',**compression_kwargs)
+        assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
+        assert h_dataset.attrs['format'] in( str(t1.format).encode('ascii'),str(t1.format))
+        assert h_dataset.attrs['scale'] in ( str(t1.scale).encode('ascii'),str(t1.scale))
+        assert h_dataset.attrs['np_dtype'] in( t1.value.dtype.str.encode('ascii'),t1.value.dtype.str)
+        reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
+        assert reloaded.value.shape == t1.value.shape
+        assert reloaded.format == t1.format
+        assert reloaded.scale == t1.scale
+        for index in range(len(t1)):
+            assert np.allclose(reloaded.value[index], t1.value[index])
+        loop_counter += 1
 
-    h_dataset,subitems = load_astropy.create_astropy_time(t1,h5_data,'time1',**compression_kwargs)
-    assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs['format'] in (str(t1.format).encode('ascii'),str(t1.format))
-    assert h_dataset.attrs['scale'] in (str(t1.scale).encode('ascii'),str(t1.scale))
-    assert h_dataset.attrs['np_dtype'] in ( t1.value.dtype.str.encode('ascii'),t1.value.dtype.str)
-    reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
-    assert reloaded.value.shape == t1.value.shape
-    assert reloaded.format == t1.format
-    assert reloaded.scale == t1.scale
-    for index in range(len(t1)):
-        assert reloaded.value[index] == t1.value[index]
-    del h_dataset.attrs['np_dtype']
+    t_strings = ['1999-01-01T00:00:00.123456789', '2010-01-01T00:00:00']
+    
+    # Check that 2D time arrays work as well (github issue #162)
+    for times in (t_strings, [t_strings, t_strings]):
+        t1 = Time(times, format='isot', scale='utc')
 
-    reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
-    assert reloaded.value.shape == t1.value.shape
-    assert reloaded.format == t1.format
-    assert reloaded.scale == t1.scale
-    for index in range(len(t1)):
-        assert reloaded.value[index] == t1.value[index]
+        h_dataset,subitems = load_astropy.create_astropy_time(t1,h5_data,f'time_{loop_counter}',**compression_kwargs)
+        assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
+        assert h_dataset.attrs['format'] in (str(t1.format).encode('ascii'),str(t1.format))
+        assert h_dataset.attrs['scale'] in (str(t1.scale).encode('ascii'),str(t1.scale))
+        assert h_dataset.attrs['np_dtype'] in ( t1.value.dtype.str.encode('ascii'),t1.value.dtype.str)
+        reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
+        assert reloaded.value.shape == t1.value.shape
+        assert reloaded.format == t1.format
+        assert reloaded.scale == t1.scale
+        for index in range(len(t1)):
+             assert reloaded.value[index].tostring() == t1.value[index].tostring()
+        del h_dataset.attrs['np_dtype']
 
-    times = [58264, 58265, 58266]
-    t1 = Time(times, format='mjd', scale='utc')
-    h_dataset,subitems = load_astropy.create_astropy_time(t1,h5_data,'time2',**compression_kwargs)
-    assert isinstance(h_dataset,h5.Dataset) and not subitems and iter(subitems)
-    assert h_dataset.attrs['format'] in( str(t1.format).encode('ascii'),str(t1.format))
-    assert h_dataset.attrs['scale'] in ( str(t1.scale).encode('ascii'),str(t1.scale))
-    assert h_dataset.attrs['np_dtype'] in( t1.value.dtype.str.encode('ascii'),t1.value.dtype.str)
-    reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
-    assert reloaded.value.shape == t1.value.shape
-    assert reloaded.format == t1.format
-    assert reloaded.scale == t1.scale
-    for index in range(len(t1)):
-        assert reloaded.value[index] == t1.value[index]
+        reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
+        assert reloaded.value.shape == t1.value.shape
+        assert reloaded.format == t1.format
+        assert reloaded.scale == t1.scale
+        for index in range(len(t1)):
+            assert reloaded.value[index].tostring() == t1.value[index].tostring()
+        loop_counter += 1
+
 
 
 def test_astropy_angle(h5_data,compression_kwargs):

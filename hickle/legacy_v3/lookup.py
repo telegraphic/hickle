@@ -187,7 +187,7 @@ def register_class_list(class_list):
         register_class(*class_item)
 
 def register_class_exclude(hkl_str_to_ignore):
-    """ Tell loading funciton to ignore any HDF5 dataset with attribute 'type=XYZ'
+    """ Tell loading function to ignore any HDF5 dataset with attribute 'type=XYZ'
 
     Args:
         hkl_str_to_ignore (str): attribute type=string to ignore and exclude from loading.

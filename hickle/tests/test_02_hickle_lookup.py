@@ -628,7 +628,7 @@ def test_LoaderManager_load_loader(loader_table,h5_data,monkeypatch):
             moc_import_lib.setattr("hickle.lookup.find_spec",patch_importlib_util_find_spec)
             sys.modules['hickle.loaders.load_builtins'] = backup_load_builtins
             loader.types_dict[dict] = backup_py_obj_type
-            # not added by missing legacy .pyc test readd manually here
+            # not added by missing legacy .pyc test re-add manually here
             lookup.LoaderManager.__loaded_loaders__.add('hickle.loaders.load_builtins')
             lookup._custom_loader_enabled_builtins.pop(py_obj_type.__class__.__module__,None)
     
