@@ -79,7 +79,7 @@ assert np.all((array_hkl, array_obj))
 
 A major benefit of `hickle` over `pickle` is that it allows fancy HDF5 features to
 be applied, by passing on keyword arguments on to `h5py`. So, you can do things like:
-  ```python
+  ```Python
   hkl.dump(array_obj, 'test_lzf.hkl', mode='w', compression='lzf', scaleoffset=0,
            chunks=(100, 100), shuffle=True, fletcher32=True)
   ```
@@ -102,7 +102,7 @@ Starting with version 4.x hickle offers the possibility to define dedicated load
 classes and starting with hickle 5.x these can be collected in module, package and application specific
 loader modules. 
 
-```
+```Python
 class MyClass():
     def __init__(self):
         self.name = 'MyClass'
@@ -112,46 +112,47 @@ class MyClass():
 To create a loader for `MyClass` the `create_MyClass_dataset` and either the `load_MyClass` or the 
 `MyClassContainer` class have to be defined. 
 
-```
+```Python
 import hdf5
-form hickle.helpters import no_compression
-
+from hickle.helpers import no_compression
 
 def create_MyClass_dataset(py_obj, h_group, name, **kwargs):
-    """ 
-    py_obj ..... the instance of MyClass to be dumped
-    h_group .... the h5py.Group py_obj should be dumped into
-    name ....... the name of the h5py.Dataset or h5py.Group representing py_obj
-    **kwargs ... the compression keyword arguments passed to hickle.dump
-
-    # if content of MyClass can be represented as single matrix, vector or scalar
-    # values than created a dataset of appropriate size. and either set its shape and 
-    # dtype parameters # to the appropriate size and tyoe . or directly pass the data
-    # using the data parameter
-    ds = h_group.create_dataset(name,data = py_obj.value,**kwargs)
+	""" 
+	py_obj ..... the instance of MyClass to be dumped
+	h_group .... the h5py.Group py_obj should be dumped into
+	name ....... the name of the h5py.Dataset or h5py.Group representing py_obj
+	**kwargs ... the compression keyword arguments passed to hickle.dump
+	"""
+	
+	# if content of MyClass can be represented as single matrix, vector or scalar
+	# values than created a dataset of appropriate size. and either set its shape and 
+	# dtype parameters # to the appropriate size and tyoe . or directly pass the data
+	# using the data parameter
+	ds = h_group.create_dataset(name,data = py_obj.value,**kwargs)
 
 	## NOTE: if your class represents a scalar using empty tuple for shape
-    ##       than kwargs have to be filtered by no_compression
-    # ds = h_group.create_dataset(name,data = py_obj.value,shape=(),**no_compression(kwargs))
+	##       then kwargs have to be filtered by no_compression
+	# ds = h_group.create_dataset(name,data = py_obj.value,shape=(),**no_compression(kwargs))
 
 	# set additional attributes providing additional specialisation of content
-    ds.attrs['name'] = py_obj.name
+	ds.attrs['name'] = py_obj.name
 
-    # when done return the new dataset object and an empty tuple or list
-    return ds,()
+	# when done return the new dataset object and an empty tuple or list
+	return ds,()
 
 def load_Myclass(h_node, base_type, py_obj_type):
-    """
-    h_node ........ the h5py.Dataset object containing the data of MyClass object to restore
-    base_type ..... byte string naming the loader to be used for restoring MyClass object
-    py_obj_type ... MyClass class or MyClass subclass object 
-    """
+	"""
+	h_node ........ the h5py.Dataset object containing the data of MyClass object to restore
+	base_type ..... byte string naming the loader to be used for restoring MyClass object
+	py_obj_type ... MyClass class or MyClass subclass object 
+	"""
 
-    # py_obj_type should point to MyClass or any of its subclasses
-    new_instance = py_obj_type()
-    new_instance.name = h_node.attrs['name']
-    new_instance.value = h_node[()]
-    return new_instance
+	# py_obj_type should point to MyClass or any of its subclasses
+	new_instance = py_obj_type()
+	new_instance.name = h_node.attrs['name']
+	new_instance.value = h_node[()]
+	
+	return new_instance
 ```
 
 For dumping content of complex objects consisting of multiple sub-items which have to be
@@ -159,86 +160,87 @@ stored as individual h5py.Dataset or h5py.Group objects than define `create_MyCl
 using `create_group` method instead of `create_dataset` and define the corresponding
 `MyClassContainer` class.
 
-```
+```Python
 import h5py
 from hickle.helpers import PyContainer
 
 def create_MyClass_dataset(py_obj, h_group, name, **kwargs):
-    """ 
-    py_obj ..... the instance of MyClass to be dumped
-    h_group .... the h5py.Group py_obj should be dumped into
-    name ....... the name of the h5py.Dataset or h5py.Group representing py_obj
-    **kwargs ... the compression keyword arguments passed to hickle.dump
-
-    ds = h_group.create_group(name)
+	""" 
+	py_obj ..... the instance of MyClass to be dumped
+	h_group .... the h5py.Group py_obj should be dumped into
+	name ....... the name of the h5py.Dataset or h5py.Group representing py_obj
+	**kwargs ... the compression keyword arguments passed to hickle.dump
+	"""
+	
+	ds = h_group.create_group(name)
 
 	# set additional attributes providing additional specialisation of content
-    ds.attrs['name'] = py_obj.name
+	ds.attrs['name'] = py_obj.name
 
-    # when done return the new dataset object and a tuple, list or generator function
+	# when done return the new dataset object and a tuple, list or generator function
 	# providing for all subitems a tuple or list describing containgin 
-    #  name ..... the name to be used storing the subitem within the h5py.Group object
-    #  item ..... the subitem object to be stored
-    #  attrs .... dictionary included in attrs of created h5py.Group or h5py.Dataset
-    #  kwargs ... the kwargs as passed to create_MyClass_dataset function
-    return ds,(('name',py_obj.name,{},kwargs),('value',py_obj.value,{'the answer':True},kwargs))
-
+	#  name ..... the name to be used storing the subitem within the h5py.Group object
+	#  item ..... the subitem object to be stored
+	#  attrs .... dictionary included in attrs of created h5py.Group or h5py.Dataset
+	#  kwargs ... the kwargs as passed to create_MyClass_dataset function
+	return ds,(('name',py_obj.name,{},kwargs),('value',py_obj.value,{'the answer':True},kwargs))
 
 
 class MyClassContainer(PyContainer):
-    """
-    Valid container classes must be derived from hickle.helpers.PyContainer class
-    """
+	"""
+	Valid container classes must be derived from hickle.helpers.PyContainer class
+	"""
 
-    def __init__(self,h5_attrs,base_type,object_type):
+	def __init__(self,h5_attrs,base_type,object_type):
 		"""
 		h5_attrs ...... the attrs dictionary attached to the group representing MyClass
-    	base_type ..... byte string naming the loader to be used for restoring MyClass object
-    	py_obj_type ... MyClass class or MyClass subclass object 
+		base_type ..... byte string naming the loader to be used for restoring MyClass object
+		py_obj_type ... MyClass class or MyClass subclass object 
 		"""
 
 		# the optional protected _content parameter of the PyContainer __init__
-        # method can be used to change the data structure used to store
-        # the subitems passed to the append method of the PyContainer class
-        # per default it is set to []
-        super().__init__(h5_attrs,base_type,object_type,_content = dict())
+		# method can be used to change the data structure used to store
+		# the subitems passed to the append method of the PyContainer class
+		# per default it is set to []
+		super().__init__(h5_attrs,base_type,object_type,_content = dict())
 
 	def filter(self,h_parent): # optional overload
-        """
+		"""
 		generator member functoin which can be overloaded to reorganize subitems
-        of h_parent h5py.Group before being restored by hickle. Its default
-        implementation simply yields from h_parent.items(). 
+		of h_parent h5py.Group before being restored by hickle. Its default
+		implementation simply yields from h_parent.items(). 
 		"""
 		yield from super().filter(h_parent)
 
 	def append(self,name,item,h5_attrs): # optional overload
-        """
+		"""
 		in case _content parameter was explicitly set or subitems should be sored 
-        in specific order or have to be preprocessed before the next item is appended
-        than this can be done before storing in self._content.
+		in specific order or have to be preprocessed before the next item is appended
+		than this can be done before storing in self._content.
 
-        name ....... the name identifying subitem item within the parent hdf5.Group
-        item ....... the object representing the subitem
-        h5_attrs ... attrs dictionary attached to h5py.Dataset, h5py.Group representing item
+		name ....... the name identifying subitem item within the parent hdf5.Group
+		item ....... the object representing the subitem
+		h5_attrs ... attrs dictionary attached to h5py.Dataset, h5py.Group representing item
 		"""
 		self._content[name] = item
 
 	def convert(self):
-        """
+		"""
 		called by hickle when all sub items have been appended to MyClass PyContainer
 		this method must be implemented by MyClass PyContainer.
 		"""
 
-    	# py_obj_type should point to MyClass or any of its subclasses
-    	new_instance = py_obj_type()
+		# py_obj_type should point to MyClass or any of its subclasses
+		new_instance = py_obj_type()
 		new_instance.__dict__.update(self._content)
+		
 		return new_instance
 ```
 
 In a last step the loader for MyClass has to be registered with hickle. This is done by calling
 `hickle.lookup.LoaderManager.register_class` method
 
-```
+```Python
 from hickle.lookup import LoaderManager
 
 # to register loader for object mapped to h5py.Dataset use
@@ -279,7 +281,7 @@ For packages and application packages the `load_MyPackage.py` loader module has 
 `hickle_loaders` directory of the package directory (the first which contains a __init__.py file) and
 should be structured as follows.
 
-```
+```Python
 from hickle.helpers import PyContainer
 
 ## define below all create_MyClass_dataset load_MyClass functions and MyClassContainer classes
@@ -331,7 +333,7 @@ to a file. Therefore mindlessly storing plenty of tiny objects and scalar values
 them into a single datataset will cause the HDF5 and thus the file created by hickle explode. File
 sizes of several 10 GB are likely and possible when a pickle file would just need some 100 MB.
 This can be prevented by `create_MyClass_dataset` method combining sub-items into bigger numpy arrays
-or other data structures which can be mapped to `h5py.Datasets` and `load_MyClass` function and /or 
+or other data structures which can be mapped to `h5py.Datasets` and `load_MyClass` function and/or 
 `MyClassContainer.convert` method restoring actual structure of the sub-items on load.
 
 Recent changes
