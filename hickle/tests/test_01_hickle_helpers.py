@@ -150,7 +150,7 @@ def test_H5NodeFilterProxy(h5_data):
     # to wrapped h5py.Group or h5py.Dataset object respective
     assert object_type(h5_node[()].tolist()) == list(dummy_data)
     assert h5_node.shape == np.array(dummy_data).shape
-    with pytest.raises(AttributeError,match = r"can't\s+set\s+attribute"):
+    with pytest.raises(AttributeError,match = r"(object has no setter|can't\s+set\s+attribute)"):
         h5_node.dtype = np.float32
 
 def test_not_io_base_like(test_file_name):
