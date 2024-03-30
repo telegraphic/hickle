@@ -12,18 +12,23 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        architecture: [x86, x64]
+        architecture: [x64, arm64]
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.6, 3.7, 3.8] #, 3.9] still disabled as astropy has problems
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
         exclude:
+          - os: windows-latest
+            architecture: arm64
           - os: ubuntu-latest
-            architecture: x86
+            architecture: arm64
+          - os: macos-latest     # Support from 3.10 onwards
+            architecture: arm64
+            python-version: '3.7'
           - os: macos-latest
-            architecture: x86
-          # disabled for now as python 3.9 not yet in matrix
-          #- python-version: [3.9] # exclude python >= 3.9 cause no h5py win32 wheels
-          #  - os: windows-latest
-          #    architecture: x86
+            architecture: arm64
+            python-version: '3.8'
+          - os: macos-latest
+            architecture: arm64
+            python-version: '3.9'
       fail-fast: false
 
     steps:

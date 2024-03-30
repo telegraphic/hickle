@@ -16,6 +16,7 @@ import os
 import re
 from pprint import pprint
 import pickle
+import warnings
 
 
 # Package imports
@@ -742,7 +743,7 @@ def test_scalar_compression(test_file_name):
     (Scalars are incompressible!)
     https://github.com/telegraphic/hickle/issues/37
     """
-    data = {'a': 0, 'b': np.float(2), 'c': True}
+    data = {'a': 0, 'b': float(2), 'c': True}
 
     dump(data, test_file_name, compression='gzip')
     data2 = load(test_file_name)
@@ -793,9 +794,9 @@ def test_slash_dict_keys(test_file_name,compression_kwargs):
 
     # Check that having backslashes in dict keys will serialize the dict
     dct2 = {'a\\b': [1, '2'], 1.4: 3}
-    with pytest.warns(None) as not_expected:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         dump(dct2, test_file_name,**compression_kwargs)
-    assert not not_expected
 
 
 # %% MAIN SCRIPT
