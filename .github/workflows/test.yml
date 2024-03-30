@@ -18,6 +18,17 @@ jobs:
         exclude:
           - os: windows-latest
             architecture: arm64
+          - os: ubuntu-latest
+            architecture: arm64
+          - os: macos-latest     # Support from 3.10 onwards
+            architecture: arm64
+            python-version: '3.7'
+          - os: macos-latest
+            architecture: arm64
+            python-version: '3.8'
+          - os: macos-latest
+            architecture: arm64
+            python-version: '3.9'
       fail-fast: false
 
     steps:
