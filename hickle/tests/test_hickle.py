@@ -743,7 +743,7 @@ def test_scalar_compression(test_file_name):
     (Scalars are incompressible!)
     https://github.com/telegraphic/hickle/issues/37
     """
-    data = {'a': 0, 'b': np.float(2), 'c': True}
+    data = {'a': 0, 'b': float(2), 'c': True}
 
     dump(data, test_file_name, compression='gzip')
     data2 = load(test_file_name)
