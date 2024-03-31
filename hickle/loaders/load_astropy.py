@@ -132,7 +132,7 @@ def create_astropy_time(py_obj, h_group, name, **kwargs):
     # Must be encoded into bytes. 
     if 'str' in py_obj.value.dtype.name:
         # 2024.03.31 - Convert both big and little endians to |S dtype
-        bytes_dtype_str = py_obj.value.dtype.str.replace('<U', '|S').replace('|S', '>U')
+        bytes_dtype_str = py_obj.value.dtype.str.replace('<U', '|S').replace('>U', '|S')
         d = h_group.create_dataset(
             name,
             data = np.array(py_obj.value.astype(bytes_dtype_str)),
