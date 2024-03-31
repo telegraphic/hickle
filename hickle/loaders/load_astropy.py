@@ -6,6 +6,7 @@ from astropy.table import Table
 from astropy.time import Time
 from astropy.units import Quantity
 import numpy as np
+import sys
 
 # hickle imports
 from hickle.helpers import no_compression,load_str_list_attr_ascii,load_str_attr_ascii
@@ -130,7 +131,8 @@ def create_astropy_time(py_obj, h_group, name, **kwargs):
     # Need to catch string times, e.g. 1999-01-01T00:00:00.123
     # Must be encoded into bytes. 
     if 'str' in py_obj.value.dtype.name:
-        bytes_dtype_str = py_obj.value.dtype.str.replace('<U', '|S')
+        # 2024.03.31 - Convert both big and little endians to |S dtype
+        bytes_dtype_str = py_obj.value.dtype.str.replace('<U', '|S').replace('>U', '|S')
         d = h_group.create_dataset(
             name,
             data = np.array(py_obj.value.astype(bytes_dtype_str)),
@@ -260,7 +262,9 @@ def load_astropy_time_dataset(h_node,base_type,py_obj_type):
     if dtype:
         dtype = np.dtype(dtype)
         if 'str' in dtype.name:
-            bytes_dtype_str = dtype.str.replace('|S', '<U')
+            # 2024.03.31 - take system endian-ness into account
+            ustr = '<U' if sys.byteorder == 'little' else '>U'
+            bytes_dtype_str = dtype.str.replace('|S', ustr)
             time_data = np.array(h_node[()]).astype(bytes_dtype_str)
             return py_obj_type(time_data, format=fmt, scale=scale)
         return py_obj_type(np.array(h_node[()],dtype=dtype), format=fmt, scale=scale)
