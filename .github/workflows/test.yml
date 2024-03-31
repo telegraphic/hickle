@@ -12,15 +12,31 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        architecture: [x64, arm64]
+        architecture: [x64, arm64, s390x]
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
         exclude:
           - os: windows-latest
             architecture: arm64
+          - os: windows-latest
+            architecture: s390x
           - os: ubuntu-latest
             architecture: arm64
-          - os: macos-latest     # Support from 3.10 onwards
+          - os: ubuntu-latest      # Only attempt S390X on Py 3.7
+            architecture: s390x
+            python-version: '3.8'
+          - os: ubuntu-latest
+            architecture: s390x
+            python-version: '3.9'
+          - os: ubuntu-latest
+            architecture: s390x
+            python-version: '3.10'
+          - os: ubuntu-latest
+            architecture: s390x
+            python-version: '3.11'
+          - os: macos-latest     
+            architecture: s390x
+          - os: macos-latest         # M1 ARM64 support from 3.10 onwards
             architecture: arm64
             python-version: '3.7'
           - os: macos-latest
