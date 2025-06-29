@@ -166,7 +166,7 @@ def test_astropy_time_array(h5_data,compression_kwargs):
         assert reloaded.format == t1.format
         assert reloaded.scale == t1.scale
         for index in range(len(t1)):
-             assert reloaded.value[index].tostring() == t1.value[index].tostring()
+             assert reloaded.value[index].tobytes() == t1.value[index].tobytes()
         del h_dataset.attrs['np_dtype']
 
         reloaded = load_astropy.load_astropy_time_dataset(h_dataset,b'astropy_time',t1.__class__)
@@ -174,7 +174,7 @@ def test_astropy_time_array(h5_data,compression_kwargs):
         assert reloaded.format == t1.format
         assert reloaded.scale == t1.scale
         for index in range(len(t1)):
-            assert reloaded.value[index].tostring() == t1.value[index].tostring()
+            assert reloaded.value[index].tobytes() == t1.value[index].tobytes()
         loop_counter += 1
 
 
