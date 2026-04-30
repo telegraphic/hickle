@@ -3,4 +3,6 @@
 build/
 dist/
 .DS_Store
-.idea
+.ideahickle.egg-info/
+docs/source/index.md
+docs/build/
