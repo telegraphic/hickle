@@ -25,7 +25,13 @@ h5py installed.
 from __future__ import absolute_import, division, print_function
 import sys
 import os
-from pkg_resources import get_distribution, DistributionNotFound
+try:
+    from pkg_resources import get_distribution, DistributionNotFound
+except ImportError:  # pkg_resources is provided by setuptools, which may be absent
+    def get_distribution(pkg):
+        raise DistributionNotFound(pkg)
+    class DistributionNotFound(Exception):
+        pass
 from ast import literal_eval
 
 import numpy as np
