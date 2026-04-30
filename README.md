@@ -18,7 +18,7 @@ Why use Hickle?
 ---------------
 
 While `hickle` is designed to be a drop-in replacement for `pickle` (or something like `json`), it works very differently.
-Instead of serializing / json-izing, it instead stores the data using the excellent [h5py](https://www.h5py.org/) module.
+Instead of serializing / json-izing, it instead stores the data using the excellent [h5py](https://www.h5py.org/) module. Hickle is particularly good at storing large numpy arrays, thanks to `h5py` running under the hood.
 
 The main reasons to use hickle are:
 
@@ -26,13 +26,15 @@ The main reasons to use hickle are:
   2. It stores data in HDF5.
   3. You can easily compress your data.
 
+There is also the [hickleable](https://github.com/steven-murray/hickleable) package, which provides a simple decorator for your classes that will almost always make them serilalize well using the excellent hickle package. `hickleable` is essentially a one-liner to transform your class into a well-supported *data format*. 
+
 The main reasons not to use hickle are:
 
   1. You don't want to store your data in HDF5. While hickle can serialize arbitrary python objects, this functionality is provided only for convenience, and you're probably better off just using the pickle module.
   2. You want to convert your data in human-readable JSON/YAML, in which case, you should do that instead.
 
 So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try.
-Hickle is particularly good at storing large numpy arrays, thanks to `h5py` running under the hood.
+
 
 Documentation
 -------------
@@ -95,9 +97,39 @@ These file-level options are abstracted away from the data model.
 
 Dumping custom objects
 ----------------------
-Hickle provides several options to store objects of custom python classes. Objects of classes derived
-from built in classes, numpy, scipy, pandas and astropy objects will be stored using the corresponding 
-loader provided by hickle. Any other classes per default will be stored as binary pickle string.
+Objects of classes derived from built in classes, numpy, scipy, pandas and astropy objects will be stored using the corresponding 
+loader provided by hickle. By default, when hickle comes across a class object that it doesn't have a handler for, it will use pickle to serialize the object, then store that pickle as a dataset. These datasets can only be read by un-pickling the data first, which means they are only easily readable in Python.
+
+If you would like a straightforward way to map your class object to the HDF5 data model, consider using the [`hickleable`](https://github.com/steven-murray/hickleable) package,  which provides a simple decorator for your classes that will almost always make them serilalize well into HDF5 datasets.
+
+Simply:
+
+```python
+from hickleable import hickleable
+
+@hickleable()
+class MyClass:
+   def __init__(self, a=1, b='foo', c={'a': 'dict'}):
+       self.a = a
+       self.b = b
+       self.c = c
+```
+
+Now, MyClass can be hickled without any 'pickling':
+
+```python
+import hickle
+
+my_obj = MyClass()
+hickle.dump(my_obj, 'temporary_file.h5')  # Note: no warnings about having to pickle
+new_obj = hickle.load('temporary_file.h5')
+```
+
+See the [hickleable documentation](https://github.com/steven-murray/hickleable) for more usage details.
+
+
+### Writing custom handlers
+
 Starting with version 4.x hickle offers the possibility to define dedicated loader functions for custom
 classes and starting with hickle 5.x these can be collected in module, package and application specific
 loader modules. 
