@@ -20,13 +20,15 @@ jobs:
             architecture: arm64
           - os: ubuntu-latest
             architecture: arm64
-          # Exclude macOS for Python 3.8/3.9 entirely - setup-python/ensurepip fails
+          # Exclude macOS for Python 3.8/3.9/3.10 entirely - setup-python/ensurepip fails
           # with a dyld abort (missing /usr/local/opt/gettext/lib/libintl.8.dylib).
-          # macOS coverage starts at Python 3.10.
+          # macOS coverage starts at Python 3.11.
           - os: macos-latest
             python-version: '3.8'
           - os: macos-latest
             python-version: '3.9'
+          - os: macos-latest
+            python-version: '3.10'
       fail-fast: false
 
     steps:
