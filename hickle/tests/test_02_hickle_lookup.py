@@ -816,7 +816,7 @@ def test_ReferenceManager_get_root(h5_data):
     content = data_group.create_dataset('mydata',data=12)
     type_table = root_group.create_group('hickle_types_table')
     int_pickle_string = bytearray(pickle.dumps(int))
-    int_np_entry = np.array(int_pickle_string,copy=False)
+    int_np_entry = np.asarray(int_pickle_string)
     int_np_entry.dtype = 'S1'
     int_entry = type_table.create_dataset(str(len(type_table)),data = int_np_entry,shape =(1,int_np_entry.size))
     int_base_type = b'int'
@@ -878,7 +878,7 @@ def test_ReferenceManager(h5_data):
     with pytest.raises(lookup.ReferenceError):
         reference_manager = lookup.ReferenceManager(false_root)
     int_pickle_string = bytearray(pickle.dumps(int))
-    int_np_entry = np.array(int_pickle_string,copy=False)
+    int_np_entry = np.asarray(int_pickle_string)
     int_np_entry.dtype = 'S1'
     int_entry = type_table.create_dataset(str(len(type_table)),data = int_np_entry,shape =(1,int_np_entry.size))
     int_base_type = b'int'
@@ -1052,7 +1052,7 @@ def test_ReferenceManager_store_type(h5_data,compression_kwargs):
 @pytest.mark.no_compression
 def test_ReferenceManager_get_manager(h5_data):
     h_node = h5_data.create_group('some_list')
-    item_data = np.array(memoryview(b'hallo welt lore grueszet dich ipsum aus der lore von ipsum gelort in ipsum'),copy=False)
+    item_data = np.asarray(memoryview(b'hallo welt lore grueszet dich ipsum aus der lore von ipsum gelort in ipsum'))
     item_data.dtype = 'S1'
     h_item = h_node.create_dataset('0',data=item_data,shape=(1,item_data.size))
     with lookup.ReferenceManager.create_manager(h5_data) as memo:
