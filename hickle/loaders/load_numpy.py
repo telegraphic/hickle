@@ -102,7 +102,7 @@ def create_np_array_dataset(py_obj, h_group, name, **kwargs):
         if py_obj.ndim < 1:
             # convert string to utf8 encoded bytearray
             string_data = bytearray(py_obj.item(),"utf8") if 'bytes' not in dtype.name else memoryview(py_obj.item())
-            string_data = np.array(string_data,copy = False)
+            string_data = np.asarray(string_data)
             string_data.dtype = 'S1'
             h_node = h_group.create_dataset(name,data = string_data,shape=(1,string_data.size),**kwargs)
             sub_items = ()
