@@ -52,12 +52,12 @@ jobs:
          TOX_H5PY_REQIREMENTS: ${{ matrix.architecture == 'x86' && '32' || ''}}
          PLATFORM: ${{ matrix.platform }}
      - name: Upload coverage
-       if: ${{ success() &&  github.repository == 'telegraphic/hickle' }}
-       uses: codecov/codecov-action@v2
+       if: ${{ success() && github.repository == 'telegraphic/hickle' && matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64' && matrix.python-version == '3.11' }}
+       uses: codecov/codecov-action@v5
        with:
            token: ${{ secrets.CODECOV_TOKEN }}
            files: coverage.xml
-           fail_ci_if_error: true
+           fail_ci_if_error: false
            verbose: true
      - name: Deploy package
        if: ${{ success() && matrix.os == 'ubuntu-latest' && github.event_name == 'push' && github.ref == 'refs/heads/master' }}
