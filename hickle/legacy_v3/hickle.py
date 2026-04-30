@@ -27,8 +27,9 @@ import sys
 import os
 try:
     from pkg_resources import get_distribution, DistributionNotFound
-except ModuleNotFoundError:  # pkg_resources is provided by setuptools, which may be absent
-    get_distribution = None
+except ImportError:  # pkg_resources is provided by setuptools, which may be absent
+    def get_distribution(pkg):
+        raise DistributionNotFound(pkg)
     class DistributionNotFound(Exception):
         pass
 from ast import literal_eval
