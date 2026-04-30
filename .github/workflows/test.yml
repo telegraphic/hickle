@@ -30,6 +30,9 @@ jobs:
 
     steps:
      - uses: actions/checkout@v2
+     - name: Install gettext (macOS)
+       if: runner.os == 'macOS'
+       run: brew update && brew install gettext && brew link --force gettext
      - name: Set up Python ${{ matrix.python-version }} ${{ matrix.architecture }}
        uses: actions/setup-python@v5
        with:
