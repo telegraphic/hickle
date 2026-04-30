@@ -14,16 +14,13 @@ jobs:
       matrix:
         architecture: [x64, arm64]
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11']
         exclude:
           - os: windows-latest
             architecture: arm64
           - os: ubuntu-latest
             architecture: arm64
           - os: macos-latest     # Support from 3.10 onwards
-            architecture: arm64
-            python-version: '3.7'
-          - os: macos-latest
             architecture: arm64
             python-version: '3.8'
           - os: macos-latest
@@ -34,7 +31,7 @@ jobs:
     steps:
      - uses: actions/checkout@v2
      - name: Set up Python ${{ matrix.python-version }} ${{ matrix.architecture }}
-       uses: actions/setup-python@v2
+       uses: actions/setup-python@v5
        with:
          python-version: ${{ matrix.python-version }}
          architecture: ${{ matrix.architecture }}
@@ -69,4 +66,3 @@ jobs:
          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
        run: |
          twine upload --skip-existing dist/*
-
