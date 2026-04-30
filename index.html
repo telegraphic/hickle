@@ -1,81 +1,45 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hickle &mdash; hickle  documentation</title>
-  
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
-          
+        <div class="wy-side-nav-search" >
 
           
-            <a href="#" class="icon icon-home"> hickle
           
-
-          
+          <a href="#" class="icon icon-home">
+            hickle
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <!-- Local TOC -->
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Hickle</a><ul>
@@ -85,11 +49,20 @@
 <li><a class="reference internal" href="#hdf5-compression-options">HDF5 compression options</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#dumping-custom-objects">Dumping custom objects</a><ul>
+<li><a class="reference internal" href="#writing-custom-handlers">Writing custom handlers</a></li>
+<li><a class="reference internal" href="#note-storing-complex-objects-in-hdf5-file">Note: storing complex objects in HDF5 file</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#recent-changes">Recent changes</a></li>
 <li><a class="reference internal" href="#performance-comparison">Performance comparison</a></li>
 <li><a class="reference internal" href="#installation-guidelines">Installation guidelines</a><ul>
-<li><a class="reference internal" href="#easy-method">Easy method</a></li>
+<li><a class="reference internal" href="#easy-method">Easy method</a><ul>
+<li><a class="reference internal" href="#install-on-windows-32-bit">Install on Windows 32 bit</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#manual-install">Manual install</a></li>
+<li><a class="reference internal" href="#optional-requirements">Optional requirements:</a></li>
 <li><a class="reference internal" href="#testing">Testing</a></li>
 </ul>
 </li>
@@ -99,136 +72,100 @@
 </li>
 </ul>
 </div>
-            
-          
         </div>
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="#">hickle</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
-      <li><a href="#">Docs</a> &raquo;</li>
-        
-      <li>Hickle</li>
-    
-    
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Hickle</li>
       <li class="wy-breadcrumbs-aside">
-        
-            
             <a href="_sources/index.md.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  <p><a class="reference external" href="https://travis-ci.org/telegraphic/hickle"><img alt="Build Status" src="https://travis-ci.org/telegraphic/hickle.svg?branch=master" /></a>
+             
+  <p><a class="reference external" href="https://pypi.python.org/pypi/hickle"><img alt="PyPI - Latest Release" src="https://img.shields.io/pypi/v/hickle.svg?logo=pypi&amp;logoColor=white&amp;label=PyPI" /></a>
+<a class="reference external" href="https://pypi.python.org/pypi/hickle"><img alt="PyPI - Python Versions" src="https://img.shields.io/pypi/pyversions/hickle.svg?logo=python&amp;logoColor=white&amp;label=Python" /></a>
+<a class="reference external" href="https://codecov.io/gh/telegraphic/hickle/branches/master"><img alt="CodeCov - Coverage Status" src="https://img.shields.io/codecov/c/github/telegraphic/hickle/master.svg?logo=codecov&amp;logoColor=white&amp;label=Coverage" /></a>
 <a class="reference external" href="http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847"><img alt="JOSS Status" src="http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847/status.svg" /></a></p>
-<div class="section" id="hickle">
-<span id="hickle"></span><h1>Hickle<a class="headerlink" href="#hickle" title="Permalink to this headline">¶</a></h1>
-<p>Hickle is a <a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a> based clone of <code class="docutils literal notranslate"><span class="pre">pickle</span></code>, with a twist: instead of serializing to a pickle file,
-Hickle dumps to a HDF5 file (Hierarchical Data Format). It is designed to be a “drop-in” replacement for pickle (for common data objects), but is
-really an amalgam of <code class="docutils literal notranslate"><span class="pre">h5py</span></code> and <code class="docutils literal notranslate"><span class="pre">dill</span></code>/<code class="docutils literal notranslate"><span class="pre">pickle</span></code> with extended functionality.</p>
+<section id="hickle">
+<h1>Hickle<a class="headerlink" href="#hickle" title="Link to this heading"></a></h1>
+<p>Hickle is an <a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a> based clone of <code class="docutils literal notranslate"><span class="pre">pickle</span></code>, with a twist: instead of serializing to a pickle file,
+Hickle dumps to an HDF5 file (Hierarchical Data Format). It is designed to be a “drop-in” replacement for pickle (for common data objects), but is
+really an amalgam of <code class="docutils literal notranslate"><span class="pre">h5py</span></code> and <code class="docutils literal notranslate"><span class="pre">pickle</span></code> with extended functionality.</p>
 <p>That is: <code class="docutils literal notranslate"><span class="pre">hickle</span></code> is a neat little way of dumping python variables to HDF5 files that can be read in most programming
 languages, not just Python. Hickle is fast, and allows for transparent compression of your data (LZF / GZIP).</p>
-<div class="section" id="why-use-hickle">
-<span id="why-use-hickle"></span><h2>Why use Hickle?<a class="headerlink" href="#why-use-hickle" title="Permalink to this headline">¶</a></h2>
+<section id="why-use-hickle">
+<h2>Why use Hickle?<a class="headerlink" href="#why-use-hickle" title="Link to this heading"></a></h2>
 <p>While <code class="docutils literal notranslate"><span class="pre">hickle</span></code> is designed to be a drop-in replacement for <code class="docutils literal notranslate"><span class="pre">pickle</span></code> (or something like <code class="docutils literal notranslate"><span class="pre">json</span></code>), it works very differently.
-Instead of serializing / json-izing, it instead stores the data using the excellent <a class="reference external" href="https://www.h5py.org/">h5py</a> module.</p>
+Instead of serializing / json-izing, it instead stores the data using the excellent <a class="reference external" href="https://www.h5py.org/">h5py</a> module. Hickle is particularly good at storing large numpy arrays, thanks to <code class="docutils literal notranslate"><span class="pre">h5py</span></code> running under the hood.</p>
 <p>The main reasons to use hickle are:</p>
-<ol class="simple">
-<li>It’s faster than pickle and cPickle.</li>
-<li>It stores data in HDF5.</li>
-<li>You can easily compress your data.</li>
+<ol class="arabic simple">
+<li><p>It’s faster than pickle and cPickle.</p></li>
+<li><p>It stores data in HDF5.</p></li>
+<li><p>You can easily compress your data.</p></li>
 </ol>
+<p>There is also the <a class="reference external" href="https://github.com/steven-murray/hickleable">hickleable</a> package, which provides a simple decorator for your classes that will almost always make them serilalize well using the excellent hickle package. <code class="docutils literal notranslate"><span class="pre">hickleable</span></code> is essentially a one-liner to transform your class into a well-supported <em>data format</em>.</p>
 <p>The main reasons not to use hickle are:</p>
-<ol class="simple">
-<li>You don’t want to store your data in HDF5. While hickle can serialize arbitrary python objects, this functionality is provided only for convenience, and you’re probably better off just using the pickle module.</li>
-<li>You want to convert your data in human-readable JSON/YAML, in which case, you should do that instead.</li>
+<ol class="arabic simple">
+<li><p>You don’t want to store your data in HDF5. While hickle can serialize arbitrary python objects, this functionality is provided only for convenience, and you’re probably better off just using the pickle module.</p></li>
+<li><p>You want to convert your data in human-readable JSON/YAML, in which case, you should do that instead.</p></li>
 </ol>
-<p>So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try.
-Hickle is particularly good at storing large numpy arrays, thanks to <code class="docutils literal notranslate"><span class="pre">h5py</span></code> running under the hood.</p>
-</div>
-<div class="section" id="documentation">
-<span id="documentation"></span><h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
+<p>So, if you want your data in HDF5, or if your pickling is taking too long, give hickle a try.</p>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
 <p>Documentation for hickle can be found at <a class="reference external" href="http://telegraphic.github.io/hickle/">telegraphic.github.io/hickle/</a>.</p>
-</div>
-<div class="section" id="usage-example">
-<span id="usage-example"></span><h2>Usage example<a class="headerlink" href="#usage-example" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="usage-example">
+<h2>Usage example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h2>
 <p>Hickle is nice and easy to use, and should look very familiar to those of you who have pickled before.</p>
 <p>In short, <code class="docutils literal notranslate"><span class="pre">hickle</span></code> provides two methods: a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.load">hickle.load</a>
 method, for loading hickle files, and a <a class="reference external" href="http://telegraphic.github.io/hickle/toc.html#hickle.dump">hickle.dump</a>
 method, for dumping data into HDF5. Here’s a complete example:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">hickle</span> <span class="kn">as</span> <span class="nn">hkl</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-    
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hickle</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hkl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
 <span class="c1"># Create a numpy array of data</span>
 <span class="n">array_obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">32768</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
-    
+
 <span class="c1"># Dump to file</span>
 <span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
-    
+
 <span class="c1"># Dump data, with compression</span>
 <span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
-  
+
 <span class="c1"># Compare filesizes</span>
-<span class="k">print</span><span class="p">(</span><span class="s1">&#39;uncompressed: </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test.hkl&#39;</span><span class="p">))</span>
-<span class="k">print</span><span class="p">(</span><span class="s1">&#39;compressed:   </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">))</span>
-    
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;uncompressed: </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test.hkl&#39;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;compressed:   </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">))</span>
+
 <span class="c1"># Load data</span>
 <span class="n">array_hkl</span> <span class="o">=</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">)</span>
-    
+
 <span class="c1"># Check the two are the same file</span>
 <span class="k">assert</span> <span class="n">array_hkl</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">array_obj</span><span class="o">.</span><span class="n">dtype</span>
 <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">array_hkl</span><span class="p">,</span> <span class="n">array_obj</span><span class="p">))</span>
 </pre></div>
 </div>
-<div class="section" id="hdf5-compression-options">
-<span id="hdf5-compression-options"></span><h3>HDF5 compression options<a class="headerlink" href="#hdf5-compression-options" title="Permalink to this headline">¶</a></h3>
+<section id="hdf5-compression-options">
+<h3>HDF5 compression options<a class="headerlink" href="#hdf5-compression-options" title="Link to this heading"></a></h3>
 <p>A major benefit of <code class="docutils literal notranslate"><span class="pre">hickle</span></code> over <code class="docutils literal notranslate"><span class="pre">pickle</span></code> is that it allows fancy HDF5 features to
 be applied, by passing on keyword arguments on to <code class="docutils literal notranslate"><span class="pre">h5py</span></code>. So, you can do things like:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_lzf.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;lzf&#39;</span><span class="p">,</span> <span class="n">scaleoffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
-         <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">fletcher32</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_lzf.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;lzf&#39;</span><span class="p">,</span> <span class="n">scaleoffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+         <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fletcher32</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>A detailed explanation of these keywords is given at http://docs.h5py.org/en/latest/high/dataset.html,
@@ -239,140 +176,395 @@ which is leveraged to allow <a class="reference external" href="http://docs.h5py
 compression via <a class="reference external" href="http://docs.h5py.org/en/latest/high/dataset.html#filter-pipeline">filter pipelines</a>. Filters such as
 <code class="docutils literal notranslate"><span class="pre">shuffle</span></code> and <code class="docutils literal notranslate"><span class="pre">scaleoffset</span></code> move your data around to improve compression ratios, and <code class="docutils literal notranslate"><span class="pre">fletcher32</span></code> computes a checksum.
 These file-level options are abstracted away from the data model.</p>
+</section>
+</section>
+<section id="dumping-custom-objects">
+<h2>Dumping custom objects<a class="headerlink" href="#dumping-custom-objects" title="Link to this heading"></a></h2>
+<p>Objects of classes derived from built in classes, numpy, scipy, pandas and astropy objects will be stored using the corresponding
+loader provided by hickle. By default, when hickle comes across a class object that it doesn’t have a handler for, it will use pickle to serialize the object, then store that pickle as a dataset. These datasets can only be read by un-pickling the data first, which means they are only easily readable in Python.</p>
+<p>If you would like a straightforward way to map your class object to the HDF5 data model, consider using the <a class="reference external" href="https://github.com/steven-murray/hickleable"><code class="docutils literal notranslate"><span class="pre">hickleable</span></code></a> package,  which provides a simple decorator for your classes that will almost always make them serilalize well into HDF5 datasets.</p>
+<p>Simply:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hickleable</span><span class="w"> </span><span class="kn">import</span> <span class="n">hickleable</span>
+
+<span class="nd">@hickleable</span><span class="p">()</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MyClass</span><span class="p">:</span>
+   <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;dict&#39;</span><span class="p">}):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">b</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span>
+</pre></div>
 </div>
+<p>Now, MyClass can be hickled without any ‘pickling’:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hickle</span>
+
+<span class="n">my_obj</span> <span class="o">=</span> <span class="n">MyClass</span><span class="p">()</span>
+<span class="n">hickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">my_obj</span><span class="p">,</span> <span class="s1">&#39;temporary_file.h5&#39;</span><span class="p">)</span>  <span class="c1"># Note: no warnings about having to pickle</span>
+<span class="n">new_obj</span> <span class="o">=</span> <span class="n">hickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;temporary_file.h5&#39;</span><span class="p">)</span>
+</pre></div>
 </div>
-<div class="section" id="recent-changes">
-<span id="recent-changes"></span><h2>Recent changes<a class="headerlink" href="#recent-changes" title="Permalink to this headline">¶</a></h2>
+<p>See the <a class="reference external" href="https://github.com/steven-murray/hickleable">hickleable documentation</a> for more usage details.</p>
+<section id="writing-custom-handlers">
+<h3>Writing custom handlers<a class="headerlink" href="#writing-custom-handlers" title="Link to this heading"></a></h3>
+<p>Starting with version 4.x hickle offers the possibility to define dedicated loader functions for custom
+classes and starting with hickle 5.x these can be collected in module, package and application specific
+loader modules.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyClass</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MyClass&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">42</span>
+</pre></div>
+</div>
+<p>To create a loader for <code class="docutils literal notranslate"><span class="pre">MyClass</span></code> the <code class="docutils literal notranslate"><span class="pre">create_MyClass_dataset</span></code> and either the <code class="docutils literal notranslate"><span class="pre">load_MyClass</span></code> or the
+<code class="docutils literal notranslate"><span class="pre">MyClassContainer</span></code> class have to be defined.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hdf5</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hickle.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">no_compression</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_MyClass_dataset</span><span class="p">(</span><span class="n">py_obj</span><span class="p">,</span> <span class="n">h_group</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    py_obj ..... the instance of MyClass to be dumped</span>
+<span class="sd">    h_group .... the h5py.Group py_obj should be dumped into</span>
+<span class="sd">    name ....... the name of the h5py.Dataset or h5py.Group representing py_obj</span>
+<span class="sd">    **kwargs ... the compression keyword arguments passed to hickle.dump</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># if content of MyClass can be represented as single matrix, vector or scalar</span>
+    <span class="c1"># values than created a dataset of appropriate size. and either set its shape and </span>
+    <span class="c1"># dtype parameters # to the appropriate size and tyoe . or directly pass the data</span>
+    <span class="c1"># using the data parameter</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">h_group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">data</span> <span class="o">=</span> <span class="n">py_obj</span><span class="o">.</span><span class="n">value</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1">## NOTE: if your class represents a scalar using empty tuple for shape</span>
+    <span class="c1">##       then kwargs have to be filtered by no_compression</span>
+    <span class="c1"># ds = h_group.create_dataset(name,data = py_obj.value,shape=(),**no_compression(kwargs))</span>
+
+    <span class="c1"># set additional attributes providing additional specialisation of content</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_obj</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="c1"># when done return the new dataset object and an empty tuple or list</span>
+    <span class="k">return</span> <span class="n">ds</span><span class="p">,()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_Myclass</span><span class="p">(</span><span class="n">h_node</span><span class="p">,</span> <span class="n">base_type</span><span class="p">,</span> <span class="n">py_obj_type</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    h_node ........ the h5py.Dataset object containing the data of MyClass object to restore</span>
+<span class="sd">    base_type ..... byte string naming the loader to be used for restoring MyClass object</span>
+<span class="sd">    py_obj_type ... MyClass class or MyClass subclass object </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># py_obj_type should point to MyClass or any of its subclasses</span>
+    <span class="n">new_instance</span> <span class="o">=</span> <span class="n">py_obj_type</span><span class="p">()</span>
+    <span class="n">new_instance</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">h_node</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+    <span class="n">new_instance</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">h_node</span><span class="p">[()]</span>
+	
+    <span class="k">return</span> <span class="n">new_instance</span>
+</pre></div>
+</div>
+<p>For dumping content of complex objects consisting of multiple sub-items which have to be
+stored as individual h5py.Dataset or h5py.Group objects than define <code class="docutils literal notranslate"><span class="pre">create_MyClass_dataset</span></code>
+using <code class="docutils literal notranslate"><span class="pre">create_group</span></code> method instead of <code class="docutils literal notranslate"><span class="pre">create_dataset</span></code> and define the corresponding
+<code class="docutils literal notranslate"><span class="pre">MyClassContainer</span></code> class.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">hickle.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">PyContainer</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_MyClass_dataset</span><span class="p">(</span><span class="n">py_obj</span><span class="p">,</span> <span class="n">h_group</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">    py_obj ..... the instance of MyClass to be dumped</span>
+<span class="sd">    h_group .... the h5py.Group py_obj should be dumped into</span>
+<span class="sd">    name ....... the name of the h5py.Dataset or h5py.Group representing py_obj</span>
+<span class="sd">    **kwargs ... the compression keyword arguments passed to hickle.dump</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">h_group</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="c1"># set additional attributes providing additional specialisation of content</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_obj</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="c1"># when done return the new dataset object and a tuple, list or generator function</span>
+    <span class="c1"># providing for all subitems a tuple or list describing containgin </span>
+    <span class="c1">#  name ..... the name to be used storing the subitem within the h5py.Group object</span>
+    <span class="c1">#  item ..... the subitem object to be stored</span>
+    <span class="c1">#  attrs .... dictionary included in attrs of created h5py.Group or h5py.Dataset</span>
+    <span class="c1">#  kwargs ... the kwargs as passed to create_MyClass_dataset function</span>
+    <span class="k">return</span> <span class="n">ds</span><span class="p">,((</span><span class="s1">&#39;name&#39;</span><span class="p">,</span><span class="n">py_obj</span><span class="o">.</span><span class="n">name</span><span class="p">,{},</span><span class="n">kwargs</span><span class="p">),(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span><span class="n">py_obj</span><span class="o">.</span><span class="n">value</span><span class="p">,{</span><span class="s1">&#39;the answer&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span><span class="n">kwargs</span><span class="p">))</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyClassContainer</span><span class="p">(</span><span class="n">PyContainer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Valid container classes must be derived from hickle.helpers.PyContainer class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">h5_attrs</span><span class="p">,</span><span class="n">base_type</span><span class="p">,</span><span class="n">object_type</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        h5_attrs ...... the attrs dictionary attached to the group representing MyClass</span>
+<span class="sd">        base_type ..... byte string naming the loader to be used for restoring MyClass object</span>
+<span class="sd">        py_obj_type ... MyClass class or MyClass subclass object </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># the optional protected _content parameter of the PyContainer __init__</span>
+        <span class="c1"># method can be used to change the data structure used to store</span>
+	<span class="c1"># the subitems passed to the append method of the PyContainer class</span>
+        <span class="c1"># per default it is set to []</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">h5_attrs</span><span class="p">,</span><span class="n">base_type</span><span class="p">,</span><span class="n">object_type</span><span class="p">,</span><span class="n">_content</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">h_parent</span><span class="p">):</span> <span class="c1"># optional overload</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        generator member functoin which can be overloaded to reorganize subitems</span>
+<span class="sd">        of h_parent h5py.Group before being restored by hickle. Its default</span>
+<span class="sd">        implementation simply yields from h_parent.items(). </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">yield from</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">h_parent</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">item</span><span class="p">,</span><span class="n">h5_attrs</span><span class="p">):</span> <span class="c1"># optional overload</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        in case _content parameter was explicitly set or subitems should be sored </span>
+<span class="sd">        in specific order or have to be preprocessed before the next item is appended</span>
+<span class="sd">        than this can be done before storing in self._content.</span>
+
+<span class="sd">        name ....... the name identifying subitem item within the parent hdf5.Group</span>
+<span class="sd">        item ....... the object representing the subitem</span>
+<span class="sd">        h5_attrs ... attrs dictionary attached to h5py.Dataset, h5py.Group representing item</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_content</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        called by hickle when all sub items have been appended to MyClass PyContainer</span>
+<span class="sd">        this method must be implemented by MyClass PyContainer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># py_obj_type should point to MyClass or any of its subclasses</span>
+        <span class="n">new_instance</span> <span class="o">=</span> <span class="n">py_obj_type</span><span class="p">()</span>
+        <span class="n">new_instance</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_content</span><span class="p">)</span>
+        	
+        <span class="k">return</span> <span class="n">new_instance</span>
+</pre></div>
+</div>
+<p>In a last step the loader for MyClass has to be registered with hickle. This is done by calling
+<code class="docutils literal notranslate"><span class="pre">hickle.lookup.LoaderManager.register_class</span></code> method</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hickle.lookup</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoaderManager</span>
+
+<span class="c1"># to register loader for object mapped to h5py.Dataset use</span>
+<span class="n">LoaderManager</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span>
+   <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
+   <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+   <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
+   <span class="n">load_MyClass</span><span class="p">,</span>           <span class="c1"># the load dataset function defined in first example above</span>
+   <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
+   <span class="kc">True</span><span class="p">,</span>                   <span class="c1"># Set to False to force explicit storage of MyClass instances in any case </span>
+   <span class="s1">&#39;custom&#39;</span>                <span class="c1"># Loader is only used when custom loaders are enabled on calling hickle.dump</span>
+<span class="p">)</span>
+
+<span class="c1"># to register loader for object mapped to h5py.Group use</span>
+<span class="n">LoaderManager</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span>
+   <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
+   <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+   <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
+   <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
+   <span class="n">MyClassContainer</span>        <span class="c1"># the PyContainer to be used to restore content of MyClass</span>
+   <span class="kc">True</span><span class="p">,</span>                   <span class="c1"># Set to False to force explicit storage of MyClass instances in any case </span>
+   <span class="kc">None</span>                    <span class="c1"># if set to None loader is enabled unconditionally</span>
+<span class="p">)</span>
+
+<span class="c1"># NOTE: in case content of MyClass instances may be mapped to h5py.Dataset or h5py.Group dependent upon</span>
+<span class="c1"># their actual complexity than both types of loaders can be merged into one single</span>
+<span class="c1"># using one common create_MyClass_dataset functoin and defining load_MyClass function and</span>
+<span class="c1"># MyClassContainer class</span>
+</pre></div>
+</div>
+<p>For complex python modules, packages and applications defining several classes to be dumped and handled by
+hickle calling <code class="docutils literal notranslate"><span class="pre">hickle.lookup.LoaderManager.register_class</span></code> explicitly very quickly becomes tedious and
+confusing. Therefore hickle offers from hickle 5.x on the possibility to collect all loaders for classes
+and objects defined by your module, package or application within dedicated loader modules and install
+them along with your module, package and application.</p>
+<p>For packages and application packages the <code class="docutils literal notranslate"><span class="pre">load_MyPackage.py</span></code> loader module has to be stored within
+<code class="docutils literal notranslate"><span class="pre">hickle_loaders</span></code> directory of the package directory (the first which contains a <strong>init</strong>.py file) and
+should be structured as follows.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hickle.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">PyContainer</span>
+
+<span class="c1">## define below all create_MyClass_dataset load_MyClass functions and MyClassContainer classes</span>
+<span class="c1">## of the loaders serving your module, package, application package or application</span>
+
+<span class="o">....</span>
+
+<span class="c1">## the class_register table and the exclude_register table are required</span>
+<span class="c1">## by hickle to properly load and apply your loaders</span>
+<span class="c1">## each row in the class register table will corresponds to the parameters</span>
+<span class="c1">## of LoaderManager.register_class and has to be specified in the same order</span>
+<span class="c1">## as above</span>
+
+<span class="n">class_register</span> <span class="o">=</span> <span class="p">[</span>
+   <span class="p">[</span> <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
+     <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+     <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
+     <span class="n">load_MyClass</span><span class="p">,</span>           <span class="c1"># the load dataset function defined in first example above</span>
+     <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
+     <span class="kc">True</span><span class="p">,</span>                   <span class="c1"># Set to False to force explicit storage of MyClass instances in any case </span>
+     <span class="s1">&#39;custom&#39;</span>                <span class="c1"># Loader is only used when custom loaders are enabled on calling hickle.dump</span>
+   <span class="p">],</span>
+   <span class="p">[</span> <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
+     <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+     <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
+     <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
+     <span class="n">MyClassContainer</span>        <span class="c1"># the PyContainer to be used to restore content of MyClass</span>
+     <span class="kc">True</span><span class="p">,</span>                   <span class="c1"># Set to False to force explicit storage of MyClass instances in any case </span>
+     <span class="kc">None</span>                    <span class="c1"># if set to None loader is enabled unconditionally</span>
+   <span class="p">]</span>
+<span class="p">]</span>
+
+<span class="c1"># used by hickle 4.x legacy loaders and other special loaders</span>
+<span class="c1"># usually an empty list</span>
+<span class="n">exclude_register</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div>
+</div>
+<p>For single file modules and application scripts the <code class="docutils literal notranslate"><span class="pre">load_MyModule.py</span></code> or <code class="docutils literal notranslate"><span class="pre">load_MyApp.py</span></code> files have to
+be stored within the <code class="docutils literal notranslate"><span class="pre">hickle_loaders</span></code> directory located within the same directory as <code class="docutils literal notranslate"><span class="pre">MyModule.py</span></code> or
+<code class="docutils literal notranslate"><span class="pre">My_App.py</span></code>. For further examples of more complex loaders and on how to store bytearrays and strings
+such that they can be compressed when stored see default loader modules in  <code class="docutils literal notranslate"><span class="pre">hickle/loaders/</span></code> directory.</p>
+</section>
+<section id="note-storing-complex-objects-in-hdf5-file">
+<h3>Note: storing complex objects in HDF5 file<a class="headerlink" href="#note-storing-complex-objects-in-hdf5-file" title="Link to this heading"></a></h3>
+<p>The HDF5 file format is designed to store several big matrices, images and vectors efficiently
+and attach some metadata and to provide a convenient way access the data through a tree structure.
+It is not designed like python pickle format for efficiently mapping the in memory object structure
+to a file. Therefore mindlessly storing plenty of tiny objects and scalar values without combining
+them into a single datataset will cause the HDF5 and thus the file created by hickle explode. File
+sizes of several 10 GB are likely and possible when a pickle file would just need some 100 MB.
+This can be prevented by <code class="docutils literal notranslate"><span class="pre">create_MyClass_dataset</span></code> method combining sub-items into bigger numpy arrays
+or other data structures which can be mapped to <code class="docutils literal notranslate"><span class="pre">h5py.Datasets</span></code> and <code class="docutils literal notranslate"><span class="pre">load_MyClass</span></code> function and/or
+<code class="docutils literal notranslate"><span class="pre">MyClassContainer.convert</span></code> method restoring actual structure of the sub-items on load.</p>
+</section>
+</section>
+<section id="recent-changes">
+<h2>Recent changes<a class="headerlink" href="#recent-changes" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li>December 2018: Accepted to Journal of Open-Source Software (JOSS).</li>
-<li>June 2018: Major refactor and support for Python 3.</li>
-<li>Aug 2016: Added support for scipy sparse matrices <code class="docutils literal notranslate"><span class="pre">bsr_matrix</span></code>, <code class="docutils literal notranslate"><span class="pre">csr_matrix</span></code> and <code class="docutils literal notranslate"><span class="pre">csc_matrix</span></code>.</li>
+<li><p>December 2021: Release of version 5, support for h5py &gt;= 3.0 and numpy &gt;= 1.21</p></li>
+<li><p>June 2020: Major refactor to version 4, and removal of support for Python 2.</p></li>
+<li><p>December 2018: Accepted to Journal of Open-Source Software (JOSS).</p></li>
+<li><p>June 2018: Major refactor and support for Python 3.</p></li>
+<li><p>Aug 2016: Added support for scipy sparse matrices <code class="docutils literal notranslate"><span class="pre">bsr_matrix</span></code>, <code class="docutils literal notranslate"><span class="pre">csr_matrix</span></code> and <code class="docutils literal notranslate"><span class="pre">csc_matrix</span></code>.</p></li>
 </ul>
-</div>
-<div class="section" id="performance-comparison">
-<span id="performance-comparison"></span><h2>Performance comparison<a class="headerlink" href="#performance-comparison" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="performance-comparison">
+<h2>Performance comparison<a class="headerlink" href="#performance-comparison" title="Link to this heading"></a></h2>
 <p>Hickle runs a lot faster than pickle with its default settings, and a little faster than pickle with <code class="docutils literal notranslate"><span class="pre">protocol=2</span></code> set:</p>
-<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span>In [1]: import numpy as np
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">In</span> <span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-In [2]: x = np.random.random((2000, 2000))
+<span class="n">In</span> <span class="p">[</span><span class="mi">2</span><span class="p">]:</span> <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">))</span>
 
-In [3]: import pickle
+<span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
 
-In [4]: f = open(&#39;foo.pkl&#39;, &#39;w&#39;)
+<span class="n">In</span> <span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;foo.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
 
-In [5]: %time pickle.dump(x, f)  # slow by default
-CPU times: user 2 s, sys: 274 ms, total: 2.27 s
-Wall time: 2.74 s
+<span class="n">In</span> <span class="p">[</span><span class="mi">5</span><span class="p">]:</span> <span class="o">%</span><span class="n">time</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>  <span class="c1"># slow by default</span>
+<span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mi">2</span> <span class="n">s</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mi">274</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">2.27</span> <span class="n">s</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">2.74</span> <span class="n">s</span>
 
-In [6]: f = open(&#39;foo.pkl&#39;, &#39;w&#39;)
+<span class="n">In</span> <span class="p">[</span><span class="mi">6</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;foo.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
 
-In [7]: %time pickle.dump(x, f, protocol=2)  # actually very fast
-CPU times: user 18.8 ms, sys: 36 ms, total: 54.8 ms
-Wall time: 55.6 ms
+<span class="n">In</span> <span class="p">[</span><span class="mi">7</span><span class="p">]:</span> <span class="o">%</span><span class="n">time</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># actually very fast</span>
+<span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mf">18.8</span> <span class="n">ms</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mi">36</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">54.8</span> <span class="n">ms</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">55.6</span> <span class="n">ms</span>
 
-In [8]: import hickle
+<span class="n">In</span> <span class="p">[</span><span class="mi">8</span><span class="p">]:</span> <span class="kn">import</span><span class="w"> </span><span class="nn">hickle</span>
 
-In [9]: f = open(&#39;foo.hkl&#39;, &#39;w&#39;)
+<span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;foo.hkl&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
 
-In [10]: %time hickle.dump(x, f)  # a bit faster
-dumping &lt;type &#39;numpy.ndarray&#39;&gt; to file &lt;HDF5 file &quot;foo.hkl&quot; (mode r+)&gt;
-CPU times: user 764 µs, sys: 35.6 ms, total: 36.4 ms
-Wall time: 36.2 ms
+<span class="n">In</span> <span class="p">[</span><span class="mi">10</span><span class="p">]:</span> <span class="o">%</span><span class="n">time</span> <span class="n">hickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>  <span class="c1"># a bit faster</span>
+<span class="n">dumping</span> <span class="o">&lt;</span><span class="nb">type</span> <span class="s1">&#39;numpy.ndarray&#39;</span><span class="o">&gt;</span> <span class="n">to</span> <span class="n">file</span> <span class="o">&lt;</span><span class="n">HDF5</span> <span class="n">file</span> <span class="s2">&quot;foo.hkl&quot;</span> <span class="p">(</span><span class="n">mode</span> <span class="n">r</span><span class="o">+</span><span class="p">)</span><span class="o">&gt;</span>
+<span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mi">764</span> <span class="n">us</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mf">35.6</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">36.4</span> <span class="n">ms</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">36.2</span> <span class="n">ms</span>
 </pre></div>
 </div>
 <p>So if you do continue to use pickle, add the <code class="docutils literal notranslate"><span class="pre">protocol=2</span></code> keyword (thanks &#64;mrocklin for pointing this out).</p>
 <p>For storing python dictionaries of lists, hickle beats the python json encoder, but is slower than uJson. For a dictionary with 64 entries, each containing a 4096 length list of random numbers, the times are:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">json</span> <span class="n">took</span> <span class="mf">2633.263</span> <span class="n">ms</span>
-<span class="n">uJson</span> <span class="n">took</span> <span class="mf">138.482</span> <span class="n">ms</span>
-<span class="n">hickle</span> <span class="n">took</span> <span class="mf">232.181</span> <span class="n">ms</span>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>json took 2633.263 ms
+uJson took 138.482 ms
+hickle took 232.181 ms
 </pre></div>
 </div>
 <p>It should be noted that these comparisons are of course not fair: storing in HDF5 will not help you convert something into JSON, nor will it help you serialize a string. But for quick storage of the contents of a python variable, it’s a pretty good option.</p>
-</div>
-<div class="section" id="installation-guidelines">
-<span id="installation-guidelines"></span><h2>Installation guidelines<a class="headerlink" href="#installation-guidelines" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="easy-method">
-<span id="easy-method"></span><h3>Easy method<a class="headerlink" href="#easy-method" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="installation-guidelines">
+<h2>Installation guidelines<a class="headerlink" href="#installation-guidelines" title="Link to this heading"></a></h2>
+<section id="easy-method">
+<h3>Easy method<a class="headerlink" href="#easy-method" title="Link to this heading"></a></h3>
 <p>Install with <code class="docutils literal notranslate"><span class="pre">pip</span></code> by running <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">hickle</span></code> from the command line.</p>
-</div>
-<div class="section" id="manual-install">
-<span id="manual-install"></span><h3>Manual install<a class="headerlink" href="#manual-install" title="Permalink to this headline">¶</a></h3>
-<ol class="simple">
-<li>You should have Python 2.7 and above installed</li>
-<li>Install h5py
-(Official page: http://docs.h5py.org/en/latest/build.html)</li>
-<li>Install hdf5
-(Official page: http://www.hdfgroup.org/ftp/HDF5/current/src/unpacked/release_docs/INSTALL)</li>
-<li>Download <code class="docutils literal notranslate"><span class="pre">hickle</span></code>:
-via terminal: git clone https://github.com/telegraphic/hickle.git
-via manual download: Go to https://github.com/telegraphic/hickle and on right hand side you will find <code class="docutils literal notranslate"><span class="pre">Download</span> <span class="pre">ZIP</span></code> file</li>
-<li>cd to your downloaded <code class="docutils literal notranslate"><span class="pre">hickle</span></code> directory</li>
-<li>Then run the following command in the <code class="docutils literal notranslate"><span class="pre">hickle</span></code> directory:
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></code></li>
+<section id="install-on-windows-32-bit">
+<h4>Install on Windows 32 bit<a class="headerlink" href="#install-on-windows-32-bit" title="Link to this heading"></a></h4>
+<p>Prebuilt Python wheels packages are available on PyPi until H5PY version 2.10 and Python 3.8.
+Any newer versions have to be built and installed Manually.</p>
+<ol class="arabic simple">
+<li><p>Install h5py 2.10 with <code class="docutils literal notranslate"><span class="pre">pip</span></code> by running <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;h5py==2.10&quot;</span></code> from the commandline</p></li>
+<li><p>Install with <code class="docutils literal notranslate"><span class="pre">pip</span></code> by running <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">hickle</span></code> form the command line</p></li>
 </ol>
-</div>
-<div class="section" id="testing">
-<span id="testing"></span><h3>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h3>
+</section>
+</section>
+<section id="manual-install">
+<h3>Manual install<a class="headerlink" href="#manual-install" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>You should have Python 3.5 and above installed</p></li>
+<li><p>Install hdf5
+(Official page: http://www.hdfgroup.org/ftp/HDF5/current/src/unpacked/release_docs/INSTALL)
+(Binary Downloads: https://portal.hdfgroup.org/display/support/Downloads)
+<strong>Note:</strong> On Windows 32 bit install prebuilt binary package for libhdf5 <a class="reference external" href="https://portal.hdfgroup.org/display/support/HDF5+1.10.4">1.10.4</a>, which is the latest version supporting 32 bit on Windows</p></li>
+<li><p>Install h5py
+(Official page: http://docs.h5py.org/en/latest/build.html)</p></li>
+<li><p>Download <code class="docutils literal notranslate"><span class="pre">hickle</span></code>:
+via terminal: git clone https://github.com/telegraphic/hickle.git
+via manual download: Go to https://github.com/telegraphic/hickle and on right hand side you will find <code class="docutils literal notranslate"><span class="pre">Download</span> <span class="pre">ZIP</span></code> file</p></li>
+<li><p>cd to your downloaded <code class="docutils literal notranslate"><span class="pre">hickle</span></code> directory</p></li>
+<li><p>Then run the following command in the <code class="docutils literal notranslate"><span class="pre">hickle</span></code> directory:
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></code></p></li>
+</ol>
+</section>
+<section id="optional-requirements">
+<h3>Optional requirements:<a class="headerlink" href="#optional-requirements" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>dill: needed when files generated by hickle 3 and/or hickle 4 are to be loaded with hickle &gt;= 5, for developent and testing</p></li>
+<li><p>astropy: needed for development and testing</p></li>
+<li><p>pandas: needed for development and testing</p></li>
+</ul>
+</section>
+<section id="testing">
+<h3>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h3>
 <p>Once installed from source, run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">test</span></code> to check it’s all working.</p>
-</div>
-</div>
-<div class="section" id="bugs-contributing">
-<span id="bugs-contributing"></span><h2>Bugs &amp; contributing<a class="headerlink" href="#bugs-contributing" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="bugs-contributing">
+<h2>Bugs &amp; contributing<a class="headerlink" href="#bugs-contributing" title="Link to this heading"></a></h2>
 <p>Contributions and bugfixes are very welcome. Please check out our <a class="reference external" href="https://github.com/telegraphic/hickle/blob/master/CONTRIBUTING.md">contribution guidelines</a>
 for more details on how to contribute to development.</p>
-</div>
-<div class="section" id="referencing-hickle">
-<span id="referencing-hickle"></span><h2>Referencing hickle<a class="headerlink" href="#referencing-hickle" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="referencing-hickle">
+<h2>Referencing hickle<a class="headerlink" href="#referencing-hickle" title="Link to this heading"></a></h2>
 <p>If you use <code class="docutils literal notranslate"><span class="pre">hickle</span></code> in academic research, we would be grateful if you could reference <a class="reference external" href="http://joss.theoj.org/papers/0c6638f84a1a574913ed7c6dd1051847">our paper</a> in the <a class="reference external" href="http://joss.theoj.org/about">Journal of Open-Source Software (JOSS)</a>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Price</span> <span class="n">et</span> <span class="n">al</span><span class="o">.</span><span class="p">,</span> <span class="p">(</span><span class="mi">2018</span><span class="p">)</span><span class="o">.</span> <span class="n">Hickle</span><span class="p">:</span> <span class="n">A</span> <span class="n">HDF5</span><span class="o">-</span><span class="n">based</span> <span class="n">python</span> <span class="n">pickle</span> <span class="n">replacement</span><span class="o">.</span> <span class="n">Journal</span> <span class="n">of</span> <span class="n">Open</span> <span class="n">Source</span> <span class="n">Software</span><span class="p">,</span> <span class="mi">3</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span> <span class="mi">1115</span><span class="p">,</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">doi</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="mf">10.21105</span><span class="o">/</span><span class="n">joss</span><span class="o">.</span><span class="mi">01115</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Price</span> <span class="n">et</span> <span class="n">al</span><span class="o">.</span><span class="p">,</span> <span class="p">(</span><span class="mi">2018</span><span class="p">)</span><span class="o">.</span> <span class="n">Hickle</span><span class="p">:</span> <span class="n">A</span> <span class="n">HDF5</span><span class="o">-</span><span class="n">based</span> <span class="n">python</span> <span class="n">pickle</span> <span class="n">replacement</span><span class="o">.</span> <span class="n">Journal</span> <span class="n">of</span> <span class="n">Open</span> <span class="n">Source</span> <span class="n">Software</span><span class="p">,</span> <span class="mi">3</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span> <span class="mi">1115</span><span class="p">,</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">doi</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="mf">10.21105</span><span class="o">/</span><span class="n">joss</span><span class="mf">.01115</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
-           
           </div>
           <footer>
-  
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &copy; Copyright 2018, Danny Price
-
-    </p>
+    <p>&#169; Copyright 2018-2025, Danny Price, Ellert van der Velden and contributors.</p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
-
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
