@@ -68,7 +68,7 @@ def not_io_base_like(f,*args):
                 return False
             try:
                 cmd(*call_args)
-            except:
+            except Exception:
                 return False
         return True
     return must_test
