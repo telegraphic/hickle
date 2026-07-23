@@ -647,8 +647,7 @@ class ReferenceManager(BaseManager, dict):
             if not isinstance(base_type,(str,bytes)) or not base_type:
                 raise ValueError("base_type must be non empty bytes string")
             type_entry = memoryview(pickle.dumps(py_obj_type))
-            type_entry = np.array(type_entry,copy = False)
-            type_entry.dtype = 'S1'
+            type_entry = np.asarray(type_entry).view('S1')
             entry = self._py_obj_type_table.create_dataset(
                 str(len(self._py_obj_type_table)),
                 data=type_entry,
