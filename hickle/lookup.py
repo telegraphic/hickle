@@ -1514,13 +1514,13 @@ def recover_pickled_data(h_node, base_type, py_obj_type):
 
     Parameters
     ----------
-    h_node (h5py.Dataset):
+    h_node : h5py.Dataset
         Dataset storing pickled payload bytes.
 
-    base_type (bytes):
+    base_type : bytes
         Loader base type, copied into recovered attributes.
 
-    py_obj_type (type):
+    py_obj_type : type
         Original Python type metadata (unused in safe mode).
 
     Returns

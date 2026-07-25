@@ -169,7 +169,7 @@ def test_local_func(test_file_name,compression_kwargs):
     assert func(1, 2) == func_hkl(1, 2)
 
 
-def test_safe_mode_prevents_unpickling(test_file_name, compression_kwargs):
+def test_safe_mode_prevents_depickling(test_file_name, compression_kwargs):
     """Safe mode should not depickle stored pickle payloads."""
     mode = 'w'
     with pytest.warns(lookup.SerializedWarning):
