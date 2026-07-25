@@ -151,7 +151,7 @@ def test_state_obj(monkeypatch,test_file_name,compression_kwargs):
         with pytest.warns(lookup.SerializedWarning):
             dump(obj, test_file_name, mode,**compression_kwargs)
         monkey.setattr(pickle,'loads',hide_from_hickle)
-        obj_hkl = load(test_file_name)
+        obj_hkl = load(test_file_name, safe=False)
         assert isinstance(obj,obj_hkl.__class__) or isinstance(obj_hkl,obj.__class__)
         assert np.allclose(obj[1], obj_hkl[1])
 
@@ -164,9 +164,19 @@ def test_local_func(test_file_name,compression_kwargs):
     mode =  'w'
     with pytest.warns(lookup.SerializedWarning):
         dump(func, test_file_name, mode,**compression_kwargs)
-    func_hkl = load(test_file_name)
+    func_hkl = load(test_file_name, safe=False)
     assert isinstance(func,func_hkl.__class__) or isinstance(func_hkl,func.__class__)
     assert func(1, 2) == func_hkl(1, 2)
+
+
+def test_local_func_safe_mode_recovers_dataset(test_file_name,compression_kwargs):
+    """Safe mode should not depickle stored pickle payloads."""
+    mode = 'w'
+    with pytest.warns(lookup.SerializedWarning):
+        dump(func, test_file_name, mode,**compression_kwargs)
+    with pytest.warns(lookup.DataRecoveredWarning):
+        func_hkl = load(test_file_name)
+    assert isinstance(func_hkl, lookup.RecoveredDataset)
 
 
 def test_non_empty_group(test_file_name,compression_kwargs):

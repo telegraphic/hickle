@@ -760,6 +760,10 @@ def test_create_pickled_dataset(h5_data,compression_kwargs):
         recovered = lookup.load_pickled_data(h5_node,b'pickle',object)
         assert isinstance(recovered,lookup.RecoveredDataset)
         assert bytes(recovered) == pickled_py_object
+        with pytest.warns(lookup.DataRecoveredWarning):
+            recovered_safe = lookup.recover_pickled_data(h5_node,b'pickle',object)
+        assert isinstance(recovered_safe,lookup.RecoveredDataset)
+        assert bytes(recovered_safe) == pickled_py_object
         globals()['ClassToDump'] = backup_class_to_dump
     
     
@@ -1294,4 +1298,3 @@ if __name__ == "__main__":
 
     
     
-

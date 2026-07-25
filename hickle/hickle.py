@@ -58,7 +58,7 @@ from .helpers import (
 from .fileio import ClosedFileError, FileError, file_opener
 from .lookup import (
     #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
-    create_pickled_dataset, load_nothing, fix_lambda_obj_type,ReferenceManager,
+    create_pickled_dataset, load_nothing, fix_lambda_obj_type, recover_pickled_data, ReferenceManager,
     LoaderManager, RecoverGroupContainer, recover_custom_dataset
 )
 
@@ -291,8 +291,6 @@ def load(file_obj, path='/', safe=True, filename = None):
         DO NOT set this to False unless the file is from a trusted source.
         (See https://docs.python.org/3/library/pickle.html for an explanation)
 
-        Note: ignored when loading hickle 4.x and newer files
-
         
     filename (str): optional
         The name of the file. Ignored when f is `str` or `h5py.File` object.
@@ -370,11 +368,17 @@ def load(file_obj, path='/', safe=True, filename = None):
                 # just in case issues arise. Especially as corresponding lambdas in
                 # load_numpy are not needed anymore and thus have been removed.
                 with LoaderManager.create_manager(h_root_group,True) as loader:
+                    if safe:
+                        loader.hkl_types_dict[b'pickle'] = recover_pickled_data
+                        loader.hkl_types_dict['pickle'] = recover_pickled_data
                     with ReferenceManager.create_manager(h_root_group,fix_lambda_obj_type) as memo:
                         _load(py_container, 'data',h_root_group['data'],memo,loader) #load_loader = load_legacy_loader)
                 return py_container.convert()
             # 4.1.x file and newer
             with LoaderManager.create_manager( h_root_group,False) as loader:
+                if safe:
+                    loader.hkl_types_dict[b'pickle'] = recover_pickled_data
+                    loader.hkl_types_dict['pickle'] = recover_pickled_data
                 with ReferenceManager.create_manager(h_root_group,pickle_loads) as memo:
                     _load(py_container, 'data',h_root_group['data'],memo,loader) #load_loader = load_loader)
             return py_container.convert()
@@ -464,4 +468,3 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
     # store loaded object for properly restoring additional references to it
     if memoise:
         memo[h_node.id] = sub_data
-

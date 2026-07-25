@@ -1508,6 +1508,20 @@ def load_pickled_data(h_node, base_type, py_obj_type):
     except (ImportError,AttributeError):
         return RecoveredDataset(h_node[()],dtype = h_node.dtype,attrs = dict(h_node.attrs))
 
+def recover_pickled_data(h_node, base_type, py_obj_type):
+    """
+    recover pickle payload bytes without depickling them
+    """
+    warnings.warn(
+        "loader 'pickle' disabled by safe mode. Data recovered ({})".format(
+            h_node.name.rsplit('/')[-1]
+        ),
+        DataRecoveredWarning
+    )
+    attrs = dict(h_node.attrs)
+    attrs['base_type'] = base_type
+    return RecoveredDataset(h_node[()],dtype=h_node.dtype,attrs=attrs)
+
         
 # no dump method is registered for object as this is the default for
 # any unknown object and for classes, functions and methods
