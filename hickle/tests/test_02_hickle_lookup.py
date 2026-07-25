@@ -816,8 +816,7 @@ def test_ReferenceManager_get_root(h5_data):
     content = data_group.create_dataset('mydata',data=12)
     type_table = root_group.create_group('hickle_types_table')
     int_pickle_string = bytearray(pickle.dumps(int))
-    int_np_entry = np.asarray(int_pickle_string)
-    int_np_entry.dtype = 'S1'
+    int_np_entry = np.asarray(int_pickle_string).view('S1')
     int_entry = type_table.create_dataset(str(len(type_table)),data = int_np_entry,shape =(1,int_np_entry.size))
     int_base_type = b'int'
     int_base_type = type_table.create_dataset(int_base_type,shape=None,dtype="S1")
@@ -841,8 +840,7 @@ def test_ReferenceManager_get_root(h5_data):
     # unless reading hickle 4.0.X file or referred to 'hickle_types_table' entry
     # is missing. In both cases file shall be returned as fallback
     list_pickle_string = bytearray(pickle.dumps(list))
-    list_np_entry = np.array(list_pickle_string,copy = False)
-    list_np_entry.dtype = 'S1'
+    list_np_entry = np.asarray(list_pickle_string).view('S1')
     list_entry = type_table.create_dataset(str(len(type_table)),data = list_np_entry,shape=(1,list_np_entry.size))
     list_base_type = b'list'
     list_base_type = type_table.create_dataset(list_base_type,shape=None,dtype="S1")
@@ -878,23 +876,20 @@ def test_ReferenceManager(h5_data):
     with pytest.raises(lookup.ReferenceError):
         reference_manager = lookup.ReferenceManager(false_root)
     int_pickle_string = bytearray(pickle.dumps(int))
-    int_np_entry = np.asarray(int_pickle_string)
-    int_np_entry.dtype = 'S1'
+    int_np_entry = np.asarray(int_pickle_string).view('S1')
     int_entry = type_table.create_dataset(str(len(type_table)),data = int_np_entry,shape =(1,int_np_entry.size))
     int_base_type = b'int'
     int_base_type = type_table.create_dataset(int_base_type,shape=None,dtype="S1")
     int_entry.attrs['base_type'] = int_base_type.ref
     list_pickle_string = bytearray(pickle.dumps(list))
-    list_np_entry = np.array(list_pickle_string,copy = False)
-    list_np_entry.dtype = 'S1'
+    list_np_entry = np.asarray(list_pickle_string).view('S1')
     list_entry = type_table.create_dataset(str(len(type_table)),data = list_np_entry,shape=(1,list_np_entry.size))
     list_base_type = b'list'
     list_base_type = type_table.create_dataset(list_base_type,shape=None,dtype="S1")
     list_entry.attrs['base_type'] = list_base_type.ref
 
     missing_pickle_string = bytearray(pickle.dumps(not_a_surviver))
-    missing_np_entry = np.array(missing_pickle_string,copy = False)
-    missing_np_entry.dtype = 'S1'
+    missing_np_entry = np.asarray(missing_pickle_string).view('S1')
     missing_entry = type_table.create_dataset(str(len(type_table)),data = missing_np_entry,shape=(1,missing_np_entry.size))
     missing_base_type = b'lost'
     missing_base_type = type_table.create_dataset(missing_base_type,shape=None,dtype="S1")
@@ -1052,8 +1047,7 @@ def test_ReferenceManager_store_type(h5_data,compression_kwargs):
 @pytest.mark.no_compression
 def test_ReferenceManager_get_manager(h5_data):
     h_node = h5_data.create_group('some_list')
-    item_data = np.asarray(memoryview(b'hallo welt lore grueszet dich ipsum aus der lore von ipsum gelort in ipsum'))
-    item_data.dtype = 'S1'
+    item_data = np.asarray(memoryview(b'hallo welt lore grueszet dich ipsum aus der lore von ipsum gelort in ipsum')).view('S1')
     h_item = h_node.create_dataset('0',data=item_data,shape=(1,item_data.size))
     with lookup.ReferenceManager.create_manager(h5_data) as memo:
         memo.store_type(h_node,list,b'list')

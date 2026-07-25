@@ -170,8 +170,7 @@ def create_listlike_dataset(py_obj, h_group, name,list_len = -1,item_dtype = Non
         # strings and bytes are stored as array of bytes with strings encoded
         # using utf8 encoding
         string_data = bytearray(py_obj,"utf8") if isinstance(py_obj,str) else memoryview(py_obj)
-        string_data = np.asarray(string_data)
-        string_data.dtype = 'S1'
+        string_data = np.asarray(string_data).view('S1')
         dataset = h_group.create_dataset( name, data = string_data,shape = (1,string_data.size), **kwargs)
         dataset.attrs["str_type"] = py_obj.__class__.__name__.encode("ascii")
         return dataset,()
