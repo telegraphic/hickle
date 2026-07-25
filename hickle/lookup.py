@@ -1529,7 +1529,7 @@ def recover_pickled_data(h_node, base_type, py_obj_type):
         Dataset bytes and metadata without executing pickle payloads.
     """
     warnings.warn(
-        f"loader 'pickle' disabled by safe mode. Data recovered ({h_node.name.rsplit('/')[-1]})",
+        f"pickle fallback loader disabled in safe mode. Data recovered as raw bytes ({h_node.name.rsplit('/')[-1]})",
         DataRecoveredWarning
     )
     attrs = dict(h_node.attrs)
