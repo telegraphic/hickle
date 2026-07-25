@@ -53,18 +53,19 @@ import gc
 # hickle imports
 from hickle import __version__
 from .helpers import (
-    PyContainer, NotHicklable, nobody_is_my_name, ToDoError
+    PyContainer, NotHicklable, _MISSING, ToDoError, UnsafeFileError
 )
 from .fileio import ClosedFileError, FileError, file_opener
 from .lookup import (
     #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
-    create_pickled_dataset, load_nothing, fix_lambda_obj_type,ReferenceManager,
-    LoaderManager, RecoverGroupContainer, recover_custom_dataset
+    create_pickled_dataset, load_nothing, fix_lambda_obj_type, ReferenceManager,
+    LoaderManager, RecoverGroupContainer, recover_custom_dataset,
+    _hickle_pickle_fn, _safe_pickle_loads,
 )
 
 
 # All declaration
-__all__ = ['dump', 'load']
+__all__ = ['dump', 'load', 'load_unsafe', 'UnsafeFileError']
 
 
 # %% FUNCTION DEFINITIONS
@@ -88,7 +89,7 @@ def _dump(py_obj, h_group, name, memo, loader,attrs={} , **kwargs):
          group to dump data into.
 
     name (str):
-         name of resulting hdf5 group or dataset 
+         name of resulting hdf5 group or dataset
 
     memo (ReferenceManager):
         the ReferenceManager object responsible for handling all
@@ -110,13 +111,13 @@ def _dump(py_obj, h_group, name, memo, loader,attrs={} , **kwargs):
         # instead of dumping it again.
         #
         # Note: reference dataset share their base_type and py_obj_type with the
-        #       referenced h5py.Group or h5py.Dataset. On load their h5py.ref_dtype type 
+        #       referenced h5py.Group or h5py.Dataset. On load their h5py.ref_dtype type
         #       dtype is used to distinguish them from datasets hosting pickled data.
         h_link = h_group.create_dataset(name,data = py_obj_ref[0].ref,dtype = h5.ref_dtype)
         h_link.attrs.update(attrs)
         return
 
-    # Check if loader has already been loaded for the provided py_obj and 
+    # Check if loader has already been loaded for the provided py_obj and
     # retrieve the most appropriate method for creating the corresponding
     # representation within HDF5 file
     py_obj_type, (create_dataset, base_type,memoise) = loader.load_loader(py_obj.__class__)
@@ -160,7 +161,7 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
             the path of the HDF5-file that must be used.
         ~h5py.Group:
              the group (or file) in an open HDF5-file that must be used.
-        file, file-like: 
+        file, file-like:
             file or like object which provides `read`, `seek`, `tell` and write methods
         tuple:
             two element tuple with the first being the file or file like object
@@ -171,19 +172,19 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
 
     mode (str): optional
         string indicating how the file shall be opened. For details see Python `open`.
-        
+
         Note: The 'b' flag is optional as all files are and have to be opened in
             binary mode.
 
     path (str): optional
         Path within HDF5-file or group to dump to/load from.
-    
+
     filename (str): optional
         The name of the file. Ignored when f is `str` or `h5py.File` object.
 
     options (dict): optional
         Each entry in this dict modifies how hickle dumps data to file.
-        For example 
+        For example
             { custom = True }
         would enforce use of custom loaders on all classes
         registered with this kind of loader.
@@ -200,7 +201,7 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
     CloseFileError:
         If passed h5py.File, h5py.Group or h5py.Dataset object is not
         accessible. This in most cases indicates that underlying HDF5
-        was closed or if file or file or file-like object has already been 
+        was closed or if file or file or file-like object has already been
         closed.
 
     FileError
@@ -239,7 +240,7 @@ def dump(py_obj, file_obj, mode='w', path='/',*,filename = None,options = {},**k
         h5f.flush()
 
         # disable python garbage collector while closing to prevent Unrecognized
-        # typecode ValueError caused by h5py objects collected to earlay most 
+        # typecode ValueError caused by h5py objects collected to earlay most
         # persistently observed with h5py 2.10 in python 3.7 on 32 bit windows
         gc.disable()
         if close_flag:
@@ -273,7 +274,7 @@ def load(file_obj, path='/', safe=True, filename = None):
             the path of the HDF5-file that must be used.
         ~h5py.Group:
              the group (or file) in an open HDF5-file that must be used.
-        file, file-like: 
+        file, file-like:
             file or like object which provides `read`, `seek`, `tell` and write methods
         tuple:
             two element tuple with the first being the file or file like object
@@ -282,18 +283,20 @@ def load(file_obj, path='/', safe=True, filename = None):
         dict:
             dictionary with 'file' and 'name' items
 
-    
+
     path (str): optional
             Path within HDF5-file or group to dump to/load from.
 
     safe (bool): optional
-        Disable automatic depickling of arbitrary python objects.
-        DO NOT set this to False unless the file is from a trusted source.
-        (See https://docs.python.org/3/library/pickle.html for an explanation)
+        When True (default), raise UnsafeFileError if the file contains any
+        objects that were serialized with pickle.  Pickle payloads can execute
+        arbitrary code on load, so never set this to False unless the file
+        originates from a completely trusted source.
+        (See https://docs.python.org/3/library/pickle.html)
 
-        Note: ignored when loading hickle 4.x and newer files
+        Prefer hickle.load_unsafe() over passing safe=False explicitly; it
+        makes the unsafe intent visible at the call site.
 
-        
     filename (str): optional
         The name of the file. Ignored when f is `str` or `h5py.File` object.
 
@@ -307,11 +310,16 @@ def load(file_obj, path='/', safe=True, filename = None):
     CloseFileError:
         If passed h5py.File, h5py.Group or h5py.Dataset object is not
         accessible. This in most cases indicates that underlying HDF5
-        was closed or if file or file or file-like object has already been 
+        was closed or if file or file or file-like object has already been
         closed.
 
     FileError
         If passed file or file-like object is not opened for reading
+
+    UnsafeFileError:
+        If safe=True (the default) and the file contains pickle-serialized
+        objects.  Use hickle.load_unsafe() to suppress this for trusted
+        files.
 
     ValueError:
         If anything else than str, bytes or None specified for filename
@@ -361,28 +369,52 @@ def load(file_obj, path='/', safe=True, filename = None):
         if all(map(h_root_group.attrs.get, v4_attrs)):
             # Load file
             py_container = RootContainer(h_root_group.attrs,b'document_root',RootContainer)
-            pickle_loads = pickle.loads
-            hickle_version = h_root_group.attrs["HICKLE_VERSION"].split('.')
-            if int(hickle_version[0]) == 4:
-                # hickle 4.x file activate if legacy load fixes for 4.x
-                # eg. pickle of versions < 3.8 do not prevent dumping of lambda functions
-                # even though stated otherwise in documentation. Activate workarounds
-                # just in case issues arise. Especially as corresponding lambdas in
-                # load_numpy are not needed anymore and thus have been removed.
-                with LoaderManager.create_manager(h_root_group,True) as loader:
-                    with ReferenceManager.create_manager(h_root_group,fix_lambda_obj_type) as memo:
-                        _load(py_container, 'data',h_root_group['data'],memo,loader) #load_loader = load_legacy_loader)
+            # Honour the safe flag via a contextvars.ContextVar.  Setting it
+            # here propagates into load_pickled_data (lookup.py), which is
+            # the only place user-controlled pickle payloads are deserialized.
+            #
+            # NOTE: ReferenceManager always uses pickle.loads for type-reference
+            # blobs stored in the hickle_types_table (entries like
+            # pickle.dumps(dict), pickle.dumps(np.ndarray), etc.).  Those are
+            # not user-controlled data; they are type-lookup keys written by
+            # hickle itself and are required for the v4/v5 format to function.
+            if safe:
+                data_pickle_fn = _safe_pickle_loads
+            else:
+                warnings.warn(
+                    "safe=False disables pickle protection. Only load hickle "
+                    "files from sources you fully trust. Consider using "
+                    "hickle.load_unsafe() to make this intent explicit.",
+                    stacklevel=2,
+                )
+                data_pickle_fn = pickle.loads
+            pickle_token = _hickle_pickle_fn.set(data_pickle_fn)
+            try:
+                hickle_version = h_root_group.attrs["HICKLE_VERSION"].split('.')
+                if int(hickle_version[0]) == 4:
+                    # hickle 4.x file activate if legacy load fixes for 4.x
+                    # eg. pickle of versions < 3.8 do not prevent dumping of lambda functions
+                    # even though stated otherwise in documentation. Activate workarounds
+                    # just in case issues arise. Especially as corresponding lambdas in
+                    # load_numpy are not needed anymore and thus have been removed.
+                    with LoaderManager.create_manager(h_root_group,True) as loader:
+                        with ReferenceManager.create_manager(h_root_group,fix_lambda_obj_type) as memo:
+                            _load(py_container, 'data',h_root_group['data'],memo,loader)
+                    return py_container.convert()
+                # 4.1.x file and newer
+                with LoaderManager.create_manager(h_root_group,False) as loader:
+                    with ReferenceManager.create_manager(h_root_group,pickle.loads) as memo:
+                        _load(py_container, 'data',h_root_group['data'],memo,loader)
                 return py_container.convert()
-            # 4.1.x file and newer
-            with LoaderManager.create_manager( h_root_group,False) as loader:
-                with ReferenceManager.create_manager(h_root_group,pickle_loads) as memo:
-                    _load(py_container, 'data',h_root_group['data'],memo,loader) #load_loader = load_loader)
-            return py_container.convert()
+            finally:
+                _hickle_pickle_fn.reset(pickle_token)
 
         # Else, raise error
         raise FileError("HDF5-file does not have the proper attributes!")
 
     # If this fails, raise error and provide user with caught error message
+    except UnsafeFileError:
+        raise
     except Exception as error:
         raise ValueError("Provided argument 'file_obj' does not appear to be a valid hickle file! (%s)" % (error),error) from error
     finally:
@@ -390,13 +422,44 @@ def load(file_obj, path='/', safe=True, filename = None):
         h5f.flush()
 
         # disable python garbage collector while closing to prevent Unrecognized
-        # typecode ValueError caused by h5py objects collected to earlay most 
+        # typecode ValueError caused by h5py objects collected to earlay most
         # persistently observed with h5py 2.10 in python 3.7 on 32 bit windows
         gc.disable()
         if close_flag:
             h5f.close()
         gc.enable()
 
+
+def load_unsafe(file_obj, path='/', filename=None):
+    """
+    Load a hickle file that contains pickle-serialized objects.
+
+    This is an explicit opt-in for loading files that were created with object
+    types hickle could not represent natively (stored as pickle blobs).  It is
+    equivalent to ``hickle.load(file_obj, safe=False)`` but makes the unsafe
+    intent clearly visible at the call site.
+
+    **Only use this function when you are certain the file originates from a
+    trusted source.**  Pickle payloads can execute arbitrary code on
+    deserialization. See https://docs.python.org/3/library/pickle.html.
+
+    Parameters
+    ----------
+    file_obj : file, file-like, h5py.File, str, tuple, or dict
+        File to load.  Same semantics as :func:`hickle.load`.
+
+    path : str, optional
+        Path within the HDF5 file (default '/').
+
+    filename : str, optional
+        Passed through to :func:`hickle.load`.
+
+    Returns
+    -------
+    py_obj : object
+        The unhickled Python object.
+    """
+    return load(file_obj, path=path, safe=False, filename=filename)
 
 
 def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader):
@@ -434,18 +497,18 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
     # load the type information of node.
     py_obj_type,base_type,is_container = memo.resolve_type(h_node)
     py_obj_type,(_,_,memoise) = loader.load_loader(py_obj_type,base_type=base_type)
-    
+
     if is_container:
         # Either a h5py.Group representing the structure of complex objects or
         # a h5py.Dataset representing a h5py.Reference to the node of an object
-        # referred to from multiple places within the object structure on dump 
+        # referred to from multiple places within the object structure on dump
         # is to be restored.
         # If no appropriate PyContainer is available use RecoverGroupContainer
         # instead to at least recover its contained data
 
         py_container_class = loader.hkl_container_dict.get(base_type,RecoverGroupContainer)
         py_subcontainer = py_container_class(h_node.attrs,base_type,py_obj_type)
-    
+
         for h_key,h_subnode in py_subcontainer.filter(h_node):
             _load(py_subcontainer, h_key, h_subnode, memo ,loader)
 
@@ -464,4 +527,3 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
     # store loaded object for properly restoring additional references to it
     if memoise:
         memo[h_node.id] = sub_data
-
