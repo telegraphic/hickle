@@ -153,8 +153,9 @@ def load_none_dataset(h_node):
 
 def load_pickled_data(h_node):
     py_type, data = get_type_and_data(h_node)
-    import dill as pickle
-    return pickle.loads(data[0])
+    from hickle.lookup import _hickle_pickle_fn, _safe_pickle_loads
+    pickle_fn = _hickle_pickle_fn.get(_safe_pickle_loads)
+    return pickle_fn(data[0])
 
 
 def load_python_dtype_dataset(h_node):

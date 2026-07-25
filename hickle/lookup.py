@@ -97,6 +97,7 @@ import types
 import re
 import weakref
 import os.path
+import io
 import contextvars
 from importlib.util import find_spec, module_from_spec,spec_from_file_location,spec_from_loader
 from importlib import invalidate_caches
@@ -104,6 +105,7 @@ from importlib import invalidate_caches
 # Package imports
 import collections
 import pickle
+import pickletools
 import numpy as np
 import h5py as h5
 
@@ -451,7 +453,7 @@ class ReferenceManager(BaseManager, dict):
         h5file.close()
 
     @classmethod
-    def create_manager(cls,h_node, pickle_loads = pickle.loads):
+    def create_manager(cls, h_node, pickle_loads = None):
         """
         creates a new ReferenceManager object for the h_root_group the h_node
         belongs to.
@@ -473,15 +475,17 @@ class ReferenceManager(BaseManager, dict):
         LookupError:
             if ReferenceManager has already been created for h_node or its h_root_group
         """
+        if pickle_loads is None:
+            pickle_loads = _hickle_type_pickle_fn.get(_safe_type_pickle_loads)
 
         def create_manager():
             return (
-                ReferenceManager(h_node,pickle_loads = pickle_loads),
+                ReferenceManager(h_node, pickle_loads = pickle_loads),
                 ReferenceManager.get_root(h_node)
             )
-        return super().create_manager(h_node,create_manager)
+        return super().create_manager(h_node, create_manager)
 
-    def __init__(self, h_root_group, *args,pickle_loads = pickle.loads, **kwargs):
+    def __init__(self, h_root_group, *args, pickle_loads = None, **kwargs):
         """
         constructs ReferenceManager object
 
@@ -505,7 +509,9 @@ class ReferenceManager(BaseManager, dict):
             In case an error occurs while loading 'hickle_types_table' from an
             existing file opened for reading and writing
         """
-        super().__init__(*args,**kwargs)
+        if pickle_loads is None:
+            pickle_loads = _hickle_type_pickle_fn.get(_safe_type_pickle_loads)
+        super().__init__(*args, **kwargs)
         self._py_obj_type_link = dict()
         self._base_type_link = dict()
         self._overlay = None
@@ -571,7 +577,7 @@ class ReferenceManager(BaseManager, dict):
             if base_type is None:
                 base_type = base_type_entry.name.rsplit('/',1)[-1].encode('ascii')
             try:
-                py_obj_type = pickle.loads(entry[()])
+                py_obj_type = self.pickle_loads(entry[()])
             except (ImportError,AttributeError):
                 py_obj_type = AttemptRecoverCustom
                 entry_link = py_obj_type,'!recover!',base_type
@@ -1505,6 +1511,77 @@ def create_pickled_dataset(py_obj, h_group, name, reason = None, **kwargs):
 # Default is None; load_pickled_data falls back to pickle.loads so that any
 # code that calls it outside of a managed hickle.load() context is unaffected.
 _hickle_pickle_fn = contextvars.ContextVar('hickle_pickle_fn', default=None)
+_hickle_type_pickle_fn = contextvars.ContextVar('hickle_type_pickle_fn', default=None)
+
+# Root packages hickle may import on its own while resolving type references in
+# safe mode.  Importing a module runs its top level code, therefore the GLOBAL
+# and STACK_GLOBAL opcodes must never be allowed to pull in arbitrary modules
+# named by an untrusted file.  Any module outside this set has to be present in
+# sys.modules already, in which case resolving it has no further side effects.
+_SAFE_TYPE_IMPORT_ROOTS = frozenset((
+    'builtins', '__builtin__', 'copyreg',
+    'collections', 'datetime', 'decimal', 'fractions', 'pathlib', 'uuid',
+    'hickle', 'numpy', 'scipy', 'astropy', 'pandas',
+))
+
+
+class RestrictedTypeUnpickler(pickle._Unpickler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dispatch = self.dispatch.copy()
+        self.dispatch[pickle.REDUCE[0]] = RestrictedTypeUnpickler.load_reduce
+        self.dispatch[pickle.BUILD[0]] = RestrictedTypeUnpickler.load_build
+        self.dispatch[pickle.INST[0]] = RestrictedTypeUnpickler.load_inst
+        self.dispatch[pickle.OBJ[0]] = RestrictedTypeUnpickler.load_obj
+        self.dispatch[pickle.NEWOBJ[0]] = RestrictedTypeUnpickler.load_newobj
+        self.dispatch[pickle.NEWOBJ_EX[0]] = RestrictedTypeUnpickler.load_newobj_ex
+
+    def find_class(self, module, name):
+        if (
+            module not in sys.modules and
+            module.split('.', 1)[0] not in _SAFE_TYPE_IMPORT_ROOTS
+        ):
+            raise UnsafeFileError(
+                f"Refusing to import module '{module}' in order to resolve type "
+                f"'{module}.{name}' while safe=True; importing a module executes "
+                "its top level code. Import the module yourself before calling "
+                "hickle.load(), or use hickle.load_unsafe() if the file comes "
+                "from a trusted source."
+            )
+        obj = super().find_class(module, name)
+        if not isinstance(obj, type):
+            raise UnsafeFileError(
+                f"'{module}.{name}' is not a type, refusing to resolve it as "
+                "hickle type metadata while safe=True. Use hickle.load_unsafe() "
+                "if loading from a trusted source."
+            )
+        return obj
+
+    def load_reduce(self):
+        args = self.stack[-1]
+        func = self.stack[-2]
+        if func is type and len(args) == 1 and isinstance(args[0], (type(None), type(...), type(NotImplemented))):
+            super().load_reduce()
+        else:
+            raise UnsafeFileError(
+                f"Unsafe call {func!r} with args {args!r} in type metadata while safe=True. "
+                "Use hickle.load_unsafe() if loading from a trusted source."
+            )
+
+    def load_build(self):
+        raise UnsafeFileError("BUILD opcode not allowed in safe mode.")
+
+    def load_inst(self):
+        raise UnsafeFileError("INST opcode not allowed in safe mode.")
+
+    def load_obj(self):
+        raise UnsafeFileError("OBJ opcode not allowed in safe mode.")
+
+    def load_newobj(self):
+        raise UnsafeFileError("NEWOBJ opcode not allowed in safe mode.")
+
+    def load_newobj_ex(self):
+        raise UnsafeFileError("NEWOBJ_EX opcode not allowed in safe mode.")
 
 
 def _safe_pickle_loads(data):
@@ -1515,6 +1592,44 @@ def _safe_pickle_loads(data):
         "arbitrary code. To load this file from a trusted source, use "
         "hickle.load_unsafe() instead."
     )
+
+
+def _safe_type_pickle_loads(data):
+    """
+    Safely unpickle a type reference in metadata when safe=True.
+    Raises UnsafeFileError if the payload contains execution opcodes or is not a type.
+    """
+    if data is None:
+        raise TypeError("type reference is None")
+
+    if isinstance(data, bytes):
+        data_bytes = data
+    elif isinstance(data, (bytearray, memoryview)):
+        data_bytes = bytes(data)
+    elif isinstance(data, (np.ndarray, np.generic)):
+        data_bytes = bytes(memoryview(data))
+    else:
+        try:
+            data_bytes = bytes(data)
+        except Exception as e:
+            raise TypeError(f"Invalid type reference format: {e}") from e
+
+    try:
+        unpickler = RestrictedTypeUnpickler(io.BytesIO(data_bytes))
+        res = unpickler.load()
+    except UnsafeFileError:
+        raise
+    except (AttributeError, ImportError, ModuleNotFoundError, TypeError, pickle.UnpicklingError, EOFError):
+        raise
+    except Exception as e:
+        raise pickle.UnpicklingError(f"Failed to unpickle type reference: {e}") from e
+
+    if not isinstance(res, type) and res is not AttemptRecoverCustom:
+        raise UnsafeFileError(
+            f"Expected type object in hickle metadata, got {type(res)}. "
+            "Use hickle.load_unsafe() if loading from a trusted source."
+        )
+    return res
 
 
 def load_pickled_data(h_node, base_type, py_obj_type):
@@ -1638,3 +1753,10 @@ def fix_lambda_obj_type(bytes_object, *, fix_imports=True, encoding="ASCII", err
             MockedLambdaWarning
         )
         return _moc_numpy_array_object_lambda
+
+
+def safe_fix_lambda_obj_type(bytes_object, *, fix_imports=True, encoding="ASCII", errors="strict"):
+    if bytes_object is None:
+        return object
+    _safe_type_pickle_loads(bytes_object)
+    return fix_lambda_obj_type(bytes_object, fix_imports=fix_imports, encoding=encoding, errors=errors)

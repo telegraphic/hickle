@@ -58,9 +58,10 @@ from .helpers import (
 from .fileio import ClosedFileError, FileError, file_opener
 from .lookup import (
     #hkl_types_dict, hkl_container_dict, load_loader, load_legacy_loader ,
-    create_pickled_dataset, load_nothing, fix_lambda_obj_type, ReferenceManager,
+    create_pickled_dataset, load_nothing, fix_lambda_obj_type, safe_fix_lambda_obj_type, ReferenceManager,
     LoaderManager, RecoverGroupContainer, recover_custom_dataset,
     _hickle_pickle_fn, _safe_pickle_loads,
+    _hickle_type_pickle_fn, _safe_type_pickle_loads,
 )
 
 
@@ -327,6 +328,22 @@ def load(file_obj, path='/', safe=True, filename = None):
 
     # Try to read the provided file_obj as a hickle file
     h5f, path, close_flag = file_opener(file_obj, path, 'r', filename)
+    if safe:
+        data_pickle_fn = _safe_pickle_loads
+        type_pickle_fn = _safe_type_pickle_loads
+    else:
+        warnings.warn(
+            "safe=False disables pickle protection. Only load hickle "
+            "files from sources you fully trust. Consider using "
+            "hickle.load_unsafe() to make this intent explicit.",
+            stacklevel=2,
+        )
+        data_pickle_fn = pickle.loads
+        type_pickle_fn = pickle.loads
+
+    token_data = _hickle_pickle_fn.set(data_pickle_fn)
+    token_type = _hickle_type_pickle_fn.set(type_pickle_fn)
+
     try:
         h_root_group = h5f.get(path,None) # only used by v4
         if not isinstance(h_root_group,h5.Group):
@@ -369,45 +386,23 @@ def load(file_obj, path='/', safe=True, filename = None):
         if all(map(h_root_group.attrs.get, v4_attrs)):
             # Load file
             py_container = RootContainer(h_root_group.attrs,b'document_root',RootContainer)
-            # Honour the safe flag via a contextvars.ContextVar.  Setting it
-            # here propagates into load_pickled_data (lookup.py), which is
-            # the only place user-controlled pickle payloads are deserialized.
-            #
-            # NOTE: ReferenceManager always uses pickle.loads for type-reference
-            # blobs stored in the hickle_types_table (entries like
-            # pickle.dumps(dict), pickle.dumps(np.ndarray), etc.).  Those are
-            # not user-controlled data; they are type-lookup keys written by
-            # hickle itself and are required for the v4/v5 format to function.
-            if safe:
-                data_pickle_fn = _safe_pickle_loads
-            else:
-                warnings.warn(
-                    "safe=False disables pickle protection. Only load hickle "
-                    "files from sources you fully trust. Consider using "
-                    "hickle.load_unsafe() to make this intent explicit.",
-                    stacklevel=2,
-                )
-                data_pickle_fn = pickle.loads
-            pickle_token = _hickle_pickle_fn.set(data_pickle_fn)
-            try:
-                hickle_version = h_root_group.attrs["HICKLE_VERSION"].split('.')
-                if int(hickle_version[0]) == 4:
-                    # hickle 4.x file activate if legacy load fixes for 4.x
-                    # eg. pickle of versions < 3.8 do not prevent dumping of lambda functions
-                    # even though stated otherwise in documentation. Activate workarounds
-                    # just in case issues arise. Especially as corresponding lambdas in
-                    # load_numpy are not needed anymore and thus have been removed.
-                    with LoaderManager.create_manager(h_root_group,True) as loader:
-                        with ReferenceManager.create_manager(h_root_group,fix_lambda_obj_type) as memo:
-                            _load(py_container, 'data',h_root_group['data'],memo,loader)
-                    return py_container.convert()
-                # 4.1.x file and newer
-                with LoaderManager.create_manager(h_root_group,False) as loader:
-                    with ReferenceManager.create_manager(h_root_group,pickle.loads) as memo:
+            hickle_version = h_root_group.attrs["HICKLE_VERSION"].split('.')
+            if int(hickle_version[0]) == 4:
+                # hickle 4.x file activate if legacy load fixes for 4.x
+                # eg. pickle of versions < 3.8 do not prevent dumping of lambda functions
+                # even though stated otherwise in documentation. Activate workarounds
+                # just in case issues arise. Especially as corresponding lambdas in
+                # load_numpy are not needed anymore and thus have been removed.
+                v4_type_fn = safe_fix_lambda_obj_type if safe else fix_lambda_obj_type
+                with LoaderManager.create_manager(h_root_group,True) as loader:
+                    with ReferenceManager.create_manager(h_root_group,v4_type_fn) as memo:
                         _load(py_container, 'data',h_root_group['data'],memo,loader)
                 return py_container.convert()
-            finally:
-                _hickle_pickle_fn.reset(pickle_token)
+            # 4.1.x file and newer
+            with LoaderManager.create_manager(h_root_group,False) as loader:
+                with ReferenceManager.create_manager(h_root_group,type_pickle_fn) as memo:
+                    _load(py_container, 'data',h_root_group['data'],memo,loader)
+            return py_container.convert()
 
         # Else, raise error
         raise FileError("HDF5-file does not have the proper attributes!")
@@ -418,6 +413,8 @@ def load(file_obj, path='/', safe=True, filename = None):
     except Exception as error:
         raise ValueError("Provided argument 'file_obj' does not appear to be a valid hickle file! (%s)" % (error),error) from error
     finally:
+        _hickle_pickle_fn.reset(token_data)
+        _hickle_type_pickle_fn.reset(token_type)
         # Flush the h5py.File and close it lif it was opened by hickle.
         h5f.flush()
 
