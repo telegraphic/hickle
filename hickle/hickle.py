@@ -292,6 +292,7 @@ def load(file_obj, path='/', safe=True, filename = None):
         (See https://docs.python.org/3/library/pickle.html for an explanation)
         When True, pickle fallback payloads are returned as recovered raw data
         instead of being depickled.
+        When False, pickle fallback payloads are depickled.
 
         
     filename (str): optional

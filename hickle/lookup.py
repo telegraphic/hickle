@@ -1513,9 +1513,7 @@ def recover_pickled_data(h_node, base_type, py_obj_type):
     recover pickle payload bytes without depickling them
     """
     warnings.warn(
-        "loader 'pickle' disabled by safe mode. Data recovered ({})".format(
-            h_node.name.rsplit('/')[-1]
-        ),
+        f"loader 'pickle' disabled by safe mode. Data recovered ({h_node.name.rsplit('/')[-1]})",
         DataRecoveredWarning
     )
     attrs = dict(h_node.attrs)
