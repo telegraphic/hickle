@@ -290,6 +290,8 @@ def load(file_obj, path='/', safe=True, filename = None):
         Disable automatic depickling of arbitrary python objects.
         DO NOT set this to False unless the file is from a trusted source.
         (See https://docs.python.org/3/library/pickle.html for an explanation)
+        When True, pickle fallback payloads are returned as recovered raw data
+        instead of being depickled.
 
         
     filename (str): optional
