@@ -1510,7 +1510,23 @@ def load_pickled_data(h_node, base_type, py_obj_type):
 
 def recover_pickled_data(h_node, base_type, py_obj_type):
     """
-    recover pickle payload bytes without depickling them
+    Recover pickle payload bytes without depickling them.
+
+    Parameters
+    ----------
+    h_node (h5py.Dataset):
+        Dataset storing pickled payload bytes.
+
+    base_type (bytes):
+        Loader base type, copied into recovered attributes.
+
+    py_obj_type (type):
+        Original Python type metadata (unused in safe mode).
+
+    Returns
+    -------
+    RecoveredDataset
+        Dataset bytes and metadata without executing pickle payloads.
     """
     warnings.warn(
         f"loader 'pickle' disabled by safe mode. Data recovered ({h_node.name.rsplit('/')[-1]})",
