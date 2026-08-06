@@ -36,12 +36,12 @@ The process to add new load/dump capabilities is as follows:
 
 1) Create a file called load_[newmodule/newpackage].py
 2) In the load_[newmodule/newpackage].py file, define your create_dataset,
-   load_dataset functions and PyContainer objects, along with the 
+   load_dataset functions and PyContainer objects, along with the
    'class_register' and 'exclude_register' tables. See the other loaders
    in <Python path>/dist_packages/hickle/loaders directory for examples.
-   The columns in register_class table correspond to argument list of 
-   hickle.lookup.LoaderManager.register_class method. 
-   
+   The columns in register_class table correspond to argument list of
+   hickle.lookup.LoaderManager.register_class method.
+
 
 3) store the load_[newmodule/newpackage].py file in one of the following locations
    <Python path>/dist_packages/hickle/loaders/
@@ -61,7 +61,7 @@ The process to add new load/dump capabilities is as follows:
        loaders specific for object and classes defined by [MyModule|MyApplication].py file
        not part of a python package
 
-Loader for a single object or class can also be created by calling 
+Loader for a single object or class can also be created by calling
 hickle.lookup.register_class prior to calling hickle.dump and hickle.load
 
 1) create a `create_[MyClass]_dataset` function, a `load_[MyClass]_fcn` function and/or
@@ -97,17 +97,20 @@ import types
 import re
 import weakref
 import os.path
+import io
+import contextvars
 from importlib.util import find_spec, module_from_spec,spec_from_file_location,spec_from_loader
 from importlib import invalidate_caches
 
 # Package imports
 import collections
 import pickle
+import pickletools
 import numpy as np
 import h5py as h5
 
 # hickle imports
-from .helpers import PyContainer,not_dumpable,nobody_is_my_name,no_compression,NotHicklable
+from .helpers import PyContainer,not_dumpable,_MISSING,no_compression,NotHicklable,UnsafeFileError
 from .loaders import optional_loaders, attribute_prefix
 
 if sys.version_info[:2] <= (3,5): # pragma: no cover
@@ -123,13 +126,13 @@ def load_nothing(h_node, base_type , py_obj_type): # pragma: no cover
     """
     loads nothing
     """
-    return nobody_is_my_name
+    return _MISSING
 
 def dump_nothing(py_obj, h_group, name, **kwargs): # pragma: no cover
     """
     dumps nothing
     """
-    return nobody_is_my_name
+    return _MISSING
 
 
 # %% CLASS DEFINITIONS
@@ -142,7 +145,7 @@ class _DictItem(): # pragma: no cover
 class NodeReference(): # pragma: no cover
     """
     dummy py_obj_type returned by ReferenceManager.get_type
-    when encountering dataset of h5py.ref_dtype  which expose 
+    when encountering dataset of h5py.ref_dtype  which expose
     no explicit 'type' attribute.
     """
 
@@ -164,7 +167,7 @@ class SerializedWarning(UserWarning): # pragma: no cover
 
 class PackageImportDropped(UserWarning): # pragma: no cover
     """
-    Package or module defining type/class was removed from 
+    Package or module defining type/class was removed from
     sys.modules
     """
 
@@ -189,7 +192,7 @@ class AttemptRecoverCustom():
     Dummy type indicating that the data of specific py_obj_type listed in the
     hickle_types_table could not be restored. Most likely pickle.loads encountered
     an ImportError/ModuleNotFoundError or AttributeError indicating that the package
-    and/or module defining the py_obj_type is not installed or does not anymore 
+    and/or module defining the py_obj_type is not installed or does not anymore
     provide the definition of py_object_type.
 
     In this case hickle tries to at least recover the data and corresponding meta
@@ -230,7 +233,7 @@ class RecoveredDataset(np.ndarray,AttemptRecoverCustom):
         )
         obj.attrs = {name:value for name,value in attrs.items() if name not in {'type'}}
         return obj
-    
+
     def __array_finalize__(self,obj):
         if obj is not None:
             self.attrs = getattr(obj,'attrs',{})
@@ -254,7 +257,7 @@ class ManagerMeta(type):
             if not isinstance(namespace.get('__managers__',None),dict):
                 namespace['__managers__'] = dict() if bases and not object in bases else None
         return super().__new__(cls,name,bases,namespace,**kwords)
-                
+
 class BaseManager(metaclass = ManagerMeta):
     """
     Base class providing basic management of simultaneously open managers.
@@ -310,12 +313,12 @@ class BaseManager(metaclass = ManagerMeta):
             is a tuple or list with contains as its first item the newly
             created <manager> object. It may include further items specific to
             the actual BaseManager subclass.
-                
+
         Raises
         ------
         LookupError:
-            if manager has already been created for h_node or its h_root_group 
-                
+            if manager has already been created for h_node or its h_root_group
+
         """
         manager = cls.__managers__.get(h_node.file.id,None)
         if manager is not None:
@@ -331,17 +334,17 @@ class BaseManager(metaclass = ManagerMeta):
     @classmethod
     def get_manager(cls, h_node):
         """
-        return manager responsible for the file containing h_node 
-    
+        return manager responsible for the file containing h_node
+
         Parameters
         ----------
         h_node (h5py.File, h5py.Group, h5py.Dataset):
             the h5py node to obtain the responsible manager for.
-            
+
         Raises
         ------
         LookupError:
-            if no manager has been created yet for h_node or its h_root_group 
+            if no manager has been created yet for h_node or its h_root_group
         """
         try:
             return cls.__managers__[h_node.file.id][0]
@@ -391,7 +394,7 @@ class ReferenceManager(BaseManager, dict):
         'pickle_loads' # reference to pickle.loads method
     )
 
-    
+
     @staticmethod
     def get_root(h_node):
         """
@@ -413,7 +416,7 @@ class ReferenceManager(BaseManager, dict):
         if h_node.parent == h_node.file:
 
             # h_node is either the h_root_group it self or the file node representing
-            # the open hickle file. 
+            # the open hickle file.
             return h_node if isinstance(h_node,h5.Group) else h_node.file
 
         # either h_node has not yet a 'type' assigned or contains pickle string
@@ -445,15 +448,15 @@ class ReferenceManager(BaseManager, dict):
     def _drop_overlay(h5file):
         """
         closes in memory overlay file providing dummy 'hickle_types_table' structure
-        for hdf5 files which were created by hickle 4.x 
+        for hdf5 files which were created by hickle 4.x
         """
         h5file.close()
 
     @classmethod
-    def create_manager(cls,h_node, pickle_loads = pickle.loads):
+    def create_manager(cls, h_node, pickle_loads = None):
         """
         creates a new ReferenceManager object for the h_root_group the h_node
-        belongs to. 
+        belongs to.
 
 
         Parameters
@@ -464,23 +467,25 @@ class ReferenceManager(BaseManager, dict):
 
         pickle_loads (FunctionType,MethodType):
             method to be used to expand py_obj_type pickle strings.
-            defaults to pickle.loads. Must be set to fix_lambda_obj_type 
+            defaults to pickle.loads. Must be set to fix_lambda_obj_type
             for hickle file created by hickle 4.x.
 
         Raises
         ------
         LookupError:
-            if ReferenceManager has already been created for h_node or its h_root_group 
+            if ReferenceManager has already been created for h_node or its h_root_group
         """
+        if pickle_loads is None:
+            pickle_loads = _hickle_type_pickle_fn.get(_safe_type_pickle_loads)
 
         def create_manager():
-            return ( 
-                ReferenceManager(h_node,pickle_loads = pickle_loads),
+            return (
+                ReferenceManager(h_node, pickle_loads = pickle_loads),
                 ReferenceManager.get_root(h_node)
             )
-        return super().create_manager(h_node,create_manager)
+        return super().create_manager(h_node, create_manager)
 
-    def __init__(self, h_root_group, *args,pickle_loads = pickle.loads, **kwargs):
+    def __init__(self, h_root_group, *args, pickle_loads = None, **kwargs):
         """
         constructs ReferenceManager object
 
@@ -504,7 +509,9 @@ class ReferenceManager(BaseManager, dict):
             In case an error occurs while loading 'hickle_types_table' from an
             existing file opened for reading and writing
         """
-        super().__init__(*args,**kwargs)
+        if pickle_loads is None:
+            pickle_loads = _hickle_type_pickle_fn.get(_safe_type_pickle_loads)
+        super().__init__(*args, **kwargs)
         self._py_obj_type_link = dict()
         self._base_type_link = dict()
         self._overlay = None
@@ -570,7 +577,7 @@ class ReferenceManager(BaseManager, dict):
             if base_type is None:
                 base_type = base_type_entry.name.rsplit('/',1)[-1].encode('ascii')
             try:
-                py_obj_type = pickle.loads(entry[()])
+                py_obj_type = self.pickle_loads(entry[()])
             except (ImportError,AttributeError):
                 py_obj_type = AttemptRecoverCustom
                 entry_link = py_obj_type,'!recover!',base_type
@@ -589,14 +596,14 @@ class ReferenceManager(BaseManager, dict):
         ----
             Storing and restoring the content of nodes containing pickle byte strings
             is fully managed by pickle.dumps and pickle.loads functions including
-            selection of appropriate py_obj_type. Therefore no explicit entry for 
+            selection of appropriate py_obj_type. Therefore no explicit entry for
             object and b'pickle' py_obj_type and base_type pairs indicating pickled
             content of pickled dataset are created.
 
         Parameters
         ----------
         h_node (h5py.Group, h5py.Dataset):
-            node the 'type' attribute a 'hickle_types_table' entry corresponding to 
+            node the 'type' attribute a 'hickle_types_table' entry corresponding to
             the provided py_obj_type, base_type entry pair shall be assigned to.
 
         py_obj_type (any type or class):
@@ -643,7 +650,7 @@ class ReferenceManager(BaseManager, dict):
             if base_type is None:
                 raise LookupError(
                     "no entry found for py_obj_type '{}'".format(py_obj_type.__name__)
-                ) 
+                )
             if not isinstance(base_type,(str,bytes)) or not base_type:
                 raise ValueError("base_type must be non empty bytes string")
             type_entry = memoryview(pickle.dumps(py_obj_type))
@@ -685,13 +692,13 @@ class ReferenceManager(BaseManager, dict):
 
         Note: If 'type' attribute is not present h_node represents either a h5py.Reference to
             the actual node of the object to be restored or contains a pickle bytes string.
-            In either case the corresponding implicit py_obj_type base_type pair 
+            In either case the corresponding implicit py_obj_type base_type pair
             (NodeReference, b'!node-reference!') or (object,b'pickle') respective is assumed and
             returned.
 
-        Note: If restoring 'py_object_type' from pickle string stored in type attribute or 
-            'hickle_types_table' fails than implicit py_obj_type base_type pair 
-            (AttemptRecoverCustom,'!recover!') is returned instead of the actual 'py_obj_type' 
+        Note: If restoring 'py_object_type' from pickle string stored in type attribute or
+            'hickle_types_table' fails than implicit py_obj_type base_type pair
+            (AttemptRecoverCustom,'!recover!') is returned instead of the actual 'py_obj_type'
             base_type pair is returned. The latter can be retrieved by setting 'base_type_type'
             to 2 in this case
 
@@ -719,7 +726,7 @@ class ReferenceManager(BaseManager, dict):
 
         base_type:
             the base_type string indicating the loader to be used for properly
-            restoring the py_obj_type instance or the base_type string 
+            restoring the py_obj_type instance or the base_type string
 
         is_container:
             boolean flag indicating whether h_node represents a h5py.Group or
@@ -733,8 +740,8 @@ class ReferenceManager(BaseManager, dict):
         # string. In either case assume (NodeReference,b'!node-reference!') or (object,b'pickle')
         # respective as (py_obj_type, base_type) pair and set is_container flag to True for
         # h5py.Reference and False otherwise.
-        # 
-        # NOTE: hickle 4.x legacy file does not store 'type' attribute for h5py.Group nodes with 
+        #
+        # NOTE: hickle 4.x legacy file does not store 'type' attribute for h5py.Group nodes with
         #       b'dict_item' base_type. As h5py.Groups do not have a dtype attribute the check
         #       whether h_node.dtype equals h5py.ref_dtype will raise AttributeError.
         #       If h_node represents a b'dict_item' than self.pickle_loads will point to
@@ -814,7 +821,7 @@ class ReferenceManager(BaseManager, dict):
                 entry_link = (py_obj_type,base_type)
                 self._py_obj_type_link[id(py_obj_type)] = entry
             type_info = self._py_obj_type_link[entry.id] = entry_link
-        # return (py_obj_type,base_type). set is_container flag to true if 
+        # return (py_obj_type,base_type). set is_container flag to true if
         # h_node is h5py.Group object and false otherwise
         return (type_info[0],type_info[base_type_type],isinstance(h_node,h5.Group))
 
@@ -852,7 +859,7 @@ _custom_loader_enabled_builtins = {'__main__':('','')}
 class LoaderManager(BaseManager):
     """
     Handles the file specific lookup of loader to be used to dump or load
-    a python object of a specific type 
+    a python object of a specific type
 
     To create a LoaderManager call LoaderManager.create_manager
     function. The value returned can be and shall be used within a
@@ -872,7 +879,7 @@ class LoaderManager(BaseManager):
     """
 
     # Define dict of all acceptable types dependent upon loader option
-    __py_types__ = { 
+    __py_types__ = {
         None: {},
         'hickle-4.x': {},
         **{ option:{} for option in optional_loaders }
@@ -903,7 +910,7 @@ class LoaderManager(BaseManager):
     ):
         """
         Register a new class to be recognized and dumped or restored by hickle.
-    
+
         Parameters
         ----------
         myclass_type (type.class):
@@ -918,7 +925,7 @@ class LoaderManager(BaseManager):
                 string enclosed within a pair of !! can not be modified if once
                 registered. Strings quoted by !! must be added as global loader
                 with option = None.
-                
+
         dump_function (callable):
             callable to write data to HDF5
 
@@ -928,7 +935,7 @@ class LoaderManager(BaseManager):
         container_class (PyContainer):
             PyContainer type proxy class to load data from HDF5
 
-        memoise (bool): 
+        memoise (bool):
             True: references to the object instances of class shall be remembered
                 during dump and load for properly resolving multiple references
                 to the same object instance.
@@ -940,11 +947,11 @@ class LoaderManager(BaseManager):
             String identifying set of loaders which shall only be used when
             specific feature or category is requested on top of global loaders.
             If None than loader is globally to be used if there is no other loader
-            registered for myclass_type. 
+            registered for myclass_type.
 
-            NOTE: only strings listed in 'optional_loaders' exported by 
-                  hickle.loaders.__init__ and 'hickle-4.x' are accepted. 
-                
+            NOTE: only strings listed in 'optional_loaders' exported by
+                  hickle.loaders.__init__ and 'hickle-4.x' are accepted.
+
         Raises
         ------
         TypeError:
@@ -955,7 +962,7 @@ class LoaderManager(BaseManager):
 
         ValueError:
             if optional loader modules tries to shadow 'dict_item', 'pickle' and any
-            loader marked as essential to proper function of hickle.dump and hickle.load 
+            loader marked as essential to proper function of hickle.dump and hickle.load
             by ! prefix and postfix ('!node-reference!', '!recover!').
 
         LookupError:
@@ -963,7 +970,7 @@ class LoaderManager(BaseManager):
             listed in 'optional_loaders' exported by 'hickle.loaders.__init__.py'
             file to be recognized as valid option
         """
-    
+
         if (
             myclass_type is object or
             isinstance(
@@ -973,7 +980,7 @@ class LoaderManager(BaseManager):
             issubclass(myclass_type,(type,_DictItem))
         ):
             # object, all functions, methods, class objects and the special _DictItem class
-            # type objects are to be handled by hickle core only. 
+            # type objects are to be handled by hickle core only.
             dump_module = getattr(dump_function, '__module__', '').split('.', 2)
             load_module = getattr(load_function, '__module__', '').split('.', 2)
             container_module = getattr(container_class, '__module__', '').split('.', 2)
@@ -989,7 +996,7 @@ class LoaderManager(BaseManager):
                         myclass_type.__name__
                     )
                 )
-        if ( 
+        if (
             ( cls.__hkl_functions__[None].get(hkl_str) or cls.__hkl_container__[None].get(hkl_str) ) and
             ( hkl_str[:1] == hkl_str[-1:] == b'!' or hkl_str in disallow_in_option )
         ):
@@ -1008,15 +1015,15 @@ class LoaderManager(BaseManager):
                 cls.__hkl_container__[option][hkl_str.decode('ascii')] = container_class
         except KeyError:
             raise LookupError("Invalid option '{}' encountered".format(option))
-        
-            
+
+
 
 
     @classmethod
     def register_class_exclude(cls, hkl_str_to_ignore, option = None):
         """
         Tell loading function to ignore any HDF5 dataset with attribute 'type=XYZ'
-    
+
         Parameters
         ----------
         hkl_str_to_ignore (str): attribute type=string to ignore and exclude
@@ -1025,7 +1032,7 @@ class LoaderManager(BaseManager):
         option (str, None):
             String identifying set of optional loaders from which class shall
             be excluded
-                
+
         Raises
         ------
         ValueError:
@@ -1036,7 +1043,7 @@ class LoaderManager(BaseManager):
             in 'optional_loaders' exported by 'hickle.loaders.__init__.py' file to be
             recognized as valid option
         """
-    
+
         if hkl_str_to_ignore[0] == hkl_str_to_ignore[-1] == b'!' or hkl_str_to_ignore in disallowed_to_ignore:
             raise ValueError(
                 "excluding '{}' base_type managed by hickle core not possible".format(
@@ -1069,12 +1076,12 @@ class LoaderManager(BaseManager):
         legacy (bool):
             If true the file h_node belongs to is in legacy hickle 4.x format.
             Ensure lambda py_obj_type strings are loaded properly and
-            'hickle-4.x' type loaders are included within types_dict, 
+            'hickle-4.x' type loaders are included within types_dict,
             'hkl_types_dict' and 'hkl_container_dict'
 
         options (dict):
             optional loaders to be loaded. Each key names one loader and
-            its value indicates whether to be used (True) or excluded (False) 
+            its value indicates whether to be used (True) or excluded (False)
 
         Raises
         ------
@@ -1091,12 +1098,12 @@ class LoaderManager(BaseManager):
         # from h_root_group.attrs structure. Otherwise use content of options dict store
         # each entry to be used within h_root_group.attrs structure or update entry there
         if options is None:
-            option_items = ( 
-                match.group(1).lower() 
-                for match,on in ( 
+            option_items = (
+                match.group(1).lower()
+                for match,on in (
                     ( LoaderManager._option_parser.match(name), value )
-                    for name, value in h_root_group.attrs.items() 
-                ) 
+                    for name, value in h_root_group.attrs.items()
+                )
                 if match and on
             )
         else:
@@ -1104,7 +1111,7 @@ class LoaderManager(BaseManager):
                 for option_key,on in options.items():
                     if not on:
                         continue
-                    h_root_group.attrs[LoaderManager._option_formatter.format(option_key.upper())] = on 
+                    h_root_group.attrs[LoaderManager._option_formatter.format(option_key.upper())] = on
                     yield option_key
             option_items = set_option_items()
         # try to include loader set indicated by option_name
@@ -1115,7 +1122,7 @@ class LoaderManager(BaseManager):
                 self.hkl_container_dict.maps.insert(0,self.__class__.__hkl_container__[option_name])
         except KeyError:
             raise LookupError("Option '{}' invalid".format(option_name))
-            
+
         # add loaders required to properly load legacy files created by hickle 4.x and
         # ensure that non class types are properly reported by load_loader
         if legacy:
@@ -1126,50 +1133,50 @@ class LoaderManager(BaseManager):
         else:
             self._mro = type.mro
         self._file = h_root_group.file
-        
+
     def load_loader(self, py_obj_type,*,base_type=None):
         """
         Checks if given `py_obj` requires an additional loader to be handled
         properly and loads it if so.
-    
+
         Parameters
         ----------
         py_obj:
             the Python object to find an appropriate loader for
-    
+
         Returns
         -------
         tuple containing (py_obj, (create_dataset, base_type, memoise))
 
         py_obj:
              the Python object the loader was requested for
-    
+
         (create_dataset,base_type,memoise):
              tuple providing create_dataset function, name of base_type used
              to represent py_obj and the boolean memoise flag indicating
              whether loaded object shall be remembered for restoring further
              references to it or must be loaded every time encountered.
-    
+
         Raises
         ------
         RuntimeError:
             in case py object is defined by hickle core machinery.
         """
-    
+
         types_dict = self.types_dict
         loaded_loaders = self.__class__.__loaded_loaders__
         # loop over the entire mro_list of py_obj_type
         for mro_item in self._mro(py_obj_type):
 
-            # Check if mro_item is already listed in types_dict and return if found 
+            # Check if mro_item is already listed in types_dict and return if found
             loader_item = types_dict.get(mro_item,None)
             if loader_item is not None:
                 return py_obj_type,loader_item
-    
+
             # Obtain the package name of mro_item
             package_list = mro_item.__module__.split('.',2)
-    
-            package_file = None 
+
+            package_file = None
             if package_list[0] == 'hickle':
                 if package_list[1] != 'loaders':
                     if base_type is not None and ( base_type in self.hkl_types_dict or base_type in self.hkl_container_dict):
@@ -1196,8 +1203,8 @@ class LoaderManager(BaseManager):
                     loader_item = types_dict[mro_item] = ( not_dumpable, b'NotHicklable',False )
 
                 # ensure module of mro_item is loaded as loader as it will contain
-                # loader which knows how to handle group or dataset with dummy as 
-                # py_obj_type 
+                # loader which knows how to handle group or dataset with dummy as
+                # py_obj_type
                 loader_name = mro_item.__module__
                 if loader_name in loaded_loaders:
 
@@ -1243,13 +1250,13 @@ class LoaderManager(BaseManager):
                     package_list[0],allow_custom_loader = os.path.basename(package_file).rsplit('.')[0],package_list[0]
                     loader_name = 'hickle.loaders.load_{:s}'.format(package_list[0])
                     _custom_loader_enabled_builtins[allow_custom_loader] = loader_name, package_file
-    
+
                 # Check if this module is already loaded
                 if loader_name in loaded_loaders:
                     # loader is loaded but does not define loader for mro_item
                     # check next base class
                     continue
-    
+
             # check if loader module has already been loaded. If use that instead
             # of importing it anew
             loader = sys.modules.get(loader_name,None)
@@ -1291,14 +1298,14 @@ class LoaderManager(BaseManager):
                 loader = module_from_spec(loader_spec)
                 loader_spec.loader.exec_module(loader)
                 sys.modules[loader_name] = loader
-    
+
             # load all loaders defined by loader module
             for next_loader in loader.class_register:
                 self.register_class(*next_loader)
             for drop_loader in ( loader if isinstance(loader,(list,tuple)) else (loader,None) for loader in loader.exclude_register) :
                 self.register_class_exclude(*drop_loader)
             loaded_loaders.add(loader_name)
-    
+
             # check if loader module defines a loader for base_class mro_item
             loader_item = types_dict.get(mro_item,None)
             if loader_item is None:
@@ -1308,7 +1315,7 @@ class LoaderManager(BaseManager):
 
             # return loader for base_class mro_item
             return py_obj_type,loader_item
-    
+
         # no appropriate loader found. Lower py_object_type to object and
         # return fallback to pickle
         return object,(create_pickled_dataset,b'pickle',True)
@@ -1317,7 +1324,7 @@ class LoaderManager(BaseManager):
     def create_manager(cls, h_node, legacy = False, options = None):
         """
         creates an new LoaderManager object for the h_root_group the h_node
-        belongs to. 
+        belongs to.
 
 
         Parameters
@@ -1329,17 +1336,17 @@ class LoaderManager(BaseManager):
         legacy (bool):
             if true file h_node belongs to is in legacy hickle 4.x format
             ensure lambda py_obj_type strings are loaded properly and
-            'hickle-4.x' type loaders are included within types_dict, 
+            'hickle-4.x' type loaders are included within types_dict,
             'hkl_types_dict' and 'hkl_container_dict'
 
         options (dict):
             optional loaders to be loaded. Each key names one loader and
-            its value indicates whether to be used (True) or excluded (False) 
+            its value indicates whether to be used (True) or excluded (False)
 
         Raises
         ------
         LookupError:
-            if ReferenceManager has already been created for h_node or its h_root_group 
+            if ReferenceManager has already been created for h_node or its h_root_group
         """
 
         def create_manager():
@@ -1362,7 +1369,7 @@ class LoaderManager(BaseManager):
         self.types_dict = None
         self.hkl_types_dict = None
         self.hkl_container_dict = None
-        
+
 def type_legacy_mro(cls):
     """
     drop in replacement of type.mro for loading legacy hickle 4.x files which were
@@ -1385,7 +1392,7 @@ def type_legacy_mro(cls):
         (types.FunctionType,types.BuiltinFunctionType,types.MethodType,types.BuiltinMethodType)
     ):
         return (cls,)
-    return type.mro(cls) 
+    return type.mro(cls)
 
 # %% BUILTIN LOADERS (not maskable)
 
@@ -1408,7 +1415,7 @@ class NoContainer(PyContainer): # pragma: no cover
 
 class _DictItemContainer(PyContainer):
     """
-    PyContainer reducing hickle version 4.x dict_item type h5py.Group to 
+    PyContainer reducing hickle version 4.x dict_item type h5py.Group to
     its content for inclusion within dict h5py.Group
     """
 
@@ -1419,7 +1426,7 @@ LoaderManager.register_class(
     _DictItem, b'dict_item', dump_nothing, load_nothing, _DictItemContainer, False, 'hickle-4.x'
 )
 
-        
+
 class ExpandReferenceContainer(PyContainer):
     """
     PyContainer for properly restoring additional references to an object
@@ -1432,7 +1439,7 @@ class ExpandReferenceContainer(PyContainer):
         it refers to as sub item of h_parent so that it can be
         properly loaded by recursively calling hickle._load method
         independent whether it can be directly loaded from the memo
-        dictionary or has to be restored from file. 
+        dictionary or has to be restored from file.
         """
 
         try:
@@ -1497,18 +1504,150 @@ def create_pickled_dataset(py_obj, h_group, name, reason = None, **kwargs):
     # store object as pickle string
     pickled_obj = pickle.dumps(py_obj)
     d = h_group.create_dataset(name, data = memoryview(pickled_obj), **kwargs)
-    return d,() 
+    return d,()
+
+# ContextVar that controls which pickle callable is used during a load() call.
+# Set to pickle.loads for safe=False, or _safe_pickle_loads for safe=True.
+# Default is None; load_pickled_data falls back to pickle.loads so that any
+# code that calls it outside of a managed hickle.load() context is unaffected.
+_hickle_pickle_fn = contextvars.ContextVar('hickle_pickle_fn', default=None)
+_hickle_type_pickle_fn = contextvars.ContextVar('hickle_type_pickle_fn', default=None)
+
+# Root packages hickle may import on its own while resolving type references in
+# safe mode.  Importing a module runs its top level code, therefore the GLOBAL
+# and STACK_GLOBAL opcodes must never be allowed to pull in arbitrary modules
+# named by an untrusted file.  Any module outside this set has to be present in
+# sys.modules already, in which case resolving it has no further side effects.
+_SAFE_TYPE_IMPORT_ROOTS = frozenset((
+    'builtins', '__builtin__', 'copyreg',
+    'collections', 'datetime', 'decimal', 'fractions', 'pathlib', 'uuid',
+    'hickle', 'numpy', 'scipy', 'astropy', 'pandas',
+))
+
+
+class RestrictedTypeUnpickler(pickle._Unpickler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dispatch = self.dispatch.copy()
+        self.dispatch[pickle.REDUCE[0]] = RestrictedTypeUnpickler.load_reduce
+        self.dispatch[pickle.BUILD[0]] = RestrictedTypeUnpickler.load_build
+        self.dispatch[pickle.INST[0]] = RestrictedTypeUnpickler.load_inst
+        self.dispatch[pickle.OBJ[0]] = RestrictedTypeUnpickler.load_obj
+        self.dispatch[pickle.NEWOBJ[0]] = RestrictedTypeUnpickler.load_newobj
+        self.dispatch[pickle.NEWOBJ_EX[0]] = RestrictedTypeUnpickler.load_newobj_ex
+
+    def find_class(self, module, name):
+        if (
+            module not in sys.modules and
+            module.split('.', 1)[0] not in _SAFE_TYPE_IMPORT_ROOTS
+        ):
+            raise UnsafeFileError(
+                f"Refusing to import module '{module}' in order to resolve type "
+                f"'{module}.{name}' while safe=True; importing a module executes "
+                "its top level code. Import the module yourself before calling "
+                "hickle.load(), or use hickle.load_unsafe() if the file comes "
+                "from a trusted source."
+            )
+        obj = super().find_class(module, name)
+        if not isinstance(obj, type):
+            raise UnsafeFileError(
+                f"'{module}.{name}' is not a type, refusing to resolve it as "
+                "hickle type metadata while safe=True. Use hickle.load_unsafe() "
+                "if loading from a trusted source."
+            )
+        return obj
+
+    def load_reduce(self):
+        args = self.stack[-1]
+        func = self.stack[-2]
+        if func is type and len(args) == 1 and isinstance(args[0], (type(None), type(...), type(NotImplemented))):
+            super().load_reduce()
+        else:
+            raise UnsafeFileError(
+                f"Unsafe call {func!r} with args {args!r} in type metadata while safe=True. "
+                "Use hickle.load_unsafe() if loading from a trusted source."
+            )
+
+    def load_build(self):
+        raise UnsafeFileError("BUILD opcode not allowed in safe mode.")
+
+    def load_inst(self):
+        raise UnsafeFileError("INST opcode not allowed in safe mode.")
+
+    def load_obj(self):
+        raise UnsafeFileError("OBJ opcode not allowed in safe mode.")
+
+    def load_newobj(self):
+        raise UnsafeFileError("NEWOBJ opcode not allowed in safe mode.")
+
+    def load_newobj_ex(self):
+        raise UnsafeFileError("NEWOBJ_EX opcode not allowed in safe mode.")
+
+
+def _safe_pickle_loads(data):
+    """Stub used when safe=True.  Always raises UnsafeFileError."""
+    raise UnsafeFileError(
+        "This hickle file contains one or more objects that were serialized "
+        "with pickle. Loading pickle data from an untrusted source can execute "
+        "arbitrary code. To load this file from a trusted source, use "
+        "hickle.load_unsafe() instead."
+    )
+
+
+def _safe_type_pickle_loads(data):
+    """
+    Safely unpickle a type reference in metadata when safe=True.
+    Raises UnsafeFileError if the payload contains execution opcodes or is not a type.
+    """
+    if data is None:
+        raise TypeError("type reference is None")
+
+    if isinstance(data, bytes):
+        data_bytes = data
+    elif isinstance(data, (bytearray, memoryview)):
+        data_bytes = bytes(data)
+    elif isinstance(data, (np.ndarray, np.generic)):
+        data_bytes = bytes(memoryview(data))
+    else:
+        try:
+            data_bytes = bytes(data)
+        except Exception as e:
+            raise TypeError(f"Invalid type reference format: {e}") from e
+
+    try:
+        unpickler = RestrictedTypeUnpickler(io.BytesIO(data_bytes))
+        res = unpickler.load()
+    except UnsafeFileError:
+        raise
+    except (AttributeError, ImportError, ModuleNotFoundError, TypeError, pickle.UnpicklingError, EOFError):
+        raise
+    except Exception as e:
+        raise pickle.UnpicklingError(f"Failed to unpickle type reference: {e}") from e
+
+    if not isinstance(res, type) and res is not AttemptRecoverCustom:
+        raise UnsafeFileError(
+            f"Expected type object in hickle metadata, got {type(res)}. "
+            "Use hickle.load_unsafe() if loading from a trusted source."
+        )
+    return res
+
 
 def load_pickled_data(h_node, base_type, py_obj_type):
     """
-    loade pickle string and return resulting py_obj
-    """
-    try:
-        return pickle.loads(h_node[()])
-    except (ImportError,AttributeError):
-        return RecoveredDataset(h_node[()],dtype = h_node.dtype,attrs = dict(h_node.attrs))
+    Load pickle string and return resulting py_obj.
 
-        
+    The pickle callable is resolved from the _hickle_pickle_fn context
+    variable, which is set by hickle.load() / hickle.load_unsafe() before
+    traversing the file.  When safe=True (the default), the contextvar holds
+    _safe_pickle_loads, which raises UnsafeFileError rather than deserializing.
+    """
+    pickle_fn = _hickle_pickle_fn.get(pickle.loads)
+    try:
+        return pickle_fn(h_node[()])
+    except (ImportError, AttributeError):
+        return RecoveredDataset(h_node[()], dtype=h_node.dtype, attrs=dict(h_node.attrs))
+
+
 # no dump method is registered for object as this is the default for
 # any unknown object and for classes, functions and methods
 LoaderManager.register_class(object,b'pickle',None,load_pickled_data)
@@ -1521,7 +1660,7 @@ def recover_custom_dataset(h_node,base_type,py_obj_type):
     _,base_type,_ = manager.resolve_type(h_node,base_type_type = -1)
     warnings.warn(
         "loader '{}' missing for '{}' type object. Data recovered ({})".format(
-            base_type, 
+            base_type,
             py_obj_type.__name__ if not isinstance(py_obj_type, AttemptRecoverCustom) else None,
             h_node.name.rsplit('/')[-1]
         ),
@@ -1537,7 +1676,7 @@ class RecoverGroupContainer(PyContainer):
     """
     def __init__(self,h5_attrs, base_type, object_type):
         super().__init__(h5_attrs, base_type, object_type,_content = {})
-    
+
     def filter(self,h_parent):
         """
         switch base_type to the one loader is missing for
@@ -1568,7 +1707,7 @@ class RecoverGroupContainer(PyContainer):
 
 
 LoaderManager.register_class(AttemptRecoverCustom,b'!recover!',None,recover_custom_dataset,RecoverGroupContainer,True)
-    
+
 
 def _moc_numpy_array_object_lambda(x):
     """
@@ -1593,10 +1732,10 @@ LoaderManager.register_class(
 
 def fix_lambda_obj_type(bytes_object, *, fix_imports=True, encoding="ASCII", errors="strict"):
     """
-    drop in replacement for pickle.loads method when loading files created by hickle 4.x 
-    It captures any TypeError thrown by pickle.loads when encountering a pickle string 
+    drop in replacement for pickle.loads method when loading files created by hickle 4.x
+    It captures any TypeError thrown by pickle.loads when encountering a pickle string
     representing a lambda function used as py_obj_type for a h5py.Dataset or h5py.Group.
-    While in Python <3.8 pickle loads creates the lambda Python >= 3.8 throws an 
+    While in Python <3.8 pickle loads creates the lambda Python >= 3.8 throws an
     error when encountering such a pickle string. This is captured and
     _moc_numpy_array_object_lambda returned instead. Further some h5py.Group and h5py.Datasets
     do not provide any py_obj_type for them object is returned assuming that proper loader has
@@ -1614,3 +1753,10 @@ def fix_lambda_obj_type(bytes_object, *, fix_imports=True, encoding="ASCII", err
             MockedLambdaWarning
         )
         return _moc_numpy_array_object_lambda
+
+
+def safe_fix_lambda_obj_type(bytes_object, *, fix_imports=True, encoding="ASCII", errors="strict"):
+    if bytes_object is None:
+        return object
+    _safe_type_pickle_loads(bytes_object)
+    return fix_lambda_obj_type(bytes_object, fix_imports=fix_imports, encoding=encoding, errors=errors)

@@ -52,7 +52,7 @@ NESTED_DICT = {
 
 
 # %% FIXTURES
-    
+
 @pytest.fixture
 def test_file_name(request):
     """
@@ -75,7 +75,7 @@ def func(a, b, c=0):
 pickle_dumps = pickle.dumps
 pickle_loads = pickle.loads
 
-types_to_hide = set() 
+types_to_hide = set()
 
 def make_visible_to_dumps(obj,protocol=None,*,fix_imports=True):
     """
@@ -151,7 +151,7 @@ def test_state_obj(monkeypatch,test_file_name,compression_kwargs):
         with pytest.warns(lookup.SerializedWarning):
             dump(obj, test_file_name, mode,**compression_kwargs)
         monkey.setattr(pickle,'loads',hide_from_hickle)
-        obj_hkl = load(test_file_name)
+        obj_hkl = load(test_file_name, safe=False)
         assert isinstance(obj,obj_hkl.__class__) or isinstance(obj_hkl,obj.__class__)
         assert np.allclose(obj[1], obj_hkl[1])
 
@@ -164,7 +164,7 @@ def test_local_func(test_file_name,compression_kwargs):
     mode =  'w'
     with pytest.warns(lookup.SerializedWarning):
         dump(func, test_file_name, mode,**compression_kwargs)
-    func_hkl = load(test_file_name)
+    func_hkl = load(test_file_name, safe=False)
     assert isinstance(func,func_hkl.__class__) or isinstance(func_hkl,func.__class__)
     assert func(1, 2) == func_hkl(1, 2)
 
@@ -797,6 +797,93 @@ def test_slash_dict_keys(test_file_name,compression_kwargs):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         dump(dct2, test_file_name,**compression_kwargs)
+
+
+import sys
+sys.modules['hickle_tests_custom'] = sys.modules[__name__]
+
+
+class _UnhicklableTestClass:
+    __module__ = "hickle_tests_custom"
+    def __init__(self, val):
+        self.val = val
+
+
+def test_security_safe_load(test_file_name):
+    """Test that safe=True blocks untrusted pickle execution in data and metadata."""
+    import os
+    import h5py
+    from hickle import UnsafeFileError, load_unsafe
+
+    # 1. Test pickled object data blocking
+    dump(_UnhicklableTestClass(123), test_file_name)
+    with pytest.raises(UnsafeFileError):
+        load(test_file_name, safe=True)
+
+    res = load_unsafe(test_file_name)
+    assert isinstance(res, _UnhicklableTestClass)
+    assert res.val == 123
+
+    # 2. Test malicious payload in hickle_types_table
+    class EvilPayload:
+        def __reduce__(self):
+            return (os.system, ("echo 1",))
+
+    evil_bytes = pickle.dumps(EvilPayload())
+
+    with h5py.File(test_file_name, 'w') as f:
+        f.attrs['HICKLE_VERSION'] = '5.0.0'
+        f.attrs['HICKLE_PYTHON_VERSION'] = '3.10.0'
+        tbl = f.create_group('hickle_types_table')
+        entry = np.asarray(bytearray(evil_bytes)).view('S1')
+        ds = tbl.create_dataset('0', data=entry, shape=(1, entry.size))
+        base_ds = tbl.create_dataset('dict', shape=None, dtype='S1')
+        ds.attrs['base_type'] = base_ds.ref
+        data_grp = f.create_group('data')
+        data_grp.attrs['type'] = ds.ref
+
+    with pytest.raises(UnsafeFileError):
+        load(test_file_name, safe=True)
+
+
+def test_security_safe_load_blocks_module_import(test_file_name, tmp_path):
+    """safe=True must not import modules named by an untrusted type reference."""
+    import h5py
+    from hickle import UnsafeFileError
+
+    # A module whose top level code would run as soon as it gets imported.
+    marker = tmp_path / 'imported'
+    mod_dir = tmp_path / 'evil_path'
+    mod_dir.mkdir()
+    (mod_dir / 'hickle_evil_import_mod.py').write_text(
+        "import pathlib\n"
+        "pathlib.Path({!r}).write_text('x')\n"
+        "class X: pass\n".format(str(marker))
+    )
+
+    # GLOBAL opcode referencing hickle_evil_import_mod.X
+    evil_bytes = b"\x80\x04chickle_evil_import_mod\nX\n."
+
+    with h5py.File(test_file_name, 'w') as f:
+        f.attrs['HICKLE_VERSION'] = '5.0.0'
+        f.attrs['HICKLE_PYTHON_VERSION'] = '3.10.0'
+        tbl = f.create_group('hickle_types_table')
+        entry = np.asarray(bytearray(evil_bytes)).view('S1')
+        ds = tbl.create_dataset('0', data=entry, shape=(1, entry.size))
+        base_ds = tbl.create_dataset('dict', shape=None, dtype='S1')
+        ds.attrs['base_type'] = base_ds.ref
+        data_grp = f.create_group('data')
+        data_grp.attrs['type'] = ds.ref
+
+    sys.path.insert(0, str(mod_dir))
+    try:
+        with pytest.raises(UnsafeFileError):
+            load(test_file_name, safe=True)
+    finally:
+        sys.path.remove(str(mod_dir))
+        sys.modules.pop('hickle_evil_import_mod', None)
+
+    assert not marker.exists(), "untrusted module was imported despite safe=True"
 
 
 # %% MAIN SCRIPT

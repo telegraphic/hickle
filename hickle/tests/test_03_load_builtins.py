@@ -97,8 +97,8 @@ def test_load_hickle_4_0_X_string(h5_data):
     assert load_builtins.load_hickle_4_x_string(bytes_entry,b'str',str) == string_data
     object_entry = h5_data.create_dataset('utf_h5py2_entry',data = string_data,dtype = np.dtype('O',metadata={'vlen':bytes}))
     assert load_builtins.load_hickle_4_x_string(object_entry,b'str',bytes) == bytes_data
-    
-    
+
+
 def test_non_dataset(h5_data,compression_kwargs):
     """
      that None value is properly stored
@@ -111,7 +111,7 @@ def test_non_dataset(h5_data,compression_kwargs):
 
 def test_listlike_dataset(h5_data,compression_kwargs):
     """
-    test storing and loading of list like data 
+    test storing and loading of list like data
     """
 
     # check that empty tuple is stored properly
@@ -139,7 +139,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     assert h_dataset.attrs["str_type"] in ('bytes',b'bytes')
     assert load_builtins.load_list_dataset(h_dataset,b'bytes',bytes) == bytesdata
 
-    # check that string dataset created by hickle 4.0.x is properly loaded 
+    # check that string dataset created by hickle 4.0.x is properly loaded
     # utilizing numpy.array method. Mimic dumped data
     h_dataset = h5_data.create_dataset("legacy_np_array_bytes_data",data=np.array(stringdata.encode('utf8')))
     h_dataset.attrs['str_type'] = b'str'
@@ -153,7 +153,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     assert load_builtins.load_list_dataset(h_dataset,b'list',list) == homogenous_list
 
     # check that list of different scalar types for which a least common type exists
-    # is stored using a dataset 
+    # is stored using a dataset
     mixed_dtype_list = [ 1, 2.5, 3.8, 4, 5, 6]
     h_dataset,subitems = load_builtins.create_listlike_dataset(mixed_dtype_list,h5_data,"mixed_dtype_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Dataset) and not [ item for item in subitems ]
@@ -167,7 +167,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     h_dataset,subitems = load_builtins.create_listlike_dataset(not_so_homogenous_list,h5_data,"not_so_homogenous_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
     item_name = "data{:d}"
-    index = -1 
+    index = -1
     loaded_list = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     subitems1,subitems2 = itertools.tee(subitems,2)
     index_from_string = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
@@ -185,7 +185,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     assert loaded_list.convert() == not_so_homogenous_list
     assert index_from_string.convert() == not_so_homogenous_list
 
-    # check that list groups which do not provide num_items attribute 
+    # check that list groups which do not provide num_items attribute
     # are automatically expanded to properly cover the highest index encountered
     # for any of the list items.
     no_num_items = {key:value for key,value in h_dataset.attrs.items() if key != "num_items"}
@@ -229,7 +229,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
         # in the root group of the corresponding values data set. By silently ignoring
         # this special value returned by load_nothing it can be assured that for example
         # mask datasets of numpy.masked.array objects hickup the loader.
-        index_from_string.append(wrong_item_name.format(index),helpers.nobody_is_my_name,{})
+        index_from_string.append(wrong_item_name.format(index),helpers._MISSING,{})
         if index < 1:
             continue
         with pytest.raises(IndexError, match = r"Index\s+\d+\s+already\s+set"):
@@ -242,7 +242,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     h_dataset,subitems = load_builtins.create_listlike_dataset(string_list,h5_data,"string_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
     item_name = "data{:d}"
-    index = -1 
+    index = -1
     loaded_list = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     index_from_string = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     for index,(name,item,attrs,kwargs) in enumerate(iter(subitems)):
@@ -262,7 +262,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     h_dataset,subitems = load_builtins.create_listlike_dataset(mixed_string_list,h5_data,"mixed_string_list",**compression_kwargs)
     assert isinstance(h_dataset,h5.Group)
     item_name = "data{:d}"
-    index = -1 
+    index = -1
     loaded_list = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     index_from_string = load_builtins.ListLikeContainer(h_dataset.attrs,b'list',list)
     for index,(name,item,attrs,kwargs) in enumerate(iter(subitems)):
@@ -275,7 +275,7 @@ def test_listlike_dataset(h5_data,compression_kwargs):
     assert index + 1 == len(mixed_string_list)
     assert loaded_list.convert() == mixed_string_list
     assert index_from_string.convert() == mixed_string_list
-    
+
 
 def test_set_container(h5_data,compression_kwargs):
     """
@@ -310,7 +310,7 @@ def test_set_container(h5_data,compression_kwargs):
     assert isinstance(h_setdataset,h5.Dataset) and h_setdataset.size == 0
     assert not subitems and iter(subitems)
     assert load_builtins.load_list_dataset(h_setdataset,b'set',set) == set()
-    
+
 
 def test_dictlike_dataset(h5_data,compression_kwargs):
     """
@@ -333,7 +333,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
     }
 
     # check that dict is stored as group
-    # check that string and byte string keys are mapped to dataset or group name 
+    # check that string and byte string keys are mapped to dataset or group name
     # check that scalar dict keys are converted to their string representation
     # check that for all other keys a key value pair is created
     h_datagroup,subitems = load_builtins.create_dictlike_dataset(allkeys_dict,h5_data,"allkeys_dict",**compression_kwargs)
@@ -351,7 +351,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
         elif attrs["key_base_type"] == b'key_value':
             key = item[0]
             value = item[1]
-        else: 
+        else:
             load_key = load_builtins.dict_key_types_dict.get(attrs["key_base_type"],None)
             if load_key is None:
                 raise ValueError("key_base_type '{}' invalid".format(attrs["key_base_type"]))
@@ -360,7 +360,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
         load_dict.append(name,item,attrs)
         last_entry = attrs.get("key_idx",None)
         ordered_dict[key] = value
-    assert last_entry + 1 == len(allkeys_dict) 
+    assert last_entry + 1 == len(allkeys_dict)
     assert load_dict.convert() == allkeys_dict
 
     # verify that DictLikeContainer.append raises error in case invalid key_base_type
@@ -370,7 +370,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
     tuple_key = ('a','b','c')
 
     # verify that DictLikeContainer.append raises error in case index of key value pair
-    # within dict is whether provided by key_index attribute nor can be parsed from 
+    # within dict is whether provided by key_index attribute nor can be parsed from
     # name of corresponding dataset or group
     with pytest.raises(KeyError, match = r"invalid\s+dict\s+item\s+key_index\s+missing"):
         load_dict.append(str(tuple_key),9,{"item_index":9,"key_base_type":b"tuple"})
@@ -378,7 +378,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
     # check that helpers.nobody_is_my_name injected for example by load_nothing is silently
     # ignored in case no key could be retrieved from dataset or sub group
     load_dict.append(
-        str(tuple_key), helpers.nobody_is_my_name,
+        str(tuple_key), helpers._MISSING,
         {"item_index":9,"key_base_type":b"tuple"}
     )
     with pytest.raises(KeyError):
@@ -393,7 +393,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
     with pytest.raises(IndexError,match = r"Key\s+index\s+\d+\s+already\s+set"):
         load_dict.append(str(tuple_key),9,{"key_idx":9,"key_base_type":b"tuple"})
 
-    # check that order of OrderedDict dict keys is not altered on loading data from 
+    # check that order of OrderedDict dict keys is not altered on loading data from
     # hickle file
     h_datagroup,subitems = load_builtins.create_dictlike_dataset(ordered_dict,h5_data,"ordered_dict",**compression_kwargs)
     assert isinstance(h_datagroup,h5.Group)
@@ -408,7 +408,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
         elif attrs["key_base_type"] == b'key_value':
             key = item[0]
             value = item[1]
-        else: 
+        else:
             load_key = load_builtins.dict_key_types_dict.get(attrs["key_base_type"],None)
             if load_key is None:
                 raise ValueError("key_base_type '{}' invalid".format(attrs["key_base_type"]))
@@ -416,7 +416,7 @@ def test_dictlike_dataset(h5_data,compression_kwargs):
         assert ordered_dict.get(key,invalid_key) == value
         load_ordered_dict.append(name,item,attrs)
         last_entry = attrs.get("key_idx",None)
-    assert last_entry + 1 == len(allkeys_dict) 
+    assert last_entry + 1 == len(allkeys_dict)
     assert load_ordered_dict.convert() == ordered_dict
 
 
@@ -449,7 +449,3 @@ if __name__ == "__main__":
         for request in (FixtureRequest(test_dictlike_dataset),)
     ):
         test_dictlike_dataset(h5_root,keywords)
-
-    
-    
-

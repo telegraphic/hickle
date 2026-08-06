@@ -17,12 +17,22 @@ import functools as ft
 
 # %% EXCEPTION DEFINITIONS
 
-nobody_is_my_name = ()
+_MISSING = object()
 
 class NotHicklable(Exception):
     """
     object can not be mapped to proper hickle HDF5 file structure and
     thus shall be converted to pickle string before storing.
+    """
+
+class UnsafeFileError(Exception):
+    """
+    Raised when hickle.load() encounters a pickle-serialized object while
+    operating in safe mode (safe=True, the default).
+
+    Pickle blobs can execute arbitrary code on deserialization. If you are
+    certain the file originates from a trusted source, use
+    hickle.load_unsafe() to load it explicitly.
     """
 
 class ToDoError(Exception):     # pragma: no cover
@@ -52,7 +62,7 @@ class PyContainer():
     object_type:
         type of Python object to be restored. May be used by PyContainer.convert
         to convert loaded Python object into final one.
-        
+
     Attributes
     ----------
     base_type (bytes):
@@ -62,7 +72,7 @@ class PyContainer():
         type of Python object to be restored. Dependent upon container may
         be used by PyContainer.convert to convert loaded Python object into
         final one.
-        
+
     """
 
     __slots__ = ("base_type", "object_type", "_h5_attrs", "_content","__dict__" )
@@ -93,22 +103,22 @@ class PyContainer():
     def filter(self, h_parent):
         """
         PyContainer type child classes may overload this generator function
-        to filter and preprocess the content of h_parent h5py.Group content 
+        to filter and preprocess the content of h_parent h5py.Group content
         to ensure it can be properly processed by recursive calls to
         hickle._load function.
 
-        Per default yields from h_parent.items(). 
+        Per default yields from h_parent.items().
 
-        For examples see: 
+        For examples see:
             hickle.lookup.ExpandReferenceContainer.filter
             hickle.loaders.load_scipy.SparseMatrixContainer.filter
         """
         yield from h_parent.items()
- 
+
     def append(self, name, item, h5_attrs):
         """
         adds the passed item to the content of this container.
-       
+
         Parameters
         ----------
         name (string):
@@ -126,7 +136,7 @@ class PyContainer():
     def convert(self):
         """
         creates the final object and populates it with the items stored in the _content
-        attribute. 
+        attribute.
 
         Note: Must be implemented by the derived PyContainer child classes
 
@@ -135,7 +145,7 @@ class PyContainer():
         py_obj:
             The final Python object loaded from file
 
-        
+
         """
         raise NotImplementedError("convert method must be implemented")
 
@@ -144,7 +154,7 @@ class H5NodeFilterProxy():
     """
     Proxy class which allows to temporarily modify the content of h5_node.attrs
     attribute. Original attributes of underlying h5_node are left unchanged.
-    
+
     Parameters
     ----------
     h5_node:
@@ -167,7 +177,7 @@ class H5NodeFilterProxy():
             return super(H5NodeFilterProxy,self).__getattribute__(name)
         _h5_node = super(H5NodeFilterProxy,self).__getattribute__('_h5_node')
         return getattr(_h5_node, name)
-        
+
     def __setattr__(self, name, value):
         # if wrapped _h5_node and attrs shall be set store value on local attributes
         # otherwise pass on to wrapped _h5_node
@@ -177,7 +187,7 @@ class H5NodeFilterProxy():
         if name in {'attrs'}: # pragma: no cover
             raise AttributeError('attribute is read-only')
         _h5_node = super().__getattribute__('_h5_node')
-        setattr(_h5_node, name, value)    
+        setattr(_h5_node, name, value)
 
     def __getitem__(self, *args, **kwargs):
         _h5_node = super().__getattribute__('_h5_node')
@@ -189,7 +199,7 @@ class H5NodeFilterProxy():
 class no_compression(dict):
     """
     named dict comprehension which temporarily removes any compression or
-    data filter related argument from the passed iterable. 
+    data filter related argument from the passed iterable.
     """
 
     # list of keyword parameters to filter
@@ -203,19 +213,19 @@ class no_compression(dict):
             for key,value in ( mapping.items() if isinstance(mapping,dict) else mapping )
             if key not in no_compression.__filter_keys__
         ))
-        
+
 
 # %% FUNCTION DEFINITIONS
 
 def not_dumpable( py_obj, h_group, name, **kwargs): # pragma: no cover
     """
     create_dataset method attached to loader of dummy py_object which is used to
-    mimic PyContainer class for  groups in legacy hickle 4.x file. 
-        
+    mimic PyContainer class for  groups in legacy hickle 4.x file.
+
     Raises
     ------
     RuntimeError:
-        in any case as this function shall never be called    
+        in any case as this function shall never be called
     """
 
     raise RuntimeError("types defined by loaders not dump able")
@@ -225,7 +235,7 @@ def convert_str_attr(attrs,name,*,encoding='utf8'):
 
 def convert_str_list_attr(attrs,name,*,encoding='utf8'):
     return [ value.decode(encoding) for value in attrs[name]]
-  
+
 
 if h5.version.version_tuple[0] >= 3: # pragma: no cover
     load_str_list_attr_ascii = load_str_list_attr = h5.AttributeManager.get
@@ -236,4 +246,3 @@ else: # pragma: no cover
     load_str_list_attr = convert_str_list_attr
     load_str_attr_ascii = ft.partial(convert_str_attr,encoding='ascii')
     load_str_attr = convert_str_attr
-

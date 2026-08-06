@@ -56,7 +56,7 @@ def test_4_0_0_load():
     import gc
     gc.collect()
     for filename in filelist:
-        content = hkl.load(filename)
+        content = hkl.load(filename, safe=False)
         if filename != needs_compare:
             continue
         for item_id,content_item,compare_item in ( (i,content[i],compare_with[i]) for i in range(len(compare_with)) ):
