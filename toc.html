@@ -398,10 +398,13 @@ parameter</p>
 <dl>
 <dt>path (str): optional</dt><dd><p>Path within HDF5-file or group to dump to/load from.</p>
 </dd>
-<dt>safe (bool): optional</dt><dd><p>Disable automatic depickling of arbitrary python objects.
-DO NOT set this to False unless the file is from a trusted source.
-(See <a class="reference external" href="https://docs.python.org/3/library/pickle.html">https://docs.python.org/3/library/pickle.html</a> for an explanation)</p>
-<p>Note: ignored when loading hickle 4.x and newer files</p>
+<dt>safe (bool): optional</dt><dd><p>When True (default), raise UnsafeFileError if the file contains any
+objects that were serialized with pickle.  Pickle payloads can execute
+arbitrary code on load, so never set this to False unless the file
+originates from a completely trusted source.
+(See <a class="reference external" href="https://docs.python.org/3/library/pickle.html">https://docs.python.org/3/library/pickle.html</a>)</p>
+<p>Prefer hickle.load_unsafe() over passing safe=False explicitly; it
+makes the unsafe intent visible at the call site.</p>
 </dd>
 <dt>filename (str): optional</dt><dd><p>The name of the file. Ignored when f is <cite>str</cite> or <cite>h5py.File</cite> object.</p>
 </dd>
@@ -420,6 +423,9 @@ DO NOT set this to False unless the file is from a trusted source.
     was closed or if file or file or file-like object has already been
     closed.</p></li>
 <li><p><strong>FileError</strong> – If passed file or file-like object is not opened for reading</p></li>
+<li><p><strong>UnsafeFileError:</strong> – If safe=True (the default) and the file contains pickle-serialized
+    objects.  Use hickle.load_unsafe() to suppress this for trusted
+    files.</p></li>
 <li><p><strong>ValueError:</strong> – If anything else than str, bytes or None specified for filename</p></li>
 </ul>
 </dd>
