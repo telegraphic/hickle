@@ -140,20 +140,20 @@ method, for dumping data into HDF5. Here’s a complete example:</p>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <span class="c1"># Create a numpy array of data</span>
-<span class="n">array_obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">32768</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+<span class="n">array_obj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">32768</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">'float32'</span><span class="p">)</span>
 
 <span class="c1"># Dump to file</span>
-<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">'test.hkl'</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'w'</span><span class="p">)</span>
 
 <span class="c1"># Dump data, with compression</span>
-<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;gzip&#39;</span><span class="p">)</span>
+<span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">'test_gzip.hkl'</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'w'</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">'gzip'</span><span class="p">)</span>
 
 <span class="c1"># Compare filesizes</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;uncompressed: </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test.hkl&#39;</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;compressed:   </span><span class="si">%i</span><span class="s1"> bytes&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'uncompressed: </span><span class="si">%i</span><span class="s1"> bytes'</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">'test.hkl'</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'compressed:   </span><span class="si">%i</span><span class="s1"> bytes'</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="s1">'test_gzip.hkl'</span><span class="p">))</span>
 
 <span class="c1"># Load data</span>
-<span class="n">array_hkl</span> <span class="o">=</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;test_gzip.hkl&#39;</span><span class="p">)</span>
+<span class="n">array_hkl</span> <span class="o">=</span> <span class="n">hkl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'test_gzip.hkl'</span><span class="p">)</span>
 
 <span class="c1"># Check the two are the same file</span>
 <span class="k">assert</span> <span class="n">array_hkl</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">array_obj</span><span class="o">.</span><span class="n">dtype</span>
@@ -164,7 +164,7 @@ method, for dumping data into HDF5. Here’s a complete example:</p>
 <h3>HDF5 compression options<a class="headerlink" href="#hdf5-compression-options" title="Link to this heading"></a></h3>
 <p>A major benefit of <code class="docutils literal notranslate"><span class="pre">hickle</span></code> over <code class="docutils literal notranslate"><span class="pre">pickle</span></code> is that it allows fancy HDF5 features to
 be applied, by passing on keyword arguments on to <code class="docutils literal notranslate"><span class="pre">h5py</span></code>. So, you can do things like:</p>
-<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">&#39;test_lzf.hkl&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;lzf&#39;</span><span class="p">,</span> <span class="n">scaleoffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">hkl</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">array_obj</span><span class="p">,</span> <span class="s1">'test_lzf.hkl'</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">'w'</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s1">'lzf'</span><span class="p">,</span> <span class="n">scaleoffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
          <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fletcher32</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -188,7 +188,7 @@ loader provided by hickle. By default, when hickle comes across a class object t
 
 <span class="nd">@hickleable</span><span class="p">()</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MyClass</span><span class="p">:</span>
-   <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;dict&#39;</span><span class="p">}):</span>
+   <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">'foo'</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="p">{</span><span class="s1">'a'</span><span class="p">:</span> <span class="s1">'dict'</span><span class="p">}):</span>
        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span>
        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">b</span>
        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span>
@@ -198,8 +198,8 @@ loader provided by hickle. By default, when hickle comes across a class object t
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hickle</span>
 
 <span class="n">my_obj</span> <span class="o">=</span> <span class="n">MyClass</span><span class="p">()</span>
-<span class="n">hickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">my_obj</span><span class="p">,</span> <span class="s1">&#39;temporary_file.h5&#39;</span><span class="p">)</span>  <span class="c1"># Note: no warnings about having to pickle</span>
-<span class="n">new_obj</span> <span class="o">=</span> <span class="n">hickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;temporary_file.h5&#39;</span><span class="p">)</span>
+<span class="n">hickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">my_obj</span><span class="p">,</span> <span class="s1">'temporary_file.h5'</span><span class="p">)</span>  <span class="c1"># Note: no warnings about having to pickle</span>
+<span class="n">new_obj</span> <span class="o">=</span> <span class="n">hickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">'temporary_file.h5'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>See the <a class="reference external" href="https://github.com/steven-murray/hickleable">hickleable documentation</a> for more usage details.</p>
@@ -210,7 +210,7 @@ classes and starting with hickle 5.x these can be collected in module, package a
 loader modules.</p>
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyClass</span><span class="p">():</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MyClass&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">'MyClass'</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">42</span>
 </pre></div>
 </div>
@@ -220,12 +220,12 @@ loader modules.</p>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hickle.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">no_compression</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">create_MyClass_dataset</span><span class="p">(</span><span class="n">py_obj</span><span class="p">,</span> <span class="n">h_group</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="w">    </span><span class="sd">""" </span>
 <span class="sd">    py_obj ..... the instance of MyClass to be dumped</span>
 <span class="sd">    h_group .... the h5py.Group py_obj should be dumped into</span>
 <span class="sd">    name ....... the name of the h5py.Dataset or h5py.Group representing py_obj</span>
 <span class="sd">    **kwargs ... the compression keyword arguments passed to hickle.dump</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     
     <span class="c1"># if content of MyClass can be represented as single matrix, vector or scalar</span>
     <span class="c1"># values than created a dataset of appropriate size. and either set its shape and </span>
@@ -238,21 +238,21 @@ loader modules.</p>
     <span class="c1"># ds = h_group.create_dataset(name,data = py_obj.value,shape=(),**no_compression(kwargs))</span>
 
     <span class="c1"># set additional attributes providing additional specialisation of content</span>
-    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_obj</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_obj</span><span class="o">.</span><span class="n">name</span>
 
     <span class="c1"># when done return the new dataset object and an empty tuple or list</span>
     <span class="k">return</span> <span class="n">ds</span><span class="p">,()</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">load_Myclass</span><span class="p">(</span><span class="n">h_node</span><span class="p">,</span> <span class="n">base_type</span><span class="p">,</span> <span class="n">py_obj_type</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    h_node ........ the h5py.Dataset object containing the data of MyClass object to restore</span>
 <span class="sd">    base_type ..... byte string naming the loader to be used for restoring MyClass object</span>
 <span class="sd">    py_obj_type ... MyClass class or MyClass subclass object </span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># py_obj_type should point to MyClass or any of its subclasses</span>
     <span class="n">new_instance</span> <span class="o">=</span> <span class="n">py_obj_type</span><span class="p">()</span>
-    <span class="n">new_instance</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">h_node</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+    <span class="n">new_instance</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">h_node</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span>
     <span class="n">new_instance</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">h_node</span><span class="p">[()]</span>
 	
     <span class="k">return</span> <span class="n">new_instance</span>
@@ -266,17 +266,17 @@ using <code class="docutils literal notranslate"><span class="pre">create_group<
 <span class="kn">from</span><span class="w"> </span><span class="nn">hickle.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">PyContainer</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">create_MyClass_dataset</span><span class="p">(</span><span class="n">py_obj</span><span class="p">,</span> <span class="n">h_group</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot; </span>
+<span class="w">    </span><span class="sd">""" </span>
 <span class="sd">    py_obj ..... the instance of MyClass to be dumped</span>
 <span class="sd">    h_group .... the h5py.Group py_obj should be dumped into</span>
 <span class="sd">    name ....... the name of the h5py.Dataset or h5py.Group representing py_obj</span>
 <span class="sd">    **kwargs ... the compression keyword arguments passed to hickle.dump</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     
     <span class="n">ds</span> <span class="o">=</span> <span class="n">h_group</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
     <span class="c1"># set additional attributes providing additional specialisation of content</span>
-    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_obj</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_obj</span><span class="o">.</span><span class="n">name</span>
 
     <span class="c1"># when done return the new dataset object and a tuple, list or generator function</span>
     <span class="c1"># providing for all subitems a tuple or list describing containgin </span>
@@ -284,20 +284,20 @@ using <code class="docutils literal notranslate"><span class="pre">create_group<
     <span class="c1">#  item ..... the subitem object to be stored</span>
     <span class="c1">#  attrs .... dictionary included in attrs of created h5py.Group or h5py.Dataset</span>
     <span class="c1">#  kwargs ... the kwargs as passed to create_MyClass_dataset function</span>
-    <span class="k">return</span> <span class="n">ds</span><span class="p">,((</span><span class="s1">&#39;name&#39;</span><span class="p">,</span><span class="n">py_obj</span><span class="o">.</span><span class="n">name</span><span class="p">,{},</span><span class="n">kwargs</span><span class="p">),(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span><span class="n">py_obj</span><span class="o">.</span><span class="n">value</span><span class="p">,{</span><span class="s1">&#39;the answer&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span><span class="n">kwargs</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">ds</span><span class="p">,((</span><span class="s1">'name'</span><span class="p">,</span><span class="n">py_obj</span><span class="o">.</span><span class="n">name</span><span class="p">,{},</span><span class="n">kwargs</span><span class="p">),(</span><span class="s1">'value'</span><span class="p">,</span><span class="n">py_obj</span><span class="o">.</span><span class="n">value</span><span class="p">,{</span><span class="s1">'the answer'</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span><span class="n">kwargs</span><span class="p">))</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">MyClassContainer</span><span class="p">(</span><span class="n">PyContainer</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Valid container classes must be derived from hickle.helpers.PyContainer class</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">h5_attrs</span><span class="p">,</span><span class="n">base_type</span><span class="p">,</span><span class="n">object_type</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        h5_attrs ...... the attrs dictionary attached to the group representing MyClass</span>
 <span class="sd">        base_type ..... byte string naming the loader to be used for restoring MyClass object</span>
 <span class="sd">        py_obj_type ... MyClass class or MyClass subclass object </span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="c1"># the optional protected _content parameter of the PyContainer __init__</span>
         <span class="c1"># method can be used to change the data structure used to store</span>
@@ -306,15 +306,15 @@ using <code class="docutils literal notranslate"><span class="pre">create_group<
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">h5_attrs</span><span class="p">,</span><span class="n">base_type</span><span class="p">,</span><span class="n">object_type</span><span class="p">,</span><span class="n">_content</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">())</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">h_parent</span><span class="p">):</span> <span class="c1"># optional overload</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        generator member functoin which can be overloaded to reorganize subitems</span>
 <span class="sd">        of h_parent h5py.Group before being restored by hickle. Its default</span>
 <span class="sd">        implementation simply yields from h_parent.items(). </span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">yield from</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">h_parent</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">item</span><span class="p">,</span><span class="n">h5_attrs</span><span class="p">):</span> <span class="c1"># optional overload</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        in case _content parameter was explicitly set or subitems should be sored </span>
 <span class="sd">        in specific order or have to be preprocessed before the next item is appended</span>
 <span class="sd">        than this can be done before storing in self._content.</span>
@@ -322,14 +322,14 @@ using <code class="docutils literal notranslate"><span class="pre">create_group<
 <span class="sd">        name ....... the name identifying subitem item within the parent hdf5.Group</span>
 <span class="sd">        item ....... the object representing the subitem</span>
 <span class="sd">        h5_attrs ... attrs dictionary attached to h5py.Dataset, h5py.Group representing item</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_content</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
 <span class="sd">        called by hickle when all sub items have been appended to MyClass PyContainer</span>
 <span class="sd">        this method must be implemented by MyClass PyContainer.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
 
         <span class="c1"># py_obj_type should point to MyClass or any of its subclasses</span>
         <span class="n">new_instance</span> <span class="o">=</span> <span class="n">py_obj_type</span><span class="p">()</span>
@@ -345,18 +345,18 @@ using <code class="docutils literal notranslate"><span class="pre">create_group<
 <span class="c1"># to register loader for object mapped to h5py.Dataset use</span>
 <span class="n">LoaderManager</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span>
    <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
-   <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+   <span class="sa">b</span><span class="s1">'MyClass'</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
    <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
    <span class="n">load_MyClass</span><span class="p">,</span>           <span class="c1"># the load dataset function defined in first example above</span>
    <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
    <span class="kc">True</span><span class="p">,</span>                   <span class="c1"># Set to False to force explicit storage of MyClass instances in any case </span>
-   <span class="s1">&#39;custom&#39;</span>                <span class="c1"># Loader is only used when custom loaders are enabled on calling hickle.dump</span>
+   <span class="s1">'custom'</span>                <span class="c1"># Loader is only used when custom loaders are enabled on calling hickle.dump</span>
 <span class="p">)</span>
 
 <span class="c1"># to register loader for object mapped to h5py.Group use</span>
 <span class="n">LoaderManager</span><span class="o">.</span><span class="n">register_class</span><span class="p">(</span>
    <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
-   <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+   <span class="sa">b</span><span class="s1">'MyClass'</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
    <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
    <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
    <span class="n">MyClassContainer</span>        <span class="c1"># the PyContainer to be used to restore content of MyClass</span>
@@ -393,15 +393,15 @@ should be structured as follows.</p>
 
 <span class="n">class_register</span> <span class="o">=</span> <span class="p">[</span>
    <span class="p">[</span> <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
-     <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+     <span class="sa">b</span><span class="s1">'MyClass'</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
      <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
      <span class="n">load_MyClass</span><span class="p">,</span>           <span class="c1"># the load dataset function defined in first example above</span>
      <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
      <span class="kc">True</span><span class="p">,</span>                   <span class="c1"># Set to False to force explicit storage of MyClass instances in any case </span>
-     <span class="s1">&#39;custom&#39;</span>                <span class="c1"># Loader is only used when custom loaders are enabled on calling hickle.dump</span>
+     <span class="s1">'custom'</span>                <span class="c1"># Loader is only used when custom loaders are enabled on calling hickle.dump</span>
    <span class="p">],</span>
    <span class="p">[</span> <span class="n">MyClass</span><span class="p">,</span>                <span class="c1"># MyClass type object this loader handles</span>
-     <span class="sa">b</span><span class="s1">&#39;MyClass&#39;</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
+     <span class="sa">b</span><span class="s1">'MyClass'</span><span class="p">,</span>             <span class="c1"># byte string representing the name of the loader </span>
      <span class="n">create_MyClass_Dataset</span><span class="p">,</span> <span class="c1"># the create dataset function defined in first example above</span>
      <span class="kc">None</span><span class="p">,</span>                   <span class="c1"># usually None</span>
      <span class="n">MyClassContainer</span>        <span class="c1"># the PyContainer to be used to restore content of MyClass</span>
@@ -452,13 +452,13 @@ or other data structures which can be mapped to <code class="docutils literal no
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">3</span><span class="p">]:</span> <span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
 
-<span class="n">In</span> <span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;foo.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">4</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'foo.pkl'</span><span class="p">,</span> <span class="s1">'w'</span><span class="p">)</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">5</span><span class="p">]:</span> <span class="o">%</span><span class="n">time</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>  <span class="c1"># slow by default</span>
 <span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mi">2</span> <span class="n">s</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mi">274</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">2.27</span> <span class="n">s</span>
 <span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">2.74</span> <span class="n">s</span>
 
-<span class="n">In</span> <span class="p">[</span><span class="mi">6</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;foo.pkl&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">6</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'foo.pkl'</span><span class="p">,</span> <span class="s1">'w'</span><span class="p">)</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">7</span><span class="p">]:</span> <span class="o">%</span><span class="n">time</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># actually very fast</span>
 <span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mf">18.8</span> <span class="n">ms</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mi">36</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">54.8</span> <span class="n">ms</span>
@@ -466,10 +466,10 @@ or other data structures which can be mapped to <code class="docutils literal no
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">8</span><span class="p">]:</span> <span class="kn">import</span><span class="w"> </span><span class="nn">hickle</span>
 
-<span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;foo.hkl&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">In</span> <span class="p">[</span><span class="mi">9</span><span class="p">]:</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">'foo.hkl'</span><span class="p">,</span> <span class="s1">'w'</span><span class="p">)</span>
 
 <span class="n">In</span> <span class="p">[</span><span class="mi">10</span><span class="p">]:</span> <span class="o">%</span><span class="n">time</span> <span class="n">hickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>  <span class="c1"># a bit faster</span>
-<span class="n">dumping</span> <span class="o">&lt;</span><span class="nb">type</span> <span class="s1">&#39;numpy.ndarray&#39;</span><span class="o">&gt;</span> <span class="n">to</span> <span class="n">file</span> <span class="o">&lt;</span><span class="n">HDF5</span> <span class="n">file</span> <span class="s2">&quot;foo.hkl&quot;</span> <span class="p">(</span><span class="n">mode</span> <span class="n">r</span><span class="o">+</span><span class="p">)</span><span class="o">&gt;</span>
+<span class="n">dumping</span> <span class="o">&lt;</span><span class="nb">type</span> <span class="s1">'numpy.ndarray'</span><span class="o">&gt;</span> <span class="n">to</span> <span class="n">file</span> <span class="o">&lt;</span><span class="n">HDF5</span> <span class="n">file</span> <span class="s2">"foo.hkl"</span> <span class="p">(</span><span class="n">mode</span> <span class="n">r</span><span class="o">+</span><span class="p">)</span><span class="o">&gt;</span>
 <span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mi">764</span> <span class="n">us</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mf">35.6</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">36.4</span> <span class="n">ms</span>
 <span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">36.2</span> <span class="n">ms</span>
 </pre></div>
