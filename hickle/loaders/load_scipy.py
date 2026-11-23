@@ -7,7 +7,7 @@ import copy
 from scipy import sparse
 
 # hickle imports
-from hickle.helpers import PyContainer,H5NodeFilterProxy
+from hickle.helpers import PyContainer,H5NodeFilterProxy,UnsafeFileError
 from hickle.loaders.load_numpy import load_ndarray_dataset,create_np_array_dataset
 from hickle.lookup import _hickle_type_pickle_fn, _safe_type_pickle_loads
 
@@ -91,6 +91,12 @@ class SparseMatrixContainer(PyContainer):
             if name == 'data':
                 type_pickle_fn = _hickle_type_pickle_fn.get(_safe_type_pickle_loads)
                 self.object_type = type_pickle_fn(item.attrs['type'])
+                # type comes straight from the file and bypasses _load: only the
+                # sparse classes registered below may receive the file's data
+                if self.object_type not in _sparse_types:
+                    raise UnsafeFileError(
+                        "sparse matrix type {!r} is not supported".format(self.object_type)
+                    )
                 self.base_type = item.attrs['base_type']
                 np_dtype = item.attrs.get('np_dtype',None)
                 if np_dtype is None:
@@ -123,3 +129,5 @@ class_register = [
 ]
 
 exclude_register = []
+
+_sparse_types = tuple(c[0] for c in class_register)

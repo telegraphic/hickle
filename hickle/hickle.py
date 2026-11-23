@@ -61,7 +61,7 @@ from .lookup import (
     create_pickled_dataset, load_nothing, fix_lambda_obj_type, safe_fix_lambda_obj_type, ReferenceManager,
     LoaderManager, RecoverGroupContainer, recover_custom_dataset,
     _hickle_pickle_fn, _safe_pickle_loads,
-    _hickle_type_pickle_fn, _safe_type_pickle_loads,
+    _hickle_type_pickle_fn, _safe_type_pickle_loads, safe_load_type,
 )
 
 
@@ -494,6 +494,9 @@ def _load(py_container, h_name, h_node,memo,loader): #load_loader = load_loader)
     # load the type information of node.
     py_obj_type,base_type,is_container = memo.resolve_type(h_node)
     py_obj_type,(_,_,memoise) = loader.load_loader(py_obj_type,base_type=base_type)
+    # fail closed: only an explicit safe=False installs pickle.loads
+    if _hickle_pickle_fn.get(None) is not pickle.loads:
+        py_obj_type = safe_load_type(py_obj_type, loader.types_dict)
 
     if is_container:
         # Either a h5py.Group representing the structure of complex objects or
