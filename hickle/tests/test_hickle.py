@@ -809,14 +809,14 @@ class _UnhicklableTestClass:
         self.val = val
 
 
-def test_security_safe_load(test_file_name):
+def test_security_safe_load(test_file_name, compression_kwargs):
     """Test that safe=True blocks untrusted pickle execution in data and metadata."""
     import os
     import h5py
     from hickle import UnsafeFileError, load_unsafe
 
     # 1. Test pickled object data blocking
-    dump(_UnhicklableTestClass(123), test_file_name)
+    dump(_UnhicklableTestClass(123), test_file_name, **compression_kwargs)
     with pytest.raises(UnsafeFileError):
         load(test_file_name, safe=True)
 
@@ -886,13 +886,13 @@ def test_security_safe_load_blocks_module_import(test_file_name, tmp_path):
     assert not marker.exists(), "untrusted module was imported despite safe=True"
 
 
-def test_security_safe_load_lowers_unsafe_subclass(test_file_name, tmp_path):
+def test_security_safe_load_lowers_unsafe_subclass(test_file_name, tmp_path, compression_kwargs):
     """safe=True must not pass file data to an imported subclass such as numpy.memmap."""
     import h5py
 
     victim = tmp_path / 'victim.txt'
     victim.write_text('precious')
-    dump(str(victim), test_file_name)
+    dump(str(victim), test_file_name, **compression_kwargs)
     # point the str node at a new type entry: py_obj_type=numpy.memmap, base_type=str
     with h5py.File(test_file_name, 'r+') as f:
         tbl = f['hickle_types_table']

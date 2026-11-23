@@ -20,6 +20,17 @@ non_core_loader_functions = {
     #'register_compact_expand',
     '_moc_numpy_array_object_lambda',
     'fix_lambda_obj_type',
+    # safe=True helpers: restore types only, never receive compression kwargs
+    '_safe_pickle_loads',
+    '_safe_type_pickle_loads',
+    'safe_fix_lambda_obj_type',
+    'safe_load_type',
+    *(
+        'RestrictedTypeUnpickler.' + m for m in (
+            'find_class', 'load_reduce', 'load_build', 'load_inst',
+            'load_obj', 'load_newobj', 'load_newobj_ex',
+        )
+    ),
     'LoaderManager.load_loader',
     'RecoverGroupContainer.convert',
     'NoContainer.convert',
