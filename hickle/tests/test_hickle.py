@@ -886,6 +886,28 @@ def test_security_safe_load_blocks_module_import(test_file_name, tmp_path):
     assert not marker.exists(), "untrusted module was imported despite safe=True"
 
 
+def test_security_safe_load_lowers_unsafe_subclass(test_file_name, tmp_path):
+    """safe=True must not pass file data to an imported subclass such as numpy.memmap."""
+    import h5py
+
+    victim = tmp_path / 'victim.txt'
+    victim.write_text('precious')
+    dump(str(victim), test_file_name)
+    # point the str node at a new type entry: py_obj_type=numpy.memmap, base_type=str
+    with h5py.File(test_file_name, 'r+') as f:
+        tbl = f['hickle_types_table']
+        entry = tbl.create_dataset('99', data=np.void(pickle.dumps(np.memmap)))
+        entry.attrs['base_type'] = tbl['str'].ref
+        f['data'].attrs['type'] = entry.ref
+
+    with pytest.warns(RuntimeWarning, match='numpy.memmap'):
+        with pytest.raises(ValueError):  # lowered to ndarray, which rejects the str
+            load(test_file_name)
+    assert victim.read_text() == 'precious'
+    # trusted files keep the full type
+    assert lookup.safe_load_type(odict, {dict: None}) is odict
+
+
 # %% MAIN SCRIPT
 if __name__ == '__main__':
     """ Some tests and examples """

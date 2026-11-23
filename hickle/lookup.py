@@ -1632,6 +1632,40 @@ def _safe_type_pickle_loads(data):
     return res
 
 
+def safe_load_type(py_obj_type, types_dict):
+    """
+    safe=True only: decide which type file data may be passed to.
+
+    Loaders call py_obj_type(data) with data read from the file.  Any class
+    already in sys.modules passes RestrictedTypeUnpickler, so a crafted file
+    could pick a registered type's subclass whose constructor has side effects
+    (eg. numpy.memmap opens the file named by the data read-write).  Only
+    registered types and subclasses defined by trusted packages are kept, any
+    other subclass is lowered to the first registered base in its MRO.
+    """
+    if not isinstance(py_obj_type, type) or py_obj_type in types_dict:
+        return py_obj_type
+    # ponytail: package allow-list plus memmap deny; extend _UNSAFE_CTOR_TYPES if
+    # another trusted-package subclass turns out to touch files/processes on construction
+    if (
+        py_obj_type.__module__.split('.', 1)[0] in _SAFE_TYPE_IMPORT_ROOTS and
+        not issubclass(py_obj_type, _UNSAFE_CTOR_TYPES)
+    ):
+        return py_obj_type
+    base = next((b for b in py_obj_type.__mro__[1:] if b in types_dict), object)
+    warnings.warn(
+        "safe=True: restoring '{}.{}' as '{}'. Use hickle.load_unsafe() to "
+        "restore the original type from a trusted file.".format(
+            py_obj_type.__module__, py_obj_type.__qualname__, base.__name__
+        ),
+        RuntimeWarning
+    )
+    return base
+
+# subclasses of registered types whose constructor must never see file data
+_UNSAFE_CTOR_TYPES = (np.memmap,)
+
+
 def load_pickled_data(h_node, base_type, py_obj_type):
     """
     Load pickle string and return resulting py_obj.
